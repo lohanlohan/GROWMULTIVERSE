@@ -1,5 +1,4 @@
 -- Store script
-print("(Loaded) Store script for GrowSoft")
 
 function startsWith(str, start)
     return string.sub(str, 1, string.len(start)) == start

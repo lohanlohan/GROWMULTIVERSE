@@ -1,5 +1,3 @@
-print("(item_browser) loading...")
-
 -- ============================================================================
 -- CONFIGURATION
 -- ============================================================================
@@ -354,4 +352,3 @@ onPlayerDialogCallback(function(world, player, data)
     return false
 end)
 
-print("(item_browser) module loaded successfully.")

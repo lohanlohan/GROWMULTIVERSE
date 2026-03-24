@@ -1,5 +1,3 @@
-print("(Loaded) Challenge Of Fenrir script - 3 Minute Valhowla Hunt")
-
 -- =========================================================
 -- CONFIG
 -- =========================================================
@@ -66,7 +64,6 @@ end
 
 local function saveFenrirRewards()
     saveDataToServer(FENRIR_REWARD_SAVE_KEY, FENRIR_REWARDS)
-    print("[FENRIR] Reward pool saved")
 end
 
 local function loadFenrirRewards()
@@ -83,11 +80,7 @@ local function loadFenrirRewards()
         end
         if migrated then
             saveFenrirRewards()
-            print("[FENRIR] Migrated reward pool to include itemID")
         end
-        print("[FENRIR] Reward pool loaded (" .. tostring(#FENRIR_REWARDS) .. " rewards)")
-    else
-        print("[FENRIR] No saved reward pool found")
     end
 end
 
@@ -381,7 +374,6 @@ onPlayerDisconnectCallback(function(player)
             timer.clear(fenrir_timers[userID])
             fenrir_timers[userID] = nil
         end
-        print("[FENRIR] Player disconnected during challenge, realtime timer continues.")
     end
 end)
 
@@ -690,7 +682,3 @@ onPlayerCommandCallback(function(world, player, command)
     return false
 end)
 
-print(">> (Success) Challenge Of Fenrir System Loaded!")
-print(">> Challenge Item ID: " .. tostring(FENRIR_ITEM_ID))
-print(">> Treasure Block ID: " .. tostring(TREASURE_BLOCK_ID))
-print(">> World: " .. VALHOWLA_WORLD)

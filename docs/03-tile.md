@@ -124,3 +124,12 @@ world:updateTile(tile)
 - **Paint Colors** — Combine RED, GREEN, BLUE untuk RGB
 - **On/Off States** — Untuk switches, doors, interactive blocks
 - **Visual Effects** — Flipped, wet, fire, glued states
+
+---
+
+## Tile Extra Data (Visual Override)
+
+Untuk mengontrol tampilan visual tile (label icon, display info, status, dll) gunakan `onGetTileExtraDataCallback`.
+Lihat dokumentasi lengkap di `07-callbacks.md` → **Tile Extra Data**.
+
+Item yang support extra data: Auto Surgeon Station, Vending Machine, Magplant, Display Block, Display Shelf, dll.

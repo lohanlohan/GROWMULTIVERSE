@@ -1,5 +1,3 @@
-print("(Loaded) Clash Finale Ticket script - 10 Minute Finale Hunt")
-
 -- ================== CONFIG ==================
 
 -- Save key for finale claims
@@ -49,13 +47,11 @@ local function saveClaimRewards()
         table.insert(parts, tostring(tileID) .. "=" .. table.concat(rparts, ","))
     end
     saveStringToServer(FINALE_CLAIMS_SAVE_KEY, table.concat(parts, ";"))
-    print("[FINALE] Saved claim rewards")
 end
 
 local function loadClaimRewards()
     local raw = loadStringFromServer(FINALE_CLAIMS_SAVE_KEY)
     if not raw or raw == "" then
-        print("[FINALE] No saved claim rewards")
         return
     end
 
@@ -88,13 +84,11 @@ local function loadClaimRewards()
                     end
                 end
             end
-            print("[FINALE] Loaded " .. #FINALE_CLAIMS[tileID].rewards .. " rewards for claim " .. tileID)
         end
     end
 
     if migrated then
         saveClaimRewards()
-        print("[FINALE] Migrated reward data to include itemID")
     end
 end
 
@@ -176,7 +170,6 @@ for ticketID, config in pairs(TICKET_CONFIG) do
     
     if registerLuaPlaymod then
         registerLuaPlaymod(modData)
-        print("[FINALE] Registered mod: " .. config.mod_name .. " (ID: " .. config.mod_id .. ")")
     end
 end
 
@@ -207,9 +200,6 @@ onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
     
     -- Random world selection
     local randomWorld = config.worlds[math.random(1, #config.worlds)]
-    
-    print("[FINALE] Player " .. player:getName() .. " activated " .. config.name .. " Ticket!")
-    print("[FINALE] Sending to: " .. randomWorld)
     
     -- Teleport to finale world after 2 seconds
     timer.setTimeout(2, function()
@@ -249,8 +239,6 @@ onPlayerEnterWorldCallback(function(world, player)
         finale_end_times[userID] = os.time() + COUNTDOWN_DURATION
     end
 
-    print("[FINALE] Player " .. player:getName() .. " entered " .. worldName .. " (" .. remaining .. "s remaining)")
-
     player:sendVariant({"OnCountdownStart", remaining, -1}, 0, player:getNetID())
 
     local timerId = timer.setTimeout(remaining, function()
@@ -260,7 +248,6 @@ onPlayerEnterWorldCallback(function(world, player)
             finale_end_times[userID] = nil
             player:enterWorld("", "", 1)
             player:onTalkBubble(player:getNetID(), "`wYour finale time has ended!", 1)
-            print("[FINALE] Sent " .. player:getName() .. " back to START")
         end
     end)
 
@@ -320,12 +307,10 @@ onPlayerDisconnectCallback(function(player)
             timer.clear(finale_hunt_timers[userID])
             finale_hunt_timers[userID] = nil
         end
-        print("[FINALE] Player disconnected during hunt, timer paused.")
     else
         finale_hunt_active[userID] = nil
         finale_end_times[userID] = nil
     end
-    print("[FINALE] Cleaned up hunt data for user: " .. userID)
 end)
 
 -- ===============================================
@@ -416,8 +401,6 @@ onPlayerActivateTileCallback(function(world, player, tile)
             end
         end
     end
-    
-    print("[FINALE] Player " .. player:getName() .. " activated " .. claimConfig.name .. "!")
     
     local rewardText = randomRewardName ~= "" and (randomRewardName) or "a reward"
     local message = "`9You completed " .. claimConfig.name .. " `wand you got `2" .. rewardText .. "`w!"
@@ -688,7 +671,9 @@ end)
 onPlayerCommandCallback(function(world, player, fullCommand)
     if not fullCommand then return false end
     
-    local cmd = fullCommand:match("^(%S+)"):lower()
+    local cmd = fullCommand:match("^(%S+)")
+    if not cmd then return false end
+    cmd = cmd:lower()
     
     if cmd == "finaleconfig" then
         -- Check if player is ADMIN (role 51)
@@ -714,14 +699,11 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             if player:getMod(config.mod_id) then
                 player:removeMod(config.mod_id)
                 removedAny = true
-                print("[FINALE] Admin " .. player:getName() .. " removed " .. config.mod_name)
             end
         end
-        
+
         if removedAny then
             player:playAudio("audio/success.wav")
-        else
-            print("[FINALE] Admin " .. player:getName() .. " tried to remove mods but had none")
         end
         
         return true
@@ -739,10 +721,3 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     return false
 end)
 
-print(">> (Success) Clash Finale Ticket System Loaded!")
-print(">> Supported tickets:")
-for ticketID, config in pairs(TICKET_CONFIG) do
-    local item = getItem(ticketID)
-    local itemName = item and item:getName() or "Unknown"
-    print("   - " .. itemName .. " (ID: " .. ticketID .. ") -> " .. table.concat(config.worlds, ", "))
-end

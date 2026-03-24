@@ -1,5 +1,4 @@
 -- Roles Example script
-print("(Loaded) Roles Example script for GrowSoft")
 
 Roles = {
     ROLE_NONE = 0,
@@ -128,4 +127,3 @@ onPlayerDialogCallback(function(world, player, data)
     return false
 end)
 
-print("(READY) Roles Example script for GrowSoft")

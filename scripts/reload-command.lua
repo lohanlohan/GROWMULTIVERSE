@@ -1,5 +1,4 @@
 -- Reload Scripts script
-print("(Loaded) Reload Scripts for GrowSoft")
 
 Roles = {
     ROLE_NONE = 0,

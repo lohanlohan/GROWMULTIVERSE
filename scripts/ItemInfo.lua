@@ -1,5 +1,4 @@
 -- Item Info Editor with In-Game Manager
-print("(Loaded) Item Info Editor v3.3 - Fixed Session")
 
 local ROLE_ADMIN = 51
 local DB_KEY = "ITEM_INFOS_V3"
@@ -806,6 +805,3 @@ onPlayerVariantCallback(function(player, variant, delay, netID)
     return false
 end)
 
-print("(Item Info Editor) v3.3+ Loaded - Session fix + useDefaultDesc + ItemEffects")
-print("Use /editinfo to start editing item information")
-print("Fixed: Session expiration issue resolved")

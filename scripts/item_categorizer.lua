@@ -236,5 +236,4 @@ function ItemCategorizer.groupByCategory(storedItems)
     return groups
 end
 
-print("(item_categorizer) module loaded successfully.")
 return ItemCategorizer

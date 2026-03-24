@@ -1,5 +1,4 @@
 -- Give Gems Command script
-print("(Loaded) Give Gems Command script for GrowSoft")
 
 function formatNum(num)
     local formattedNum = tostring(num)
@@ -41,7 +40,8 @@ registerLuaCommand(giveGemsCommandData) -- This is just for some places such as 
 
 onPlayerCommandCallback(function(world, player, fullCommand)
     local command, message = fullCommand:match("^(%S+)%s*(.*)")
-    
+    if not command then return false end
+
     if command:lower() == giveGemsCommandData.command then
         if not player:hasRole(giveGemsCommandData.roleRequired) then
             return false

@@ -1,5 +1,3 @@
-print("(Loaded) Item Effect System V2.0")
-
 local CONFIG = {
     ADMIN_ROLE = 51,
     SERVER_ID = 4552,
@@ -41,9 +39,8 @@ local function applyNativeEffects(itemID)
     if not effects then return end
     
     local item = getItem(itemID)
-    if not item then 
-        print("[ItemEffect] WARNING: Item " .. itemID .. " not found")
-        return 
+    if not item then
+        return
     end
     
     -- Apply native effects
@@ -108,14 +105,12 @@ local function saveEffects()
     
     -- Apply native effects after saving
     applyAllNativeEffects()
-    
-    print("[ItemEffect] Saved " .. table_count(_G.itemEffects) .. " items")
+
 end
 
 local function loadEffects()
     local raw = loadStringFromServer(CONFIG.SAVE_KEY .. CONFIG.SERVER_ID)
     if not raw or raw == "" then
-        print("[ItemEffect] No saved effects")
         return
     end
     
@@ -159,8 +154,7 @@ local function loadEffects()
     
     -- Apply native effects after loading
     applyAllNativeEffects()
-    
-    print("[ItemEffect] Loaded effects")
+
 end
 
 loadEffects()
@@ -617,9 +611,6 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     return false
 end)
 
-print(">> Item Effect System V2.0 - Type /effectadmin")
-print(">> Native Effects: Extra Gems, Extra XP, One Hit, Break Range, Build Range")
-print(">> Custom Effects: Item Drops, Tree Growth, Farm Speed")
 
 -- ════════════════════════════════════════════════════════════════════
 -- FARM SPEED - HELPER FUNCTION
@@ -653,8 +644,6 @@ _G.getItemEffectFarmSpeedBoost = function(userID)
     return calculateFarmSpeedBoost(player)
 end
 
-print("[ItemEffect] Global function '_G.getItemEffectFarmSpeedBoost' exported!")
-print("[ItemEffect] Test: _G.getItemEffectFarmSpeedBoost = " .. tostring(_G.getItemEffectFarmSpeedBoost))
 
 -- ════════════════════════════════════════════════════════════════════
 -- FARM SPEED - INTEGRATION WITH AUTOFARM BOOST SYSTEM

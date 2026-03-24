@@ -64,10 +64,10 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 ```
 carnival.lua             ✅ Done  — Carnival (Prize Manager + Concentration R1&2 + Shooting Gallery R1)
 Backpack.lua             ✅ Done  — /bp /backpack /givebp /editbp
-GrowMatic.lua            ✅ Done  — core server script
+GrowMatic.lua            ✅ Done  — Grow-o-Matic farming machine (machine ID 25014)
 Rent_Entrance.lua        ✅ Done  — rent entrance system
 anti-spam.lua            ✅ Done  — anti spam
-anti_consum.lua          ✅ Done  — anti consumable standalone
+anti_consumable.lua      ✅ Done  — anti consumable standalone (renamed dari anti_consum.lua)
 autofarm_speed.lua       ✅ Done  — autofarm speed booster
 automation_menu.lua      ✅ Done  — /auto cheat menu
 buy.lua                  ✅ Done  — buy system
@@ -115,13 +115,14 @@ tile-wrench-example.lua
 **File:** `scripts/carnival.lua`
 **Storage Key:** `"CARNIVAL_PRIZE_V1"`
 **World:** `CARNIVAL_2`
-**Status:** ✅ Done (Concentration R1&2 + Shooting Gallery R1)
+**Status:** ✅ Done (Concentration R1&2 + Shooting Gallery R1&2 + Death Race 5000 + Mirror Maze)
 
 ### Minigames Implemented
 ```
 Concentration      — Room 1 (CONCENTRATION01-03) + Room 2 (CONCENTRATION04-06) ✅
-Shooting Gallery   — Room 1 (SHOOTING01-03) ✅ | Room 2 coords belum diterima
-Shooting Gallery   — Room 2: tambah entry ke SG_ROOMS saat dapat coords
+Shooting Gallery   — Room 1 (SHOOTING01-03) ✅ | Room 2 (SHOOTING04-06) ✅
+Death Race 5000    — DEATH01-04 ✅
+Mirror Maze        — MIRROR01-02 ✅
 ```
 
 ### Prize System
@@ -150,14 +151,16 @@ Prize: weighted random 65%/30%/5%, configurable per minigame via dialog
 
 ### Concentration (Room 1 & 2)
 ```
-Mekanik: 16 kartu tertutup, cocokkan 8 pasang dalam 3 menit
+Mekanik: 16 kartu tertutup, cocokkan 8 pasang dalam 1 menit
 Item kartu tertutup: 1916 | Simbol: 742,744,746,748,1918,1920,1922,1924
 
 Room 1: CONCENTRATION01-03 | cards (39-45,29-35) | posIngame=(42,36) | posExit=(49,33)
 Room 2: CONCENTRATION04-06 | cards (64-70,29-35) | posIngame=(67,36) | posExit=(60,36)
 
-Tile change real (visible semua player), flip-back 2 detik jika mismatch
-Win: 8 pasang cocok | Lose: timer 3 menit habis
+Tile change real (visible semua player)
+Mismatch: dua kartu tetap terbuka sampai punch ke-3 → kartu 1&2 tutup, kartu ke-3 terbuka sebagai firstPick
+Match: dua kartu tetap terbuka permanen
+Win: 8 pasang cocok | Lose: timer 1 menit habis
 ```
 
 ### Shooting Gallery (Room 1)
@@ -172,7 +175,9 @@ Room 1: SHOOTING01-03
   posWait=(36,54) | posIngame=(41,54) | posExit=(35,52)
   gameArea: xMin=(38-1)*32, xMax=(44-1)*32, yMin=(46-1)*32, yMax=(54-1)*32
 
-Room 2: belum ada coords — tambah entry ke SG_ROOMS[] saat dapat
+Room 2: SHOOTING04-06 | posWait=(78,54) | posIngame=(73,54) | posExit=(79,52)
+  Targets: (70,53)(72,53)(74,53)(76,53)(71,51)(73,51)(75,51)(72,49)(74,49)(73,47)
+  gameArea: xMin=(70-1)*32, xMax=(76-1)*32, yMin=(46-1)*32, yMax=(54-1)*32
 
 Alur:
   1. Masuk SHOOTING01 → ticket deduct → reanchor ke posWait → antri
@@ -220,8 +225,14 @@ Alur:
    → OnSetLabel tidak support di GTPS Cloud
    → Solusi: timer tanpa label, score update via bubble(world, avatar, "`6Score: X")
 
-9. Cross-minigame guard: getPlayerActiveGame(uid) cek semua ROOMS + SG_ROOMS
-   → Player sedang active di game lain → block + reanchor ke posIngame game mereka
+9. Cross-minigame guard: getPlayerActiveGame(uid) cek semua ROOMS + SG_ROOMS + DR_ROOMS + MM_ROOMS
+   → Cek queue DAN activeUID/activePlayers di semua game type
+   → Player sedang active/antri di game lain → block + reanchor ke posIngame game mereka
+   → onPlayerDeathCallback: hapus dari queue semua game (bukan forfeit active game)
+     DR active tidak disentuh (DR punya death handling sendiri)
+
+10. DR reanchor pakai reanchorList[] (bukan single slot) — support multiple player join bersamaan
+    → table of {uid, tickAt, pos} — di-process tiap world tick (iterate reverse)
 ```
 
 ### Progress Coding
@@ -230,13 +241,123 @@ Status: ✅ Done (fully tested in-game)
 
 Concentration: fully tested, 2 rooms working
 Shooting Gallery Room 1: fully tested ✅
-  → TILE_FLAG_IS_ON constant wajib didefinisikan
-  → Door pattern: return false + reanchor (bukan return true)
-  → Win condition: timer-based (score ≥ 30 saat timer habis, bukan immediate)
-  → Score display: bubble di atas kepala player (OnCountdownStart label tidak support update)
+Shooting Gallery Room 2: done ✅ (belum tested in-game)
+Death Race 5000: done ✅ (belum tested in-game)
+Mirror Maze: done ✅ (belum tested in-game, bug fix prize.id→prize.itemID sudah difix)
 
-Next: Shooting Gallery Room 2 (tunggu coords dari user)
-Next: Minigame lain (Growganoth Gulch, Mirror Maze, Brutal Bounce, dll)
+Mirror Maze: done ✅ — timer bug, maze randomness, posExit, perfect maze algorithm semua fix
+Next: Minigame lain (Growganoth Gulch, Brutal Bounce, Hall of Mirrors, Spiky Survivor)
+```
+
+---
+
+### Death Race 5000
+```
+Mekanik: Race parkour kanan-bawah → kiri → atas → kanan-atas, siapa duluan finish = menang
+Doors: DEATH01 (entrance) | DEATH02 (CP1 ref) | DEATH03 (CP2 ref) | DEATH04 (exit)
+Min players: 2 | Timer: 90 detik | Countdown pre-race: 5 detik (reset tiap player baru masuk)
+Bisa lebih dari 2 player, asal masuk sebelum countdown habis
+
+Koordinat:
+  posTent=(34,14) | posWait=(34,16) | posCP1=(32,16) | posCP2=(4,12)
+  posFinish=(32,12) | posExit=(36,17)
+  gameArea: xMin=(2-1)*32, xMax=(33-1)*32, yMin=(9-1)*32, yMax=(17-1)*32
+  (1-2 tile buffer agar checkpoint tidak tepat di batas → cegah false death loop)
+
+Obstacle slots: x=6,8,10,...,30 di y=16 (floor 1) dan y=12 (floor 2)
+  Death Spike ID 162: 1 tile (floor level only)
+  Lava ID 4: 1 tile (floor) atau 2 tile (floor + floor-1)
+  Distribution: 25% empty | 17% spike | 25% lava single | 33% lava double
+  Consecutive rule: 60% force empty setelah obstacle (kadang 2 consecutive boleh)
+  Generate ulang setiap race baru
+
+Checkpoint system (position-based detection):
+  CP1 default (32,16) | CP2 unlock saat tx≤5 di floor 2
+  Mati = keluar gameArea → 1 detik delay → respawn di checkpoint + 2 detik grace period
+
+Alur:
+  1. Masuk DEATH01 → ticket deduct → reanchorList → posWait → antri
+  2. Queue ≥ 2 → countdown 5s (reset jika player baru masuk)
+  3. Countdown habis → obstacle generate → semua teleport ke CP1 → timer 90s mulai
+  4. Pertama sentuh tile finish (32,12) = WIN → prize + notify semua → 5s exit
+  5. Timer habis → "No winner" → 5s exit
+  6. Semua player di-teleport ke posExit, obstacles di-clear
+```
+
+### Mirror Maze
+```
+Mekanik: Selesaikan labirin tak kasat mata dari posIngame ke posEndgame dalam 40 detik
+Doors: MIRROR01 (entrance/antrian 27,29) | MIRROR02 (ingame 15,33)
+posWait=(27,29) | posIngame=(15,33) | posEndgame=Bullseye(25,25) | posExit=(27,26)
+gameArea: x1=15, y1=25, x2=25, y2=33 (11×9 tiles)
+
+Obstacle: Mirror Maze Block (ID 1926) mengisi seluruh area kecuali posIngame & posEndgame
+  OFF state (flag not set) = collision normal (dinding)
+  ON state (TILE_FLAG_IS_ON) = no collision (bisa dilewati)
+  Semua blok terlihat sama secara visual — player harus tebak jalur
+
+Maze RANDOM tiap game (mmGenerateOpen):
+  → Recursive backtracker pada cell grid 2-step (even offsets dari x1,y1)
+  → Setiap koridor lebar TEPAT 1 tile: wall | path | wall (perfect maze)
+  → Grid 11×9 → 6×5 = 30 cells, setiap cell terhubung (satu jalur unik per pasang titik)
+  → math.randomseed(os.time() + gameSession*1337) tiap mmPlaceMaze → maze selalu beda
+  Setiap player baru = layout maze berbeda, guaranteed solvable
+
+Win: player step ke posEndgame (25,25) = detected via posisi check di world tick
+Lose: timer 40s habis → bubble + regenerate maze → exit 3s delay → MIRROR03 (28,26)
+Setelah game selesai: mmPlaceMaze dipanggil (bukan mmClearBlocks) → ruangan tidak kosong
+
+Bug fixes:
+  timer.simple → timer.setTimeout | timer.stop → timer.clear
+  getWorld(WORLD) → getCarnivalWorld() (dalam timer callback)
+  prize.id → prize.itemID | prize.count → prize.amount
+  posExit: (27,26) → (28,26) MIRROR03
+  OnCountdownStart param 3: 1 → -1 (hapus "Score: 1" text)
+```
+
+### Catatan Teknis Death Race 5000
+```
+- drStartGame: build startList dulu, baru clear queue setelah count valid
+  (mencegah queue terhapus kalau ada player offline di queue)
+- reanchorList[] bukan single slot — support multiple player join bersamaan
+- Fallback auto-trigger di world tick: jika queue ≥ 2 dan tidak ada countdown/game/exit
+  → set countdown otomatis (catch edge case brief disconnect/reconnect)
+- winner dapat OnCountdownStart(0,-1) agar timer display di-clear
+- Snap non-active players keluar gameArea setiap 1 detik (drSnapTick)
+- /carnivalreset juga reset DR_ROOMS + clear obstacles
+```
+
+---
+
+## ════════════════════════════════════
+## FITUR: Grow-o-Matic
+## ════════════════════════════════════
+
+**File:** `scripts/GrowMatic.lua`
+**Storage Key:** `"furnace_db_v1"`
+**Machine ID:** 25014
+**Status:** ✅ Done
+
+---
+
+### Fitur
+- Place machine → otomatis init state
+- Insert seeds via item picker (ambil dari inventory + magplant)
+- Punch machine → toggle ON/OFF processing
+- Wrench → lihat status, insert seeds, collect harvest, cancel & refund, upgrade
+- Collect: output blocks + seeds + gems, overflow ke inventory, sisa ke magplant
+- Cancel & Refund: konfirmasi dialog → seeds dikembalikan ke **Backpack** (via `_G.BP_storeItem`)
+- Upgrade machine (4 level): Basic→Advanced→Industrial→Godly (cap 5k/10k/100k/1M)
+
+### Catatan Teknis
+```
+- Cancel & Refund TIDAK panggil process_furnace() sebelum baca input_count
+  (process_furnace bisa clear input_count=0 jika grow time sudah lewat → item hilang)
+- Backpack integration: _G.BP_storeItem(player, itemID, count) dari Backpack.lua
+  (update in-memory state + save file — direct file write tidak cukup karena Backpack.lua punya cache)
+- Confirmation dialog: furnace_refund_confirm (dialog terpisah dari furnace_ui)
+- Tile flag ON/OFF: bit 64 (bit.band/bor + world:updateTile)
+- Harvest: rarity-based output calculation + magplant fill priority
 ```
 
 ---
@@ -356,7 +477,10 @@ Player lain (dengan/tanpa world access) → buy panel saat wrench
 ### Fitur
 - `/editinfo` (role 51) — edit tampilan info item (deskripsi, warna, special effect, bonus drop)
 - `/effectadmin` (role 51) — tambah/edit item effects (extraGems, extraXP, oneHit, breakRange, buildRange, treeGrowth, farmSpeed, drops)
-- Non-admin: price info, item ID, item slot **disembunyikan** dari dialog item info
+- Non-admin: price info, item ID, item slot, **"This item Rarity is X"** disembunyikan dari dialog item info
+- Role 51: semua info tampil (termasuk rarity text)
+- "Rarity: 96" (numeric native) tetap tampil untuk semua player
+- Trailing spacer sebelum end_dialog di-trim untuk kurangi gap bawah
 - Item effects dari itemeffectlua ditampilkan di item info untuk **semua player** (admin & non-admin)
 - Urutan tampil: Judul → Deskripsi → **Item Effects** → Properties (spliced/dll) → **Bonus Drops button**
 

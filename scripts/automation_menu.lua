@@ -256,5 +256,3 @@ end)
 -- Player-profile entegrasyonu
 _G.GM_openCheatMenu = sendCheatMenu
 
-print(">> Custom Cheat Menu v12 FIXED loaded!")
-print(">> All mods working: Autofarm, Spam, Pull, Fish, Drop, Trash, Gems, Particles, Anti-Consumable")

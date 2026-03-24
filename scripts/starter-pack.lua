@@ -1,5 +1,4 @@
 -- Starter Pack script
-print("(Loaded) Starter Pack script for GrowSoft")
 
 local starterItems = {
     {itemID = 9640, itemCount = 1},

@@ -4,8 +4,6 @@ local MaladySystem = require("malady_rng")
 
 local HospitalSystem = {}
 
-print("(hospital_system) module loading...")
-
 -- =======================================================
 -- CONFIG
 -- =======================================================
@@ -1462,5 +1460,4 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     return true
 end)
 
-print("(hospital_system) module loaded successfully.")
 return HospitalSystem

@@ -1,5 +1,4 @@
 -- Set Slots Command script
-print("(Loaded) Set Slots Command script for GrowSoft")
 
 function formatNum(num)
     local formattedNum = tostring(num)
@@ -41,7 +40,8 @@ registerLuaCommand(setSlotsCommandData) -- This is just for some places such as 
 
 onPlayerCommandCallback(function(world, player, fullCommand)
     local command, message = fullCommand:match("^(%S+)%s*(.*)")
-    
+    if not command then return false end
+
     if command:lower() == setSlotsCommandData.command then
         if not player:hasRole(setSlotsCommandData.roleRequired) then
             return false

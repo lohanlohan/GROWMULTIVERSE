@@ -1,5 +1,4 @@
 -- News script
-print("(Loaded) News script for GrowSoft")
 
 function onShowNews(player)
     local serverName = getServerName() -- Pretty much returns what you have in conf.json

@@ -1,5 +1,4 @@
 -- Block Drops Example script
-print("(Loaded) Block Drops Example script for GrowSoft")
 
 -- Uncomment this part of code if u want it to have any effect
 

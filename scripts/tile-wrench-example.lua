@@ -1,5 +1,4 @@
 -- Tile Wrench Example script
-print("(Loaded) Tile Wrench Example script for GrowSoft")
 
 onTileWrenchCallback(function(world, player, tile)
     local tileID = tile:getTileID();

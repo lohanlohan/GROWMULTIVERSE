@@ -1,5 +1,4 @@
 -- Green Beer Consumable script
-print("(Loaded) Green Beer Consumable script for GrowSoft")
 
 PlayerStats = {
     PlacedBlocks = 0,

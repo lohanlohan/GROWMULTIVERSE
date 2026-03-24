@@ -9,7 +9,7 @@ local anti_consum_mod_data = {
 local antiConsumID = registerLuaPlaymod(anti_consum_mod_data)
 
 onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
-if player:hasMod(antiConsumID) then
-	return true
-end
-end
+	if clickedPlayer and clickedPlayer:getUserID() ~= player:getUserID() and clickedPlayer:hasMod(antiConsumID) then
+		return true
+	end
+end)

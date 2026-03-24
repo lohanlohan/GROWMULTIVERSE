@@ -16,7 +16,7 @@ local WORLD_UPPER = "CARNIVAL_2"
 -- Shared constants
 local TICKET_ID    = 1898
 local CARD_BACK_ID = 1916
-local GAME_DURATION = 180
+local GAME_DURATION = 60
 local QUEUE_DELAY   = 3
 local FLIP_DELAY    = 2
 local WIN_PARTICLE  = 18
@@ -199,7 +199,23 @@ local SG_ROOMS = {
         posExit   = {x=35, y=52},
         gameArea  = {xMin=(38-1)*32, xMax=(44-1)*32, yMin=(46-1)*32, yMax=(54-1)*32},
     },
-    -- Room 2: add coords when available
+    -- Room 2 (right side)
+    {
+        name         = "Shooting Gallery",
+        doorEntrance = "SHOOTING04",
+        doorIngame   = "SHOOTING05",
+        doorExit     = "SHOOTING06",
+        targetPos    = {
+            {x=70,y=53},{x=72,y=53},{x=74,y=53},{x=76,y=53},
+            {x=71,y=51},{x=73,y=51},{x=75,y=51},
+            {x=72,y=49},{x=74,y=49},
+            {x=73,y=47},
+        },
+        posWait   = {x=78, y=54},
+        posIngame = {x=73, y=54},
+        posExit   = {x=79, y=52},
+        gameArea  = {xMin=(70-1)*32, xMax=(76-1)*32, yMin=(46-1)*32, yMax=(54-1)*32},
+    },
 }
 
 for _, room in ipairs(SG_ROOMS) do
@@ -259,13 +275,39 @@ local function isInQueue(room, uid)
     return false
 end
 
--- Returns gameType ("concentration"/"sg") and room if player is activeUID in any game
+local DR_ROOMS         = {}   -- forward declaration (populated after SG section)
+local drClearTimers    = nil  -- forward declaration (defined in DR section)
+local drClearObstacles = nil  -- forward declaration (defined in DR section)
+
+local MM_ROOMS      = {}   -- forward declaration (populated in MM section)
+local mmClearTimers = nil  -- forward declaration (defined in MM section)
+local mmClearBlocks = nil  -- forward declaration (defined in MM section)
+
+-- Returns gameType ("concentration"/"sg"/"dr") and room if player is active in any game
 local function getPlayerActiveGame(uid)
     for _, room in ipairs(ROOMS) do
         if uid == room.activeUID then return "concentration", room end
+        for _, e in ipairs(room.queue or {}) do
+            if e.uid == uid then return "concentration", room end
+        end
     end
     for _, room in ipairs(SG_ROOMS) do
         if uid == room.activeUID then return "sg", room end
+        for _, e in ipairs(room.queue or {}) do
+            if e.uid == uid then return "sg", room end
+        end
+    end
+    for _, room in ipairs(DR_ROOMS) do
+        if room.activePlayers and room.activePlayers[uid] then return "dr", room end
+        for _, e in ipairs(room.queue or {}) do
+            if e.uid == uid then return "dr", room end
+        end
+    end
+    for _, room in ipairs(MM_ROOMS) do
+        if uid == room.activeUID then return "mm", room end
+        for _, e in ipairs(room.queue or {}) do
+            if e.uid == uid then return "mm", room end
+        end
     end
     return nil, nil
 end
@@ -807,8 +849,20 @@ onTilePunchCallback(function(world, avatar, tile)
         if cardIdx then
             -- Card belongs to this room — always prevent breaking
             if avatar:getUserID() ~= room.activeUID then return true end
-            if room.resolving                        then return true end
-            if room.matched[cardIdx]                 then return true end
+            if room.matched[cardIdx] then return true end
+
+            if room.resolving then
+                -- Close the two mismatched cards, open this one as firstPick
+                local r = room.resolving
+                room.resolving = nil
+                setCard(world, room, r.idx1, CARD_BACK_ID)
+                setCard(world, room, r.idx2, CARD_BACK_ID)
+                if not room.matched[cardIdx] then
+                    room.firstPick = {idx = cardIdx, sym = room.gameBoard[cardIdx]}
+                    setCard(world, room, cardIdx, room.gameBoard[cardIdx])
+                end
+                return true
+            end
 
             if not room.firstPick then
                 -- First card flip
@@ -830,22 +884,9 @@ onTilePunchCallback(function(world, avatar, tile)
                         handleEnd(world, avatar, true, room)
                     end
                 else
-                    -- MISMATCH — flip both cards back after delay
-                    local i1 = room.firstPick.idx
-                    local i2 = cardIdx
+                    -- MISMATCH — stay open until next punch
+                    room.resolving = {idx1 = room.firstPick.idx, idx2 = cardIdx}
                     room.firstPick = nil
-                    room.resolving = {idx1=i1, idx2=i2}
-                    if room.flipTimer then timer.clear(room.flipTimer) end
-                    room.flipTimer = timer.setTimeout(FLIP_DELAY, function()
-                        room.flipTimer = nil
-                        if not room.resolving then return end
-                        local w = getCarnivalWorld()
-                        if not w then return end
-                        setCard(w, room, i1, CARD_BACK_ID)
-                        setCard(w, room, i2, CARD_BACK_ID)
-                        room.resolving = nil
-                        room.firstPick = nil
-                    end)
                 end
             end
 
@@ -1010,7 +1051,7 @@ onPlayerCommandCallback(function(world, player, fullCmd)
             resetAllCards(world, room)
         end
 
-        -- Also reset SG rooms when no specific room given
+        -- Also reset SG and DR rooms when no specific room given
         if not roomNum then
             for _, sgRoom in ipairs(SG_ROOMS) do
                 sgClearTimers(sgRoom)
@@ -1023,6 +1064,29 @@ onPlayerCommandCallback(function(world, player, fullCmd)
                 sgRoom.reanchorTickAt  = nil
                 sgRoom.reanchorPos     = nil
                 sgResetTargets(world, sgRoom)
+            end
+            for _, drRoom in ipairs(DR_ROOMS) do
+                drClearTimers(drRoom)
+                drRoom.queue         = {}
+                drRoom.activePlayers = {}
+                drRoom.gameActive    = false
+                drRoom.winner        = nil
+                drRoom.gameSession   = drRoom.gameSession + 1
+                drRoom.reanchorList  = {}
+                drClearObstacles(world, drRoom)
+            end
+            for _, mmRoom in ipairs(MM_ROOMS) do
+                mmClearTimers(mmRoom)
+                mmClearBlocks(world, mmRoom)
+                mmRoom.queue           = {}
+                mmRoom.activeUID       = nil
+                mmRoom.exitUID         = nil
+                mmRoom.gameSession     = mmRoom.gameSession + 1
+                mmRoom.exitTickAt      = nil
+                mmRoom.nextQueueTickAt = nil
+                mmRoom.reanchorUID     = nil
+                mmRoom.reanchorTickAt  = nil
+                mmRoom.reanchorPos     = nil
             end
         end
         local label = roomNum and ("Concentration Room " .. roomNum) or "all games"
@@ -1251,6 +1315,999 @@ onPlayerLeaveWorldCallback(function(world, player)
                 sgResetTargets(world, room)
                 sgScheduleNext(room)
             end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- DEATH RACE 5000 — CONSTANTS & CONFIG
+-- ══════════════════════════════════════════════════════════════
+
+local DR_SPIKE_ID    = 162   -- Death Spike (instant kill)
+local DR_LAVA_ID     = 4     -- Lava (deadly)
+local DR_DURATION    = 90    -- Race timer (seconds)
+local DR_COUNTDOWN   = 5     -- Pre-race countdown (seconds)
+local DR_MIN_PLAYERS = 2     -- Minimum players to start
+local DR_EXIT_DELAY  = 5     -- Seconds before exit teleport after race ends
+
+-- Populate DR_ROOMS (forward-declared above getPlayerActiveGame)
+DR_ROOMS[1] = {
+    name         = "Death Race 5000",
+    doorEntrance = "DEATH01",
+    doorExit     = "DEATH04",
+
+    posTent   = {x=34, y=14},
+    posWait   = {x=34, y=16},
+    posIngame = {x=34, y=16},  -- alias used by cross-game guard reanchor
+    posCP1    = {x=32, y=16},  -- checkpoint 1 / start
+    posCP2    = {x=4,  y=12},  -- checkpoint 2 (left side, floor 2)
+    posFinish = {x=32, y=12},  -- finish line (Race End Flag)
+    posExit   = {x=36, y=17},
+
+    -- Game area with 1-2 tile buffer so checkpoints are safely inside,
+    -- while posWait(34,16) and posExit(36,17) remain outside.
+    gameArea = {
+        xMin = (2-1)*32,   -- tile 2  (buffer left of CP2 at x=4)
+        xMax = (33-1)*32,  -- tile 33 (1 tile right of CP1 at x=32; posWait x=34 still outside)
+        yMin = (9-1)*32,   -- tile 9  (buffer above game ceiling)
+        yMax = (17-1)*32,  -- tile 17 (1 tile below CP1 floor at y=16)
+    },
+
+    -- Runtime state (initialised below)
+    queue           = {},
+    activePlayers   = {},  -- [uid] = {name, checkpoint, dead, noDeathUntil, finished, respawnAt}
+    gameActive      = false,
+    gameSession     = 0,
+    countdownTickAt = nil,
+    gameTimer       = nil,
+    exitTickAt      = nil,
+    obstacles       = {},  -- [{x,y,id}, ...]  currently placed obstacle tiles
+    winner          = nil,
+    reanchorList    = {},  -- [{uid, tickAt, pos}]  pending teleports (supports multiple at once)
+}
+
+-- ══════════════════════════════════════════════════════════════
+-- DEATH RACE — HELPERS
+-- ══════════════════════════════════════════════════════════════
+
+drClearObstacles = function(world, room)
+    if world then
+        for _, obs in ipairs(room.obstacles) do
+            local tile = world:getTile(obs.x - 1, obs.y - 1)
+            if tile then
+                world:setTileForeground(tile, 0)
+                world:updateTile(tile)
+            end
+        end
+    end
+    room.obstacles = {}
+end
+
+-- Generate and place obstacles for both floors.
+-- Rules:
+--   Slots: x = 6,8,10,...,30 at yFloor (13 slots per floor)
+--   After a filled slot: 60% force empty gap, 40% can roll again (allows occasional doubles)
+--   Distribution: 25% empty | 17% spike | 25% lava single | 33% lava double
+local function drPlaceObstacles(world, room)
+    local function genFloor(yFloor)
+        local prevFilled = false
+        for sx = 6, 30, 2 do
+            if prevFilled and math.random(10) <= 6 then
+                -- 60% chance: force empty gap after obstacle
+                prevFilled = false
+            else
+                prevFilled = false
+                local r = math.random(12)
+                if r <= 3 then
+                    -- 25% empty slot
+                elseif r <= 5 then
+                    -- 17% death spike (single tile, floor level)
+                    table.insert(room.obstacles, {x=sx, y=yFloor, id=DR_SPIKE_ID})
+                    prevFilled = true
+                elseif r <= 8 then
+                    -- 25% lava single (floor level only)
+                    table.insert(room.obstacles, {x=sx, y=yFloor, id=DR_LAVA_ID})
+                    prevFilled = true
+                else
+                    -- 33% lava double (floor + one tile above)
+                    table.insert(room.obstacles, {x=sx, y=yFloor,   id=DR_LAVA_ID})
+                    table.insert(room.obstacles, {x=sx, y=yFloor-1, id=DR_LAVA_ID})
+                    prevFilled = true
+                end
+            end
+        end
+    end
+
+    genFloor(16)  -- floor 1 (bottom)
+    genFloor(12)  -- floor 2 (top)
+
+    for _, obs in ipairs(room.obstacles) do
+        local tile = world:getTile(obs.x - 1, obs.y - 1)
+        if tile then
+            world:setTileForeground(tile, obs.id)
+            world:updateTile(tile)
+        end
+    end
+end
+
+drClearTimers = function(room)
+    if room.gameTimer then timer.clear(room.gameTimer); room.gameTimer = nil end
+    room.countdownTickAt = nil
+    room.exitTickAt      = nil
+end
+
+-- Teleport player to their current checkpoint and set death cooldown
+local function drTeleportToCP(world, player, room, uid)
+    local pstate = room.activePlayers[uid]
+    if not pstate then return end
+    local cpPos = pstate.checkpoint == 2 and room.posCP2 or room.posCP1
+    local cpx   = (cpPos.x - 1) * 32
+    local cpy   = (cpPos.y - 1) * 32
+    world:setPlayerPosition(player, cpx, cpy)
+    pstate.noDeathUntil = os.time() + 2  -- 2s grace period after respawn
+end
+
+local function drEndGame(world, room)
+    drClearTimers(room)
+    room.gameActive = false
+    room.exitTickAt = os.time() + DR_EXIT_DELAY
+end
+
+local function drHandleWin(world, player, uid, room)
+    if room.winner then return end
+    room.winner = uid
+
+    local p        = getRandPrize(room.name)
+    local item     = getItem(p.itemID)
+    local itemName = item and item:getName() or ("Item#" .. p.itemID)
+
+    bubble(world, player, "`6FINISH! " .. player:getName() .. " wins!")
+    player:onConsoleMessage("`61st place! `wPrize: " .. p.amount .. "x " .. itemName)
+    player:changeItem(p.itemID, p.amount, 0)
+    player:sendVariant({"OnCountdownStart", 0, -1}, 0, player:getNetID())
+    local tx = math.floor(player:getPosX() / 32)
+    local ty = math.floor(player:getPosY() / 32)
+    player:sendVariant({"OnParticleEffect", WIN_PARTICLE, tx, ty}, 0, player:getNetID())
+
+    for ouid in pairs(room.activePlayers) do
+        if ouid ~= uid then
+            local op = getPlayerInWorld(world, ouid)
+            if op then
+                bubble(world, op, "`4" .. player:getName() .. " wins the race!")
+                op:onConsoleMessage("`4" .. player:getName() .. " reached the finish first. Better luck next time!")
+                op:sendVariant({"OnCountdownStart", 0, -1}, 0, op:getNetID())
+            end
+        end
+    end
+
+    drEndGame(world, room)
+end
+
+local function drHandleTimeout(world, room)
+    for uid in pairs(room.activePlayers) do
+        local p = getPlayerInWorld(world, uid)
+        if p then
+            bubble(world, p, "`4Time's Up! No winner.")
+            p:onConsoleMessage("`4Time's up! No one finished the race.")
+            p:sendVariant({"OnCountdownStart", 0, -1}, 0, p:getNetID())
+        end
+    end
+    drEndGame(world, room)
+end
+
+local function drStartGame(world, room)
+    room.gameActive  = true
+    room.winner      = nil
+    room.gameSession = room.gameSession + 1
+    local session    = room.gameSession
+
+    -- Build startList first WITHOUT clearing queue yet
+    local startList = {}
+    for _, e in ipairs(room.queue) do
+        local p = getPlayerInWorld(world, e.uid)
+        if p then
+            table.insert(startList, {uid = e.uid, player = p, name = e.name})
+        end
+    end
+
+    if #startList < DR_MIN_PLAYERS then
+        -- Not enough online players — abort, keep online players in queue
+        room.gameActive = false
+        for i = #room.queue, 1, -1 do
+            local online = false
+            for _, s in ipairs(startList) do
+                if s.uid == room.queue[i].uid then online = true; break end
+            end
+            if not online then table.remove(room.queue, i) end
+        end
+        return
+    end
+
+    -- Enough real players — clear queue and populate activePlayers
+    room.queue = {}
+    for _, entry in ipairs(startList) do
+        room.activePlayers[entry.uid] = {
+            name         = entry.name,
+            checkpoint   = 1,
+            dead         = false,
+            noDeathUntil = os.time() + 3,
+            finished     = false,
+            respawnAt    = nil,
+        }
+    end
+
+    -- Generate new obstacle layout
+    drClearObstacles(world, room)
+    drPlaceObstacles(world, room)
+
+    -- Teleport everyone to CP1 and start countdown display
+    local cp1x = (room.posCP1.x - 1) * 32
+    local cp1y = (room.posCP1.y - 1) * 32
+    for _, entry in ipairs(startList) do
+        world:setPlayerPosition(entry.player, cp1x, cp1y)
+        entry.player:sendVariant({"OnCountdownStart", DR_DURATION, -1}, 0, entry.player:getNetID())
+        entry.player:onConsoleMessage("`wGO! `7Race to the finish — `w" .. DR_DURATION .. "s`7 on the clock!")
+    end
+
+    -- Race timeout timer
+    room.gameTimer = timer.setTimeout(DR_DURATION, function()
+        room.gameTimer = nil
+        if room.gameSession ~= session then return end
+        local w = getCarnivalWorld()
+        if w then drHandleTimeout(w, room) end
+    end)
+
+    -- 30-second warning
+    if DR_DURATION > 30 then
+        timer.setTimeout(DR_DURATION - 30, function()
+            if room.gameSession ~= session or not room.gameActive then return end
+            local w = getCarnivalWorld()
+            if not w then return end
+            for uid in pairs(room.activePlayers) do
+                local p = getPlayerInWorld(w, uid)
+                if p then p:onConsoleMessage("`630 seconds remaining!") end
+            end
+        end)
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- DEATH RACE — WORLD TICK
+-- ══════════════════════════════════════════════════════════════
+
+local drSnapTick = 0
+onWorldTick(function(world)
+    if world:getName():upper() ~= WORLD_UPPER then return end
+    local now = os.time()
+
+    for _, room in ipairs(DR_ROOMS) do
+
+        -- Countdown: start game when time arrives
+        if room.countdownTickAt and now >= room.countdownTickAt and not room.gameActive then
+            room.countdownTickAt = nil
+            if #room.queue >= DR_MIN_PLAYERS then
+                drStartGame(world, room)
+            end
+        end
+
+        -- Fallback: auto-trigger countdown if conditions met but no countdown running
+        -- Catches edge cases where door callback missed the trigger (e.g. brief disconnect/reconnect)
+        if not room.gameActive and not room.exitTickAt and not room.countdownTickAt then
+            if #room.queue >= DR_MIN_PLAYERS then
+                room.countdownTickAt = now + DR_COUNTDOWN
+                for _, e in ipairs(room.queue) do
+                    local qp = getPlayerInWorld(world, e.uid)
+                    if qp then
+                        qp:onConsoleMessage("`2Race starting in `w" .. DR_COUNTDOWN .. "s`2! Get ready!")
+                    end
+                end
+            end
+        end
+
+        -- Re-anchor pending teleports (supports multiple players simultaneously)
+        for i = #room.reanchorList, 1, -1 do
+            local ra = room.reanchorList[i]
+            if now >= ra.tickAt then
+                table.remove(room.reanchorList, i)
+                local rp = getPlayerInWorld(world, ra.uid)
+                if rp then
+                    world:setPlayerPosition(rp, (ra.pos.x-1)*32, (ra.pos.y-1)*32)
+                end
+            end
+        end
+
+        -- Exit teleport: move all finished players out and clean up
+        if room.exitTickAt and now >= room.exitTickAt then
+            room.exitTickAt = nil
+            local ex_px = (room.posExit.x - 1) * 32
+            local ex_py = (room.posExit.y - 1) * 32
+            for uid in pairs(room.activePlayers) do
+                local p = getPlayerInWorld(world, uid)
+                if p then
+                    p:sendVariant({"OnCountdownStart", 0, -1}, 0, p:getNetID())
+                    world:setPlayerPosition(p, ex_px, ex_py)
+                end
+            end
+            room.activePlayers = {}
+            room.winner        = nil
+            drClearObstacles(world, room)
+            -- Auto-start next batch if queue already has enough players
+            if #room.queue >= DR_MIN_PLAYERS and not room.countdownTickAt then
+                room.countdownTickAt = now + DR_COUNTDOWN
+                for _, e in ipairs(room.queue) do
+                    local qp = getPlayerInWorld(world, e.uid)
+                    if qp then
+                        qp:onConsoleMessage("`2Next race starting in `w" .. DR_COUNTDOWN .. "s`2! Get ready!")
+                    end
+                end
+            end
+        end
+
+        if room.gameActive then
+            -- Per-player update
+            local toRemove = {}
+            for uid, pstate in pairs(room.activePlayers) do
+                local p = getPlayerInWorld(world, uid)
+                if not p then
+                    toRemove[uid] = true
+                else
+                    local px = p:getPosX()
+                    local py = p:getPosY()
+                    local tx = math.floor(px / 32) + 1
+                    local ty = math.floor(py / 32) + 1
+
+                    -- Finish detection: player reaches tile (32,12)
+                    if not pstate.finished then
+                        if tx == room.posFinish.x and ty >= room.posFinish.y - 1 and ty <= room.posFinish.y + 1 then
+                            pstate.finished = true
+                            drHandleWin(world, p, uid, room)
+                            -- drHandleWin ends the game; continue loop safely (gameActive=false guards below)
+                        end
+                    end
+
+                    -- Checkpoint 2 upgrade: player reaches left side of floor 2
+                    if not pstate.finished and pstate.checkpoint < 2 then
+                        if tx <= room.posCP2.x + 1 and ty >= room.posCP2.y - 1 and ty <= room.posCP2.y + 1 then
+                            pstate.checkpoint = 2
+                            p:onConsoleMessage("`2Checkpoint 2 reached! You will respawn here from now on.")
+                        end
+                    end
+
+                    -- Death detection: active player outside game area = died and respawned at world door
+                    if room.gameActive and not pstate.dead and not pstate.finished and now >= (pstate.noDeathUntil or 0) then
+                        local ga = room.gameArea
+                        if px < ga.xMin or px > ga.xMax or py < ga.yMin or py > ga.yMax then
+                            pstate.dead      = true
+                            pstate.respawnAt = now + 1
+                            p:onConsoleMessage("`4You died! Respawning at checkpoint " .. pstate.checkpoint .. "...")
+                        end
+                    end
+
+                    -- Respawn after 1-second death delay
+                    if pstate.dead and pstate.respawnAt and now >= pstate.respawnAt then
+                        pstate.dead      = false
+                        pstate.respawnAt = nil
+                        drTeleportToCP(world, p, room, uid)
+                    end
+                end
+            end
+
+            for uid in pairs(toRemove) do
+                room.activePlayers[uid] = nil
+            end
+
+            -- End game if all players finished or left
+            if room.gameActive and not room.exitTickAt then
+                local remaining = 0
+                for _, ps in pairs(room.activePlayers) do
+                    if not ps.finished then remaining = remaining + 1 end
+                end
+                if remaining == 0 then drEndGame(world, room) end
+            end
+        end
+    end
+
+    -- Snap non-active players out of DR game areas (throttled 1×/second)
+    drSnapTick = drSnapTick + 1
+    if drSnapTick >= 10 then
+        drSnapTick = 0
+        for _, p in ipairs(world:getPlayers()) do
+            local px, py, uid = p:getPosX(), p:getPosY(), p:getUserID()
+            for _, room in ipairs(DR_ROOMS) do
+                if not room.activePlayers[uid] then
+                    local ga = room.gameArea
+                    if px >= ga.xMin and px <= ga.xMax and py >= ga.yMin and py <= ga.yMax then
+                        world:setPlayerPosition(p, (room.posExit.x-1)*32, (room.posExit.y-1)*32)
+                        p:onConsoleMessage("`4Game area is restricted to active race players only!")
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- DEATH RACE — DOOR ENTRY
+-- ══════════════════════════════════════════════════════════════
+
+onPlayerEnterDoorCallback(function(world, player, targetWorldName, doorID)
+    if world:getName():upper() ~= WORLD_UPPER then return false end
+    local doorUp = tostring(doorID):upper()
+    local uid    = player:getUserID()
+
+    for _, room in ipairs(DR_ROOMS) do
+        if doorUp == room.doorExit then
+            return false  -- pass through
+        end
+
+        if doorUp == room.doorEntrance then
+            -- Player already active in this race → send back to their checkpoint
+            if room.activePlayers[uid] then
+                player:onConsoleMessage("`4You are currently in the race!")
+                local pstate = room.activePlayers[uid]
+                local cpPos  = pstate.checkpoint == 2 and room.posCP2 or room.posCP1
+                table.insert(room.reanchorList, {uid=uid, tickAt=os.time()+1, pos=cpPos})
+                return false
+            end
+
+            -- Cross-game guard: block if active in Concentration or Shooting Gallery
+            local gType, gRoom = getPlayerActiveGame(uid)
+            if gType and gType ~= "dr" then
+                player:onConsoleMessage("`4You're already playing another minigame!")
+                if gRoom.posIngame then
+                    gRoom.reanchorUID    = uid
+                    gRoom.reanchorTickAt = os.time() + 1
+                    gRoom.reanchorPos    = {x = gRoom.posIngame.x, y = gRoom.posIngame.y}
+                end
+                return false
+            end
+
+            -- Already in DR queue
+            for _, e in ipairs(room.queue) do
+                if e.uid == uid then
+                    player:onConsoleMessage("`7You are already in queue.")
+                    table.insert(room.reanchorList, {uid=uid, tickAt=os.time()+1, pos=room.posWait})
+                    return false
+                end
+            end
+
+            -- Ticket check
+            if player:getItemAmount(TICKET_ID) < 1 then
+                bubble(world, player, "`4No Golden Ticket!")
+                player:onConsoleMessage("`4You need a `wGolden Ticket`4 to join Death Race 5000!")
+                return false
+            end
+
+            -- Add to queue
+            player:changeItem(TICKET_ID, -1, 0)
+            table.insert(room.queue, {uid = uid, name = player:getName()})
+            table.insert(room.reanchorList, {uid=uid, tickAt=os.time()+1, pos=room.posWait})
+
+            if not room.gameActive and not room.exitTickAt then
+                if #room.queue >= DR_MIN_PLAYERS and not room.countdownTickAt then
+                    -- Enough players — kick off countdown
+                    room.countdownTickAt = os.time() + DR_COUNTDOWN
+                    for _, e in ipairs(room.queue) do
+                        local qp = getPlayerInWorld(world, e.uid)
+                        if qp then
+                            qp:onConsoleMessage("`2Race starting in `w" .. DR_COUNTDOWN .. "s`2! Get ready!")
+                        end
+                    end
+                else
+                    local needed = DR_MIN_PLAYERS - #room.queue
+                    if needed > 0 then
+                        player:onConsoleMessage("`oWaiting for `w" .. needed .. " more player" .. (needed > 1 and "s" or "") .. "`o to start the race...")
+                    elseif room.countdownTickAt then
+                        -- New player joined — reset countdown to give everyone time to prepare
+                        room.countdownTickAt = os.time() + DR_COUNTDOWN
+                        for _, e in ipairs(room.queue) do
+                            local qp = getPlayerInWorld(world, e.uid)
+                            if qp then
+                                qp:onConsoleMessage("`2New racer joined! Countdown reset — `w" .. DR_COUNTDOWN .. "s`2!")
+                            end
+                        end
+                    end
+                end
+            else
+                player:onConsoleMessage("`oRace in progress. You are `w#" .. #room.queue .. "`o in queue — next race starts after this one.")
+            end
+
+            return false
+        end
+    end
+
+    return false
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- DEATH RACE — PLAYER LEAVE
+-- ══════════════════════════════════════════════════════════════
+
+onPlayerLeaveWorldCallback(function(world, player)
+    if world:getName() ~= WORLD then return end
+    local uid = player:getUserID()
+
+    for _, room in ipairs(DR_ROOMS) do
+        -- Clean up any pending reanchors for this player
+        for i = #room.reanchorList, 1, -1 do
+            if room.reanchorList[i].uid == uid then
+                table.remove(room.reanchorList, i)
+            end
+        end
+
+        -- Remove from queue
+        for i = #room.queue, 1, -1 do
+            if room.queue[i].uid == uid then table.remove(room.queue, i) end
+        end
+
+        -- Cancel countdown if queue drops below minimum
+        if room.countdownTickAt and #room.queue < DR_MIN_PLAYERS then
+            room.countdownTickAt = nil
+            for _, e in ipairs(room.queue) do
+                local qp = getPlayerInWorld(world, e.uid)
+                if qp then
+                    qp:onConsoleMessage("`4Not enough players — countdown cancelled. Waiting for more racers.")
+                end
+            end
+        end
+
+        -- Handle active racer leaving mid-game
+        if room.activePlayers[uid] then
+            room.activePlayers[uid] = nil
+
+            if room.gameActive and not room.exitTickAt then
+                -- Check if anyone is still racing
+                local remaining = 0
+                for _, ps in pairs(room.activePlayers) do
+                    if not ps.finished then remaining = remaining + 1 end
+                end
+
+                if remaining == 0 then
+                    -- No racers left — end game immediately
+                    drClearTimers(room)
+                    room.gameActive = false
+                    drClearObstacles(world, room)
+                    if #room.queue >= DR_MIN_PLAYERS then
+                        room.countdownTickAt = os.time() + DR_COUNTDOWN
+                        for _, e in ipairs(room.queue) do
+                            local qp = getPlayerInWorld(world, e.uid)
+                            if qp then
+                                qp:onConsoleMessage("`7All racers left. New race starting in `w" .. DR_COUNTDOWN .. "s`7...")
+                            end
+                        end
+                    end
+                else
+                    -- Notify remaining racers
+                    for ouid in pairs(room.activePlayers) do
+                        local op = getPlayerInWorld(world, ouid)
+                        if op then
+                            op:onConsoleMessage("`7A racer disconnected. Race continues!")
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- MIRROR MAZE — CONSTANTS & CONFIG
+-- ══════════════════════════════════════════════════════════════
+
+local MM_BLOCK_ID = 1926  -- Mirror Maze Block (OFF=collision/wall, ON=no collision/passable)
+local MM_TIMER    = 40    -- Seconds to solve the maze
+
+-- Maze is generated randomly each game (see mmGenerateOpen).
+-- posIngame and posEndgame tiles are always skipped (existing world tiles kept).
+
+MM_ROOMS = {
+    {
+        name         = "Mirror Maze",
+        doorEntrance = "MIRROR01",
+        doorIngame   = "MIRROR02",
+        posWait      = {x=27, y=29},
+        posIngame    = {x=15, y=33},
+        posEndgame   = {x=25, y=25},
+        posExit      = {x=28, y=26},
+        gameArea     = {x1=15, y1=25, x2=25, y2=33},
+    },
+}
+
+for _, room in ipairs(MM_ROOMS) do
+    room.queue           = {}
+    room.activeUID       = nil
+    room.exitUID         = nil
+    room.reanchorUID     = nil
+    room.reanchorTickAt  = nil
+    room.reanchorPos     = nil
+    room.gameTimer       = nil
+    room.gameSession     = 0
+    room.exitTickAt      = nil
+    room.nextQueueTickAt = nil
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- MIRROR MAZE — HELPERS
+-- ══════════════════════════════════════════════════════════════
+
+mmClearTimers = function(room)
+    if room.gameTimer then
+        timer.clear(room.gameTimer)
+        room.gameTimer = nil
+    end
+end
+
+mmClearBlocks = function(world, room)
+    if not world then return end
+    local ga   = room.gameArea
+    local si   = room.posIngame
+    local ei   = room.posEndgame
+    for tx = ga.x1, ga.x2 do
+        for ty = ga.y1, ga.y2 do
+            if not (tx == si.x and ty == si.y) and not (tx == ei.x and ty == ei.y) then
+                local tile = world:getTile(tx-1, ty-1)
+                if tile then
+                    world:setTileForeground(tile, 0)
+                    world:updateTile(tile)
+                end
+            end
+        end
+    end
+end
+
+-- Generates a perfect maze using recursive backtracker on a 2-step cell grid.
+-- Cells are at even offsets from (x1,y1); walls sit between adjacent cells.
+-- Each corridor is exactly 1 tile wide: wall | path | wall guaranteed.
+-- openSet: keys (x*100+y) of passable tiles in world tile coords.
+local function mmGenerateOpen(x1, y1, x2, y2, sx, sy, ex, ey)
+    local openSet = {}
+    local visited = {}
+
+    local function key(x, y) return x * 100 + y end
+
+    -- Cell grid dimensions (cells spaced 2 tiles apart)
+    local cw = math.floor((x2 - x1) / 2)
+    local ch = math.floor((y2 - y1) / 2)
+
+    local function inBoundsCell(cx, cy)
+        return cx >= 0 and cx <= cw and cy >= 0 and cy <= ch
+    end
+
+    local function shuffle(t)
+        for i = #t, 2, -1 do
+            local j = math.random(i)
+            t[i], t[j] = t[j], t[i]
+        end
+    end
+
+    -- Start cell from posIngame (must be at even offset)
+    local scx = (sx - x1) / 2
+    local scy = (sy - y1) / 2
+
+    -- Randomized DFS: carve cell + wall between cells
+    local function dfs(cx, cy)
+        visited[key(cx, cy)] = true
+        -- Open this cell tile
+        openSet[key(x1 + cx * 2, y1 + cy * 2)] = true
+
+        local dirs = {{0,1},{0,-1},{1,0},{-1,0}}
+        shuffle(dirs)
+        for _, d in ipairs(dirs) do
+            local nx, ny = cx + d[1], cy + d[2]
+            if inBoundsCell(nx, ny) and not visited[key(nx, ny)] then
+                -- Open the 1-tile wall between current cell and next cell
+                openSet[key(x1 + cx*2 + d[1], y1 + cy*2 + d[2])] = true
+                dfs(nx, ny)
+            end
+        end
+    end
+
+    dfs(scx, scy)
+    return openSet
+end
+
+local function mmPlaceMaze(world, room)
+    math.randomseed(os.time() + room.gameSession * 1337)
+    local ga = room.gameArea
+    local si = room.posIngame
+    local ei = room.posEndgame
+    local openSet = mmGenerateOpen(ga.x1, ga.y1, ga.x2, ga.y2, si.x, si.y, ei.x, ei.y)
+    for tx = ga.x1, ga.x2 do
+        for ty = ga.y1, ga.y2 do
+            if not (tx == si.x and ty == si.y) and not (tx == ei.x and ty == ei.y) then
+                local tile = world:getTile(tx-1, ty-1)
+                if tile then
+                    world:setTileForeground(tile, MM_BLOCK_ID)
+                    local flags = tile:getFlags()
+                    if openSet[tx * 100 + ty] then
+                        flags = bit.bor(flags, TILE_FLAG_IS_ON)
+                    else
+                        flags = bit.band(flags, bit.bnot(TILE_FLAG_IS_ON))
+                    end
+                    tile:setFlags(flags)
+                    world:updateTile(tile)
+                end
+            end
+        end
+    end
+end
+
+local function mmScheduleNext(room)
+    if #room.queue > 0 then
+        room.nextQueueTickAt = os.time() + QUEUE_DELAY
+    end
+end
+
+local function mmStartGame(world, room)
+    if room.activeUID then return end
+    while #room.queue > 0 do
+        local entry = table.remove(room.queue, 1)
+        local p = getPlayerInWorld(world, entry.uid)
+        if p then
+            room.activeUID   = entry.uid
+            room.gameSession = room.gameSession + 1
+            local session    = room.gameSession
+            world:setPlayerPosition(p, (room.posIngame.x-1)*32, (room.posIngame.y-1)*32)
+            mmPlaceMaze(world, room)
+            p:sendVariant({"OnCountdownStart", MM_TIMER, -1}, 0, p:getNetID())
+            room.gameTimer = timer.setTimeout(MM_TIMER, function()
+                if session ~= room.gameSession then return end
+                local w2 = getCarnivalWorld()
+                if not w2 then return end
+                local loser = getPlayerInWorld(w2, room.activeUID)
+                if loser then
+                    loser:sendVariant({"OnCountdownStart", 0, -1}, 0, loser:getNetID())
+                    bubble(w2, loser, "`4Time's up! Better luck next time.")
+                end
+                room.gameTimer  = nil
+                room.exitUID    = room.activeUID
+                room.activeUID  = nil
+                room.exitTickAt = os.time() + 3
+                mmPlaceMaze(w2, room)
+            end)
+            return
+        end
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- MIRROR MAZE — WORLD TICK
+-- ══════════════════════════════════════════════════════════════
+
+local mmSnapTick = 0
+onWorldTick(function(world)
+    if world:getName():upper() ~= WORLD_UPPER then return end
+    local now = os.time()
+
+    for _, room in ipairs(MM_ROOMS) do
+        -- Reanchor tick
+        if room.reanchorUID and room.reanchorTickAt and now >= room.reanchorTickAt then
+            local uid2 = room.reanchorUID
+            room.reanchorUID    = nil
+            room.reanchorTickAt = nil
+            local rp = getPlayerInWorld(world, uid2)
+            if rp and room.reanchorPos then
+                world:setPlayerPosition(rp, (room.reanchorPos.x-1)*32, (room.reanchorPos.y-1)*32)
+            end
+            room.reanchorPos = nil
+        end
+
+        -- Exit tick: teleport player out, start next queue entry
+        if room.exitTickAt and now >= room.exitTickAt then
+            room.exitTickAt = nil
+            if room.exitUID then
+                local ep = getPlayerInWorld(world, room.exitUID)
+                if ep then
+                    world:setPlayerPosition(ep, (room.posExit.x-1)*32, (room.posExit.y-1)*32)
+                end
+                room.exitUID = nil
+            end
+            mmScheduleNext(room)
+        end
+
+        -- Queue start tick
+        if room.nextQueueTickAt and now >= room.nextQueueTickAt then
+            room.nextQueueTickAt = nil
+            mmStartGame(world, room)
+        end
+
+        -- Win detection: active player reached posEndgame
+        if room.activeUID then
+            local ap = getPlayerInWorld(world, room.activeUID)
+            if ap then
+                local tx = math.floor(ap:getPosX()/32) + 1
+                local ty = math.floor(ap:getPosY()/32) + 1
+                if tx == room.posEndgame.x and ty == room.posEndgame.y then
+                    mmClearTimers(room)
+                    local prize = getRandPrize(room.name)
+                    local item  = getItem(prize.itemID)
+                    local iname = item and item:getName() or ("Item#" .. prize.itemID)
+                    ap:sendVariant({"OnCountdownStart", 0, -1}, 0, ap:getNetID())
+                    bubble(world, ap, "`2You found the exit! You win a `w" .. iname .. "`2!")
+                    ap:changeItem(prize.itemID, prize.amount, 1)
+                    room.exitUID    = room.activeUID
+                    room.activeUID  = nil
+                    room.exitTickAt = now + 3
+                    mmPlaceMaze(world, room)
+                end
+            else
+                -- Active player disconnected mid-game
+                mmClearTimers(room)
+                room.activeUID = nil
+                mmPlaceMaze(world, room)
+                mmScheduleNext(room)
+            end
+        end
+    end
+
+    -- Snap: eject non-active players from game area every ~1s
+    mmSnapTick = mmSnapTick + 1
+    if mmSnapTick >= 10 then
+        mmSnapTick = 0
+        for _, p in ipairs(world:getPlayers()) do
+            local px, py, uid = p:getPosX(), p:getPosY(), p:getUserID()
+            for _, room in ipairs(MM_ROOMS) do
+                if uid ~= room.activeUID then
+                    local ga = room.gameArea
+                    if px >= (ga.x1-1)*32 and px <= ga.x2*32 and
+                       py >= (ga.y1-1)*32 and py <= ga.y2*32 then
+                        world:setPlayerPosition(p, (room.posExit.x-1)*32, (room.posExit.y-1)*32)
+                        p:onConsoleMessage("`4Game area is restricted to the active player only!")
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- MIRROR MAZE — DOOR ENTRY
+-- ══════════════════════════════════════════════════════════════
+
+onPlayerEnterDoorCallback(function(world, player, targetWorldName, doorID)
+    if world:getName():upper() ~= WORLD_UPPER then return false end
+    local doorUp = tostring(doorID):upper()
+    local uid    = player:getUserID()
+
+    for _, room in ipairs(MM_ROOMS) do
+        if doorUp == room.doorIngame then
+            -- Block direct entry; reanchor active player back inside
+            if uid == room.activeUID then
+                room.reanchorUID    = uid
+                room.reanchorTickAt = os.time() + 1
+                room.reanchorPos    = {x = room.posIngame.x, y = room.posIngame.y}
+            end
+            return false
+        end
+
+        if doorUp == room.doorEntrance then
+            if uid == room.activeUID then
+                player:onConsoleMessage("`4You are currently in the maze!")
+                room.reanchorUID    = uid
+                room.reanchorTickAt = os.time() + 1
+                room.reanchorPos    = {x = room.posIngame.x, y = room.posIngame.y}
+                return false
+            end
+            -- Guard: block if already active in another minigame
+            local gType, gRoom = getPlayerActiveGame(uid)
+            if gType then
+                player:onConsoleMessage("`4You're already playing another minigame!")
+                gRoom.reanchorUID    = uid
+                gRoom.reanchorTickAt = os.time() + 1
+                gRoom.reanchorPos    = {x = gRoom.posIngame.x, y = gRoom.posIngame.y}
+                return false
+            end
+            -- Already in queue?
+            for _, e in ipairs(room.queue) do
+                if e.uid == uid then
+                    player:onConsoleMessage("`7You are already in queue.")
+                    room.reanchorUID    = uid
+                    room.reanchorTickAt = os.time() + 1
+                    room.reanchorPos    = {x = room.posWait.x, y = room.posWait.y}
+                    return false
+                end
+            end
+            -- Ticket check
+            if player:getItemAmount(TICKET_ID) < 1 then
+                bubble(world, player, "`4No Golden Ticket!")
+                player:onConsoleMessage("`4You need a `wGolden Ticket`4 to play Mirror Maze!")
+                return false
+            end
+            player:changeItem(TICKET_ID, -1, 0)
+            table.insert(room.queue, {uid = uid, name = player:getName()})
+            room.reanchorUID    = uid
+            room.reanchorTickAt = os.time() + 1
+            room.reanchorPos    = {x = room.posWait.x, y = room.posWait.y}
+            if not room.activeUID and #room.queue == 1 then
+                player:onConsoleMessage("`2Get ready! Entering in `w" .. QUEUE_DELAY .. " seconds`2...")
+                mmScheduleNext(room)
+            else
+                player:onConsoleMessage("`oYou are `w#" .. #room.queue .. "`o in queue — hang tight!")
+            end
+            return false
+        end
+    end
+    return false
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- MIRROR MAZE — PLAYER LEAVE
+-- ══════════════════════════════════════════════════════════════
+
+onPlayerLeaveWorldCallback(function(world, player)
+    if world:getName() ~= WORLD then return end
+    local uid = player:getUserID()
+    for _, room in ipairs(MM_ROOMS) do
+        if uid == room.reanchorUID then
+            room.reanchorUID    = nil
+            room.reanchorTickAt = nil
+            room.reanchorPos    = nil
+        end
+        if uid == room.activeUID then
+            mmClearTimers(room)
+            room.activeUID = nil
+            mmPlaceMaze(world, room)
+            for _, e in ipairs(room.queue) do
+                local qp = getPlayerInWorld(world, e.uid)
+                if qp then qp:onConsoleMessage("`7Previous player left. Next up in `w" .. QUEUE_DELAY .. "s`7...") end
+            end
+            mmScheduleNext(room)
+        elseif uid == room.exitUID then
+            room.exitUID    = nil
+            room.exitTickAt = nil
+            mmScheduleNext(room)
+        else
+            for i = #room.queue, 1, -1 do
+                if room.queue[i].uid == uid then table.remove(room.queue, i) end
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
+-- GLOBAL — PLAYER DEATH / RESPAWN
+-- Remove player from all queues and forfeit active game.
+-- DR active players are excluded (DR has its own death handling).
+-- ══════════════════════════════════════════════════════════════
+
+onPlayerDeathCallback(function(world, player, isRespawn)
+    if world:getName():upper() ~= WORLD_UPPER then return end
+    local uid = player:getUserID()
+
+    -- Concentration (queue only)
+    for _, room in ipairs(ROOMS) do
+        for i = #room.queue, 1, -1 do
+            if room.queue[i].uid == uid then table.remove(room.queue, i) end
+        end
+    end
+
+    -- Shooting Gallery (queue only)
+    for _, room in ipairs(SG_ROOMS) do
+        for i = #room.queue, 1, -1 do
+            if room.queue[i].uid == uid then table.remove(room.queue, i) end
+        end
+    end
+
+    -- Death Race — queue only (active racers handled by DR itself)
+    for _, room in ipairs(DR_ROOMS) do
+        for i = #room.queue, 1, -1 do
+            if room.queue[i].uid == uid then table.remove(room.queue, i) end
+        end
+        if room.countdownTickAt and #room.queue < DR_MIN_PLAYERS then
+            room.countdownTickAt = nil
+            for _, e in ipairs(room.queue) do
+                local qp = getPlayerInWorld(world, e.uid)
+                if qp then qp:onConsoleMessage("`4Not enough players — countdown cancelled.") end
+            end
+        end
+    end
+
+    -- Mirror Maze (queue only)
+    for _, room in ipairs(MM_ROOMS) do
+        for i = #room.queue, 1, -1 do
+            if room.queue[i].uid == uid then table.remove(room.queue, i) end
         end
     end
 end)
