@@ -39,7 +39,7 @@ local function makeLine(tag, sender, world, msg, isJammed)
   if isJammed then
     displayWorld = "`4JAMMED`o"
   end
-  return string.format("** [%s] ** from (`#%s`o) in [%s] ** : `$%s", tag, sender, displayWorld, msg)
+  return string.format("** [%s] ** from (`#%s`o) in [`$%s`o] ** : `$%s", tag, sender, displayWorld, msg)
 end
 
 local function tagFor(cmd, p)
