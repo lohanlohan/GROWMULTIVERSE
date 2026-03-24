@@ -101,7 +101,7 @@ end
 
 local function atomicNoticeAll(sender, tag, msg)
   local sname = getName(sender)
-  local title = string.format("`0[%s]`w @%s\n`w%s", tag, sname, msg)
+  local title = string.format("`0[%s]`w %s\n`w%s", tag, sname, msg)
 
   for _, p in ipairs(allPlayers()) do
     if p and p.sendVariant then
