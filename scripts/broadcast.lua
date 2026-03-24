@@ -38,24 +38,24 @@ end
 local function tagFor(cmd, p)
   if not p or not p.hasRole then return nil end
   if cmd=="vsb" then
-    if p:hasRole(Roles.ROLE_SUPER_VIP) then return "`aSUPER VIP`o" end
-    if p:hasRole(Roles.ROLE_VIP)      then return "`sVIP`o" end
+    if p:hasRole(Roles.ROLE_SUPER_VIP) then return "`aSuper-Vip`o" end
+    if p:hasRole(Roles.ROLE_VIP)      then return "`sVip`o" end
   elseif cmd=="modsb" then
-    if p:hasRole(Roles.ROLE_ULTRA_MODERATOR) then return "`#ULTRA MODERATOR`o" end
-    if p:hasRole(Roles.ROLE_MODERATOR)       then return "`5SUPER MODERATOR`o" end
+    if p:hasRole(Roles.ROLE_ULTRA_MODERATOR) then return "`#Ultra Moderator`o" end
+    if p:hasRole(Roles.ROLE_MODERATOR)       then return "`5Super Moderator`o" end
   elseif cmd=="divsb" then
-    if p:hasRole(Roles.ROLE_SUPER_DIVINE) then return "`3SUPER DIVINE`o" end
-    if p:hasRole(Roles.ROLE_DIVINE)       then return "`cDIVINE`o" end
+    if p:hasRole(Roles.ROLE_SUPER_DIVINE) then return "`3Super Divine`o" end
+    if p:hasRole(Roles.ROLE_DIVINE)       then return "`cDivine`o" end
   elseif cmd=="rsb" then
-    if p:hasRole(Roles.ROLE_RESTOCKER_MAX) then return "`rRESTOCKER MAX`o" end
-    if p:hasRole(Roles.ROLE_RESTOCKER)     then return "`tRESTOCKER`o" end
+    if p:hasRole(Roles.ROLE_RESTOCKER_MAX) then return "`rRestocker Max`o" end
+    if p:hasRole(Roles.ROLE_RESTOCKER)     then return "`tRestocker`o" end
   elseif cmd=="msb" then
-    if p:hasRole(Roles.ROLE_MERCHANTS) then return "`&MERCHANTS`o" end
+    if p:hasRole(Roles.ROLE_MERCHANTS) then return "`&Merchants`o" end
   elseif cmd=="cosb" then
-    if p:hasRole(Roles.ROLE_CO_OWNER) then return "`pCO-OWNER`o" end
+    if p:hasRole(Roles.ROLE_CO_OWNER) then return "`pCo-Owner`o" end
   elseif cmd=="scsb" then
-    if p:hasRole(Roles.ROLE_DEVELOPER)      then return "`@DEVELOPER`o" end
-    if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@SERVER CREATOR`o" end
+    if p:hasRole(Roles.ROLE_DEVELOPER)      then return "`@Developer`o" end
+    if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server Creator`o" end
   end
   return nil
 end
@@ -90,7 +90,7 @@ local function broadcastAll(sender, tag, msg, soundFile)
   local text = makeLine(tag, sname, wname, msg)
   
   say(sender, ">> "..tag.."- Broadcast sent.")
-  
+
   for _, p in ipairs(allPlayers()) do
     if getUID(p) ~= suid then
       say(p, text)
