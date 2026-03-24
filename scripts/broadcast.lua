@@ -34,8 +34,12 @@ local function say(p,t)    if p and p.onConsoleMessage then p:onConsoleMessage(t
 local function sfx(p,f)    if p and f and p.sendAction then p:sendAction("action|play_sfx\nfile|"..f.."\ndelayMS|0") end end
 local function allPlayers() if type(getServerPlayers)=="function" then return getServerPlayers() end return {} end
 
-local function makeLine(tag, sender, world, msg)
-  return string.format("** [%s] ** from (`#%s`o) in [`#%s`o] ** : `w%s", tag, sender, world, msg)
+local function makeLine(tag, sender, world, msg, isJammed)
+  local displayWorld = world
+  if isJammed then
+    displayWorld = "`4JAMMED`o"
+  end
+  return string.format("** [%s] ** from (`#%s`o) in [%s] ** : `$%s", tag, sender, displayWorld, msg)
 end
 
 local function tagFor(cmd, p)
@@ -83,11 +87,13 @@ local GROUPS = {
   qsb   = { roles={Roles.ROLE_DEVELOPER},                                       sfx=SFX.qsb }
 }
 
-local function broadcastAll(sender, tag, msg, soundFile, usedGems)
+local function broadcastAll(sender, tag, msg, soundFile, usedGems, world)
   local sname, wname, suid = getName(sender), getWorld(sender), getUID(sender)
-  local text = makeLine(tag, sname, wname, msg)
+  local isJammed = world and world:hasFlag(1) or false
+  local text = makeLine(tag, sname, wname, msg, isJammed)
+  local currentGems = (sender and sender.getGems and sender:getGems()) or 0
   
-  say(sender, string.format(">> %s sent. Used `o%d Gems", tag, usedGems or 0))
+  say(sender, string.format(">> %s sent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems or 0))
 
   for _, p in ipairs(allPlayers()) do
     if getUID(p) ~= suid then
@@ -131,13 +137,13 @@ onPlayerCommandCallback(function(world, player, full)
     return true
   end
   if not hasAny(player, meta.roles) then
-    say(player, "`4Access denied.`")
+    say(player, "`4Unknown command. `oEnter `$/help `ofor a list of valid commands.")
     return true
   end
 
   local tag = tagFor(cmd, player)
   if not tag then
-    say(player, "`4Access denied.`")
+    say(player, "`4Unknown command. `oEnter `$/help `ofor a list of valid commands.")
     return true
   end
 
@@ -149,12 +155,15 @@ onPlayerCommandCallback(function(world, player, full)
     local currentGems = (player and player.getGems and player:getGems()) or 0
 
     if currentGems < usedGems then
-      say(player, string.format("`4Not enough Gems. Need %d Gems, you have %d.", usedGems, currentGems))
+      say(player, string.format("`4Not enough Gems. Need `$%d Gems`o, you have `$%d Gems`o.", usedGems, currentGems))
       return true
     end
 
     if player and player.removeGems then
-      player:removeGems(usedGems, true, true)
+      if not player:removeGems(usedGems, 1, 1) then
+        say(player, "`4Failed to deduct Gems. Please try again.")
+        return true
+      end
     end
   end
 
@@ -165,7 +174,7 @@ onPlayerCommandCallback(function(world, player, full)
     atomicNoticeAll(player, tag, msg)
   else
     -- grup lain: chat broadcast + sfx
-    broadcastAll(player, tag, msg, meta.sfx, usedGems)
+    broadcastAll(player, tag, msg, meta.sfx, usedGems, world)
   end
 
   return true
