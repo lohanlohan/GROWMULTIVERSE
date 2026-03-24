@@ -1,27 +1,30 @@
 local Roles = {
   ROLE_NONE            = 0,
-  ROLE_VIP             = 1,
-  ROLE_SUPER_VIP       = 2,
-  ROLE_MODERATOR       = 3,
-  ROLE_ULTRA_MODERATOR = 4,
-  ROLE_DIVINE          = 5,
-  ROLE_SUPER_DIVINE    = 7,
-  ROLE_RESTOCKER       = 8,
-  ROLE_RESTOCKER_MAX   = 9,
-  ROLE_MERCHANTS       = 10,
-  ROLE_CO_OWNER        = 11,
+  ROLE_FEATURE         = 1,
+  ROLE_LORD            = 2,
+  ROLE_OVERLORD        = 3,
+  ROLE_SUPREME         = 4,
+  ROLE_GUARDIAN        = 5,
+  ROLE_MODERATOR       = 6,
   ROLE_SERVER_CREATOR  = 12,
   ROLE_DEVELOPER       = 51
 }
 
 local SFX = {
-  VSB   = "audio/terraform.wav",       -- VIP / Super VIP
+  LSB   = "audio/terraform.wav",       -- LORD
+  OSB   = "audio/friend_logon.wav",   -- OVERLORD
+  SSB   = "audio/double_chance.wav",   -- SUPREME
   MODS  = "audio/secret.wav",          -- Moderator / Ultra Moderator
-  DIV   = "audio/friend_logon.wav",    -- Divine / Super Divine
-  RST   = "audio/double_chance.wav",   -- Restocker / Restocker Max
   MERCH = "audio/cumbia_horns.wav",    -- Merchants
   CO    = "audio/choir.wav",           -- Co-Owner
-  SC    = "audio/already_used.wav"     -- Server Creator / Developer
+  SC    = "audio/already_used.wav",     -- Server Creator / Developer
+  qsb   = "audio/hub_open.wav"         -- Quantum SB (unused)
+}
+
+local BROADCAST_COST = {
+  lsb = { perPlayer = 100, maxCost = 500000 },
+  osb = { perPlayer = 200, maxCost = 1000000 },
+  ssb = { perPlayer = 400, maxCost = 2000000 }
 }
 
 local function getName(p)  return p and p.getName and p:getName() or "Unknown" end
@@ -37,25 +40,17 @@ end
 
 local function tagFor(cmd, p)
   if not p or not p.hasRole then return nil end
-  if cmd=="vsb" then
-    if p:hasRole(Roles.ROLE_SUPER_VIP) then return "`aSuper-Vip`o" end
-    if p:hasRole(Roles.ROLE_VIP)      then return "`sVip`o" end
-  elseif cmd=="modsb" then
-    if p:hasRole(Roles.ROLE_ULTRA_MODERATOR) then return "`#Ultra-Moderator`o" end
-    if p:hasRole(Roles.ROLE_MODERATOR)       then return "`5Super-Moderator`o" end
-  elseif cmd=="divsb" then
-    if p:hasRole(Roles.ROLE_SUPER_DIVINE) then return "`3Super-Divine`o" end
-    if p:hasRole(Roles.ROLE_DIVINE)       then return "`cDivine`o" end
-  elseif cmd=="rsb" then
-    if p:hasRole(Roles.ROLE_RESTOCKER_MAX) then return "`rRestocker-Max`o" end
-    if p:hasRole(Roles.ROLE_RESTOCKER)     then return "`tRestocker`o" end
-  elseif cmd=="msb" then
-    if p:hasRole(Roles.ROLE_MERCHANTS) then return "`&Merchants`o" end
-  elseif cmd=="cosb" then
-    if p:hasRole(Roles.ROLE_CO_OWNER) then return "`pCo-Owner`o" end
+  if cmd=="lsb" then
+    if p:hasRole(Roles.ROLE_LORD) or p:hasRole(Roles.ROLE_OVERLORD) or p:hasRole(Roles.ROLE_SUPREME) then return "`eLord-Broadcast`o" end
+  elseif cmd=="osb" then
+    if p:hasRole(Roles.ROLE_OVERLORD) or p:hasRole(Roles.ROLE_SUPREME) then return "`4Overlord-Broadcast`o" end
+  elseif cmd=="ssb" then
+    if p:hasRole(Roles.ROLE_SUPREME) then return "`bSupreme-Broadcast`o" end
   elseif cmd=="scsb" then
-    if p:hasRole(Roles.ROLE_DEVELOPER)      then return "`@Developer`o" end
+    if p:hasRole(Roles.ROLE_DEVELOPER) then return "`@Developer`o" end
     if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server-Creator`o" end
+  elseif cmd=="qsb" then
+    if p:hasRole(Roles.ROLE_DEVELOPER) then return "`aQuantum-Broadcast`o" end
   end
   return nil
 end
@@ -66,30 +61,33 @@ local function hasAny(p, roles)
   return false
 end
 
-registerLuaCommand({ command="vsb",   roleRequired=Roles.ROLE_VIP,            description="VIP / Super VIP Broadcast" })
-registerLuaCommand({ command="modsb", roleRequired=Roles.ROLE_MODERATOR,      description="Moderator / Ultra Moderator Broadcast" })
-registerLuaCommand({ command="divsb", roleRequired=Roles.ROLE_DIVINE,         description="Divine / Super Divine Broadcast" })
-registerLuaCommand({ command="rsb",   roleRequired=Roles.ROLE_RESTOCKER,      description="Restocker / Restocker Max Broadcast" })
-registerLuaCommand({ command="msb",   roleRequired=Roles.ROLE_MERCHANTS,      description="Merchants Broadcast" })
-registerLuaCommand({ command="cosb",  roleRequired=Roles.ROLE_CO_OWNER,       description="Co-Owner Broadcast" })
+local function calcBroadcastCost(cmd, onlineCount)
+  local cfg = BROADCAST_COST[cmd]
+  if not cfg then return 0 end
+  local rawCost = cfg.perPlayer * math.max(onlineCount or 0, 0)
+  return math.min(rawCost, cfg.maxCost)
+end
+
+registerLuaCommand({ command="lsb",   roleRequired=Roles.ROLE_LORD,           description="Lord / Overlord / Supreme Broadcast" })
+registerLuaCommand({ command="osb",   roleRequired=Roles.ROLE_OVERLORD,       description="Overlord / Supreme Broadcast" })
+registerLuaCommand({ command="ssb",   roleRequired=Roles.ROLE_SUPREME,        description="Supreme Broadcast" })
 registerLuaCommand({ command="scsb",  roleRequired=Roles.ROLE_SERVER_CREATOR, description="Server Creator / Developer Broadcast (Atomic Notice Only)" })
+registerLuaCommand({ command="qsb",   roleRequired=Roles.ROLE_SERVER_CREATOR, description="Quantum Broadcast (Developer Only, Atomic Notice Only)" })
 
 -- meta grup + sfx
 local GROUPS = {
-  vsb   = { roles={Roles.ROLE_VIP, Roles.ROLE_SUPER_VIP},             sfx=SFX.VSB },
-  modsb = { roles={Roles.ROLE_MODERATOR, Roles.ROLE_ULTRA_MODERATOR}, sfx=SFX.MODS },
-  divsb = { roles={Roles.ROLE_DIVINE, Roles.ROLE_SUPER_DIVINE},       sfx=SFX.DIV },
-  rsb   = { roles={Roles.ROLE_RESTOCKER, Roles.ROLE_RESTOCKER_MAX},   sfx=SFX.RST },
-  msb   = { roles={Roles.ROLE_MERCHANTS},                             sfx=SFX.MERCH },
-  cosb  = { roles={Roles.ROLE_CO_OWNER},                              sfx=SFX.CO },
-  scsb  = { roles={Roles.ROLE_SERVER_CREATOR, Roles.ROLE_DEVELOPER},  sfx=SFX.SC }
+  lsb   = { roles={Roles.ROLE_LORD, Roles.ROLE_OVERLORD, Roles.ROLE_SUPREME},   sfx=SFX.LSB },
+  osb   = { roles={Roles.ROLE_OVERLORD, Roles.ROLE_SUPREME},                    sfx=SFX.OSB },
+  ssb   = { roles={Roles.ROLE_SUPREME},                                         sfx=SFX.SSB },
+  scsb  = { roles={Roles.ROLE_SERVER_CREATOR, Roles.ROLE_DEVELOPER},            sfx=SFX.SC },
+  qsb   = { roles={Roles.ROLE_DEVELOPER},                                       sfx=SFX.qsb }
 }
 
-local function broadcastAll(sender, tag, msg, soundFile)
+local function broadcastAll(sender, tag, msg, soundFile, usedGems)
   local sname, wname, suid = getName(sender), getWorld(sender), getUID(sender)
   local text = makeLine(tag, sname, wname, msg)
   
-  say(sender, ">> "..tag.."- Broadcast sent.")
+  say(sender, string.format(">> %s sent. Used `o%d Gems", tag, usedGems or 0))
 
   for _, p in ipairs(allPlayers()) do
     if getUID(p) ~= suid then
@@ -105,7 +103,7 @@ local function atomicNoticeAll(sender, tag, msg)
   local sname = getName(sender)
   local title = string.format("`0[%s]`w %s\n`w%s", tag, sname, msg)
 
-  say(sender, ">> "..tag.."- Broadcast sent.")
+  say(sender, ">> "..tag.." sent.")
 
   for _, p in ipairs(allPlayers()) do
     if p and p.sendVariant then
@@ -143,12 +141,31 @@ onPlayerCommandCallback(function(world, player, full)
     return true
   end
 
+  local usedGems = 0
+  local pricing = BROADCAST_COST[cmd]
+  if pricing then
+    local onlineCount = #allPlayers()
+    usedGems = calcBroadcastCost(cmd, onlineCount)
+    local currentGems = (player and player.getGems and player:getGems()) or 0
+
+    if currentGems < usedGems then
+      say(player, string.format("`4Not enough Gems. Need %d Gems, you have %d.", usedGems, currentGems))
+      return true
+    end
+
+    if player and player.removeGems then
+      player:removeGems(usedGems, true, true)
+    end
+  end
+
   if cmd == "scsb" then
     -- khusus SC: HANYA atomic overlay + sfx, tidak ada baris chat broadcast
     atomicNoticeAll(player, tag, msg)
+  elseif cmd == "qsb" then
+    atomicNoticeAll(player, tag, msg)
   else
     -- grup lain: chat broadcast + sfx
-    broadcastAll(player, tag, msg, meta.sfx)
+    broadcastAll(player, tag, msg, meta.sfx, usedGems)
   end
 
   return true
