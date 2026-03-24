@@ -15,8 +15,6 @@ local SFX = {
   OSB   = { "audio/friend_logon.wav", "audio/beep.wav" },   -- OVERLORD (multi sfx)
   SSB   = { "audio/double_chance.wav", "audio/beep.wav" },   -- SUPREME
   MODS  = "audio/secret.wav",          -- Moderator / Ultra Moderator
-  MERCH = "audio/cumbia_horns.wav",    -- Merchants
-  CO    = "audio/choir.wav",           -- Co-Owner
   SC    = "audio/already_used.wav",     -- Server Creator / Developer
 }
 
@@ -78,20 +76,20 @@ local function makeLine(tag, sender, world, msg, isJammed)
   if isJammed then
     displayWorld = "`4JAMMED`o"
   end
-  return string.format("** [%s] ** from (`#%s`o) in [`$%s`o] ** : `$%s", tag, sender, displayWorld, msg)
+  return string.format("`5** [%s`5] ** from (%s`5) in [`$%s`5] ** : `$%s", tag, sender, displayWorld, msg)
 end
 
 local function tagFor(cmd, p)
   if not p or not p.hasRole then return nil end
   if cmd=="lsb" then
-    if p:hasRole(Roles.ROLE_LORD) or p:hasRole(Roles.ROLE_OVERLORD) or p:hasRole(Roles.ROLE_SUPREME) then return "`eLord-Broadcast`o" end
+    if p:hasRole(Roles.ROLE_LORD) or p:hasRole(Roles.ROLE_OVERLORD) or p:hasRole(Roles.ROLE_SUPREME) then return "`eLord-Broadcast" end
   elseif cmd=="osb" then
-    if p:hasRole(Roles.ROLE_OVERLORD) or p:hasRole(Roles.ROLE_SUPREME) then return "`4Overlord-Broadcast`o" end
+    if p:hasRole(Roles.ROLE_OVERLORD) or p:hasRole(Roles.ROLE_SUPREME) then return "`4Overlord-Broadcast" end
   elseif cmd=="ssb" then
-    if p:hasRole(Roles.ROLE_SUPREME) then return "`bSupreme-Broadcast`o" end
+    if p:hasRole(Roles.ROLE_SUPREME) then return "`bSupreme-Broadcast" end
   elseif cmd=="scsb" then
-    if p:hasRole(Roles.ROLE_DEVELOPER) then return "`@Developer`o" end
-    if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server-Creator`o" end
+    if p:hasRole(Roles.ROLE_DEVELOPER) then return "`@Developer" end
+    if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server-Creator" end
   end
   return nil
 end
