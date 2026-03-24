@@ -1,18 +1,15 @@
 -- Marvelous Missions script
-print("(Loaded) Marvelous Missions script for GrowSoft")
 
 local storageUniqueName = "marvelous-missions"
 local marvelousData = {}
 
 function loadData()
-    print("Loading marvelous missions data")
     marvelousData = loadDataFromServer(storageUniqueName) or {}
 end
 
 loadData() -- Load the data once script is loaded
 
 function saveData()
-    print("Saving marvelous missions data")
     saveDataToServer(storageUniqueName, marvelousData)
 end
 

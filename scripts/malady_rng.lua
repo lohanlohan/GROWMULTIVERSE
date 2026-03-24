@@ -2,8 +2,6 @@
 
 local MaladySystem = {}
 
-print("(malady_rng) module loading...")
-
 -- =======================================================
 -- CONFIG
 -- =======================================================
@@ -671,5 +669,4 @@ end)
 -- Panggil MaladySystem.tryInfectFromTrigger(player, TRIGGER_SOURCE.JUMP/AUTOMATION)
 -- secara eksternal dari sistem lain jika tersedia.
 
-print("(malady_rng) module loaded successfully.")
 return MaladySystem

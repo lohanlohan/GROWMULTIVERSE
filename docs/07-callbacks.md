@@ -118,6 +118,61 @@ end)
 
 ---
 
+## Tile Extra Data
+
+> ⚠️ **Advanced** — Bekerja langsung dengan binary structure Growtopia. Salah format bisa crash client.
+
+```lua
+onGetTileExtraDataCallback(function(world, tile, game_version)
+    -- Dipanggil saat client meminta extra data tile (label, icon, display info, dll)
+    -- game_version = float (e.g. 4.65) — cek versi client sebelum kirim data
+    -- return BinaryWriter string = kirim custom extra data
+    -- return false = gunakan default behavior
+end)
+```
+
+**Contoh — Auto Surgeon Station (item 14666):**
+```lua
+onGetTileExtraDataCallback(function(world, tile, game_version)
+    if tile:getTileForeground() == 14666 then
+        if game_version < 4.65 then return false end  -- old client tidak support
+
+        local wr = BinaryWriter("")
+        wr:WriteUInt32(39)
+        wr:WriteUInt8(163)
+
+        wr:WriteUInt8(106)          -- 96 + len("outOfOrder") = 106
+        wr:WriteString("outOfOrder")
+        wr:WriteUInt8(0)            -- 0 = NO, 1 = YES
+
+        wr:WriteUInt8(111)          -- 96 + len("selectedIllness") = 111
+        wr:WriteString("selectedIllness")
+        wr:WriteUInt8(21)           -- Illness ID
+
+        wr:WriteUInt8(103)          -- 96 + len("wlCount") = 103
+        wr:WriteString("wlCount")
+        wr:WriteUInt8(1)            -- WL count (> 0 = golden display)
+
+        return wr:GetCurrentString()
+    end
+    return false
+end)
+```
+
+**BinaryWriter API:**
+```lua
+local wr = BinaryWriter("")        -- Buat writer baru
+wr:WriteUInt8(value)               -- Tulis 1 byte (0–255)
+wr:WriteUInt32(value)              -- Tulis 4 byte unsigned int
+wr:WriteString(str)                -- Tulis string
+wr:GetCurrentString()              -- Return: binary string hasil
+```
+
+> **Tips:** String key length prefix = `96 + #str` (ditulis sebagai UInt8 sebelum WriteString).
+> Berlaku untuk: Auto Surgeon Station, Vending Machine, Magplant, Display Block, Display Shelf, dll.
+
+---
+
 ## Player Combat & Death
 
 ```lua

@@ -1,5 +1,4 @@
 -- Experimental Blocks Example script
-print("(Loaded) Experimental Blocks Example script for GrowSoft")
 
 math.randomseed(os.time())
 

@@ -1,5 +1,4 @@
 -- Player Profile script
-print("(Loaded) Player Profile script for GrowSoft")
 
 function startsWith(str, start)
     return string.sub(str, 1, string.len(start)) == start

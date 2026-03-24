@@ -1,5 +1,4 @@
 -- Say Example script
-print("(Loaded) Say Example script for GrowSoft")
 
 Roles = {
     ROLE_NONE = 0,
@@ -23,6 +22,7 @@ registerLuaCommand(sayCommandData) -- This is just for some places such as role 
 
 onPlayerCommandCallback(function(world, player, fullCommand)
     local command, message = fullCommand:match("^(%S+)%s*(.*)")
+    if not command then return false end
 
     if command:lower() == sayCommandData.command then
         if not player:hasRole(sayCommandData.roleRequired) then

@@ -1,5 +1,3 @@
-print(">> (Loading) Autofarm Boost System V2.0 - STANDALONE...")
-
 -- ============================================================================
 -- CONFIGURATION
 -- ============================================================================
@@ -574,10 +572,3 @@ end
 -- INIT
 -- ============================================================================
 
-print(">> (Success) Autofarm Boost System V2.0 INTEGRATED Loaded!")
-print(">> Consumable ID: " .. CONFIG.CONSUMABLE_BOOST_ID .. " (100% boost, 24h, stackable)")
-print(">> Clothing IDs: " .. table.concat(CONFIG.CLOTHING_BOOST_IDS, ", ") .. " (200% boost)")
-print(">> Max Boost: 500% (consumable 100% + clothing 200% + item effects up to 200%)")
-print(">> Commands: /boostinfo, /clearboost <n>, /setbasedelay <n> <ms>")
-print(">> Formula: FinalDelay = BaseDelay / (1 + Boost%/100)")
-print(">> Item Effect Integration: Enabled (auto-detects item_effect_system.lua)")

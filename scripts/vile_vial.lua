@@ -2,8 +2,6 @@
 
 local VileVialSystem = {}
 
-print("(vile_vial) module loading...")
-
 -- =======================================================
 -- CONFIG
 -- =======================================================
@@ -116,5 +114,4 @@ onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
     return true
 end)
 
-print("(vile_vial) module loaded successfully.")
 return VileVialSystem

@@ -1,5 +1,3 @@
-print("(hospital_main) bootstrap loading...")
-
 -- Paksa reload kedua module setiap kali hospital_main dijalankan.
 -- Ini penting agar callback ter-register ulang setelah reloadScripts()
 -- karena engine menghapus semua callback saat reload, tapi global Lua tetap hidup.
@@ -11,4 +9,3 @@ MaladySystem = require("malady_rng")
 HospitalSystem = require("hospital")
 VileVialSystem = require("vile_vial")
 
-print("(hospital_main) all modules loaded successfully.")

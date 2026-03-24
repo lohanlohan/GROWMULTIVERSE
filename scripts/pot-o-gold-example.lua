@@ -1,5 +1,4 @@
 -- Pot-O-Gold Gems Drop Example script
-print("(Loaded) Pot-O-Gold Gems Drop Example script for GrowSoft")
 
 math.randomseed(os.time())
 

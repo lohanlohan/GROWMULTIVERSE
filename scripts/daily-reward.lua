@@ -1,5 +1,4 @@
 -- Daily Reward script
-print("(Loaded) Daily Reward script for GrowSoft")
 
 math.randomseed(os.time())
 

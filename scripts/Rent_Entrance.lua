@@ -1,5 +1,3 @@
-print("(rent_entrance) loading...")
-
 -- =======================================================
 -- CONFIG
 -- =======================================================
@@ -1054,4 +1052,3 @@ onWorldTick(function(world)
     end
 end)
 
-print("(rent_entrance) loaded successfully.")

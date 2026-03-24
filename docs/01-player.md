@@ -42,7 +42,7 @@ player:getInventorySize()                    -- Return: number (total slot)
 player:isMaxInventorySpace()                 -- Return: boolean (true jika penuh)
 player:upgradeInventorySpace(amount)         -- Tambah slot inventory
 player:getItemAmount(itemID)                 -- Return: number (jumlah item tertentu)
-player:changeItem(itemID, amount, sendPacket) -- Tambah/kurangi item (amount negatif = kurangi)
+player:changeItem(itemID, amount, sendPacket) -- Tambah/kurangi item (amount negatif = kurangi) ( sendPacket = 0 / 1 )
 player:getInventoryItems()                   -- Return: table of inventory_item objects
 player:getBackpackUsedSize()                 -- Return: number (slot terpakai)
 player:getBackpackItems()                    -- Return: table of backpack items (nperma)

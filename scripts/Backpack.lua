@@ -1,5 +1,3 @@
-print("(Backpack) loading...")
-
 local ItemCat = require("item_categorizer")
 
 -- ============================================================================
@@ -1011,4 +1009,3 @@ _G.BP_storeItem = function(player, itemID, count)
     return count
 end
 
-print("(Backpack) module loaded successfully.")

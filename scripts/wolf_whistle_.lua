@@ -1,5 +1,3 @@
-print("(Loaded) Wolf Whistle script - 15 Minute Wolf Hunt")
-
 local WOLF_WHISTLE_ID = 2992
 local WOLF_WORLDS = {
     "WOLFWORLD_1",
@@ -106,9 +104,6 @@ onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
     wolf_pending_entry[userID] = true
     wolf_claimed[userID] = nil
 
-    print("[WOLF WHISTLE] Player " .. player:getName() .. " activated Wolf Whistle!")
-    print("[WOLF WHISTLE] Sending to: " .. randomWorld)
-
     timer.setTimeout(2, function()
         if player:isOnline() then
             player:enterWorld(randomWorld, "", 1)
@@ -137,7 +132,6 @@ onPlayerEnterWorldCallback(function(world, player)
     -- direct warp protection:
     -- if player enters wolf world manually without whistle, do not activate hunt
     if not wolf_pending_entry[userID] and not wolf_hunt_active[userID] then
-        print("[WOLF WHISTLE] " .. player:getName() .. " entered wolf world manually. Hunt not activated.")
         return
     end
 
@@ -168,8 +162,6 @@ onPlayerEnterWorldCallback(function(world, player)
         wolf_hunt_timers[userID] = nil
     end
 
-    print("[WOLF WHISTLE] Player " .. player:getName() .. " entered " .. worldName .. " (" .. remaining .. "s remaining)")
-
     player:sendVariant({"OnCountdownStart", remaining, -1}, 0, player:getNetID())
 
     wolf_hunt_timers[userID] = timer.setTimeout(remaining, function()
@@ -182,7 +174,6 @@ onPlayerEnterWorldCallback(function(world, player)
 
             player:enterWorld("", "", 1)
             player:onTalkBubble(player:getNetID(), "`wYour wolf hunt time has ended!", 1)
-            print("[WOLF WHISTLE] Sent " .. player:getName() .. " back to START")
         end
     end)
 end)
@@ -198,8 +189,6 @@ onPlayerLeaveWorldCallback(function(world, player)
     if isWolfWorld(worldName) and wolf_hunt_active[userID] then
         -- if still online, it's a real leave, not disconnect
         if player:isOnline() then
-            print("[WOLF WHISTLE] Player " .. player:getName() .. " left hunt early - penalty!")
-
             player:addMod(COWARDLY_WEAKNESS_MOD, MOD_DURATION)
 
             if wolf_hunt_timers[userID] then
@@ -229,13 +218,11 @@ onPlayerDisconnectCallback(function(player)
         end
 
         -- keep wolf_hunt_active and wolf_end_times for reconnect resume
-        print("[WOLF WHISTLE] Player disconnected during hunt, realtime timer continues.")
     else
         wolf_pending_entry[userID] = nil
     end
 
     wolf_claimed[userID] = nil
-    print("[WOLF WHISTLE] Cleaned up claim lock for user: " .. userID)
 end)
 
 -- =========================================================
@@ -328,7 +315,9 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         return false
     end
 
-    local cmd = fullCommand:match("^(%S+)"):lower()
+    local cmd = fullCommand:match("^(%S+)")
+    if not cmd then return false end
+    cmd = cmd:lower()
 
     if cmd == "wolf" then
         if not player:hasRole(51) then
@@ -339,9 +328,6 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         if player:getMod(COWARDLY_WEAKNESS_MOD) then
             player:removeMod(COWARDLY_WEAKNESS_MOD)
             player:playAudio("audio/success.wav")
-            print("[WOLF COMMAND] Admin " .. player:getName() .. " removed Cowardly Weakness mod")
-        else
-            print("[WOLF COMMAND] Admin " .. player:getName() .. " tried to remove Cowardly Weakness mod but didn't have it")
         end
 
         return true
@@ -359,4 +345,3 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     return false
 end)
 
-print(">> (Success) Wolf Whistle 15-Minute Hunt System Loaded!")

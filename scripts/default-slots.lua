@@ -1,5 +1,4 @@
 -- Default Slots script
-print("(Loaded) Default Slots script for GrowSoft")
 
 local DEFAULT_SLOTS = 3
 

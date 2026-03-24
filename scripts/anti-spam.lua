@@ -1,5 +1,4 @@
 -- Anti-Spam script
-print("(Loaded) Anti-Spam script for GrowSoft")
 
 local ccModData = {
     modID = -1000, -- The number should be negative, for example if you wanna add another mod use the ID -1001, make sure it never duplicates
