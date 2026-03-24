@@ -1546,7 +1546,7 @@ local function drStartGame(world, room)
     for _, entry in ipairs(startList) do
         world:setPlayerPosition(entry.player, cp1x, cp1y)
         entry.player:sendVariant({"OnCountdownStart", DR_DURATION, -1}, 0, entry.player:getNetID())
-        entry.player:onConsoleMessage("`wGO! `7Race to the finish — `w" .. DR_DURATION .. "s`7 on the clock!")
+        -- entry.player:onConsoleMessage("`wGO! `7Race to the finish — `w" .. DR_DURATION .. "s`7 on the clock!")
     end
 
     -- Race timeout timer
@@ -1669,7 +1669,7 @@ onWorldTick(function(world)
                     if not pstate.finished and pstate.checkpoint < 2 then
                         if tx <= room.posCP2.x + 1 and ty >= room.posCP2.y - 1 and ty <= room.posCP2.y + 1 then
                             pstate.checkpoint = 2
-                            p:onConsoleMessage("`2Checkpoint 2 reached! You will respawn here from now on.")
+                            -- p:onConsoleMessage("`2Checkpoint 2 reached! You will respawn here from now on.")
                         end
                     end
 
@@ -1679,7 +1679,7 @@ onWorldTick(function(world)
                         if px < ga.xMin or px > ga.xMax or py < ga.yMin or py > ga.yMax then
                             pstate.dead      = true
                             pstate.respawnAt = now + 1
-                            p:onConsoleMessage("`4You died! Respawning at checkpoint " .. pstate.checkpoint .. "...")
+                            -- p:onConsoleMessage("`4You died! Respawning at checkpoint " .. pstate.checkpoint .. "...")
                         end
                     end
 
