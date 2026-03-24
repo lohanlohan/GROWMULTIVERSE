@@ -1,12 +1,11 @@
-local RoleObject = getRoles()
-
-local RoleIndex = {}
-for i = 1, #RoleObject do
-  local role = RoleObject[i]
-  RoleIndex[role.roleID] = role
-end
-
 local function collectRoles(player)
+  local RoleObject = getRoles()
+  local RoleIndex = {}
+  for i = 1, #RoleObject do
+    local role = RoleObject[i]
+    RoleIndex[role.roleID] = role
+  end
+
   local roles = {}
   local visited = {}
 
@@ -41,8 +40,13 @@ local function collectRoles(player)
 end
 
 onPlayerCommandCallback(function(world, player, message)
-  local command = message:lower():match("^(%S+)$")
-  if command == 'help' then
+  local rawCommand = message:lower():match("^(%S+)$")
+  if not rawCommand then
+    return false
+  end
+
+  local command = rawCommand:gsub("^/", "")
+  if command == 'help' or command == '?' then
     local roles = collectRoles(player)
     local dialog = {
       'set_bg_color|0,0,0,150|',
@@ -93,4 +97,5 @@ onPlayerCommandCallback(function(world, player, message)
     end)
     return true
   end
+  return false
 end)

@@ -18,7 +18,6 @@ local SFX = {
   MERCH = "audio/cumbia_horns.wav",    -- Merchants
   CO    = "audio/choir.wav",           -- Co-Owner
   SC    = "audio/already_used.wav",     -- Server Creator / Developer
-  qsb   = "audio/hub_open.wav"         -- Quantum SB (unused)
 }
 
 local BROADCAST_COST = {
@@ -30,7 +29,34 @@ local BROADCAST_COST = {
 local function getName(p)  return p and p.getName and p:getName() or "Unknown" end
 local function getWorld(p) return p and p.getWorldName and p:getWorldName() or "??" end
 local function getUID(p)   return p and p.getUserID and p:getUserID() or -1 end
-local function say(p,t)    if p and p.onConsoleMessage then p:onConsoleMessage(t) end end
+local function say(p,t)
+  if not p then return end
+  if p.sendVariant then
+    p:sendVariant({"OnConsoleMessage", t})
+    return
+  end
+  if p.onConsoleMessage then p:onConsoleMessage(t) end
+end
+local function pickSfx(soundFile)
+  if type(soundFile) == "table" then
+    return soundFile[1] or "audio/beep.wav"
+  end
+  if type(soundFile) == "string" and soundFile ~= "" then
+    return soundFile
+  end
+  return "audio/beep.wav"
+end
+local function notifyBroadcast(p, tag, senderName, msg, soundFile)
+  if not p or not p.sendVariant then return end
+  local notif = string.format("[`w%s``] %s\n`w%s", tag, senderName, msg)
+  p:sendVariant({
+    "OnAddNotification",
+    "interface/science_button.rttex",
+    notif,
+    pickSfx(soundFile),
+    0
+  })
+end
 local function sfx(p,f)
   if not p or not p.sendAction or not f then return end
   if type(f) == "table" then
@@ -66,8 +92,6 @@ local function tagFor(cmd, p)
   elseif cmd=="scsb" then
     if p:hasRole(Roles.ROLE_DEVELOPER) then return "`@Developer`o" end
     if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server-Creator`o" end
-  elseif cmd=="qsb" then
-    if p:hasRole(Roles.ROLE_DEVELOPER) then return "`aQuantum-Broadcast`o" end
   end
   return nil
 end
@@ -85,11 +109,17 @@ local function calcBroadcastCost(cmd, onlineCount)
   return math.min(rawCost, cfg.maxCost)
 end
 
+local function syncSenderBroadcastWorld(player)
+  if not player or not player.setBroadcastWorld then return end
+  local currentWorld = getWorld(player)
+  if currentWorld == "" or currentWorld == "??" then return end
+  player:setBroadcastWorld(currentWorld)
+end
+
 registerLuaCommand({ command="lsb",   roleRequired=Roles.ROLE_LORD,           description="Lord / Overlord / Supreme Broadcast" })
 registerLuaCommand({ command="osb",   roleRequired=Roles.ROLE_OVERLORD,       description="Overlord / Supreme Broadcast" })
 registerLuaCommand({ command="ssb",   roleRequired=Roles.ROLE_SUPREME,        description="Supreme Broadcast" })
 registerLuaCommand({ command="scsb",  roleRequired=Roles.ROLE_SERVER_CREATOR, description="Server Creator / Developer Broadcast (Atomic Notice Only)" })
-registerLuaCommand({ command="qsb",   roleRequired=Roles.ROLE_SERVER_CREATOR, description="Quantum Broadcast (Developer Only, Atomic Notice Only)" })
 
 -- meta grup + sfx
 local GROUPS = {
@@ -139,8 +169,9 @@ end
 
 onPlayerCommandCallback(function(world, player, full)
   if type(full) ~= "string" then return false end
-  local cmd, msg = full:match("^(%S+)%s*(.*)$")
-  if not cmd then return false end
+  local rawCmd, msg = full:match("^(%S+)%s*(.*)$")
+  if not rawCmd then return false end
+  local cmd = rawCmd:lower():gsub("^/", "")
   local meta = GROUPS[cmd]
   if not meta then return false end
 
@@ -180,10 +211,10 @@ onPlayerCommandCallback(function(world, player, full)
     end
   end
 
+  syncSenderBroadcastWorld(player)
+
   if cmd == "scsb" then
     -- khusus SC: HANYA atomic overlay + sfx, tidak ada baris chat broadcast
-    atomicNoticeAll(player, tag, msg)
-  elseif cmd == "qsb" then
     atomicNoticeAll(player, tag, msg)
   else
     -- grup lain: chat broadcast + sfx
