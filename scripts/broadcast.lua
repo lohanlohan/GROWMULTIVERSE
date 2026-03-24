@@ -88,6 +88,9 @@ local GROUPS = {
 local function broadcastAll(sender, tag, msg, soundFile)
   local sname, wname, suid = getName(sender), getWorld(sender), getUID(sender)
   local text = makeLine(tag, sname, wname, msg)
+  
+  say(sender, ">> "..tag.."- Broadcast sent.")
+  
   for _, p in ipairs(allPlayers()) do
     if getUID(p) ~= suid then
       say(p, text)
@@ -96,12 +99,13 @@ local function broadcastAll(sender, tag, msg, soundFile)
   end
   say(sender, text)
   sfx(sender, soundFile)
-  say(sender, ">> "..tag.."- Broadcast sent.")
 end
 
 local function atomicNoticeAll(sender, tag, msg)
   local sname = getName(sender)
   local title = string.format("`0[%s]`w %s\n`w%s", tag, sname, msg)
+
+  say(sender, ">> "..tag.."- Broadcast sent.")
 
   for _, p in ipairs(allPlayers()) do
     if p and p.sendVariant then
@@ -114,8 +118,6 @@ local function atomicNoticeAll(sender, tag, msg)
       })
     end
   end
-
-  say(sender, ">> "..tag.."- Broadcast sent.")
 end
 
 onPlayerCommandCallback(function(world, player, full)
