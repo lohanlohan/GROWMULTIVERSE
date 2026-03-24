@@ -41,13 +41,13 @@ local function tagFor(cmd, p)
     if p:hasRole(Roles.ROLE_SUPER_VIP) then return "`aSuper-Vip`o" end
     if p:hasRole(Roles.ROLE_VIP)      then return "`sVip`o" end
   elseif cmd=="modsb" then
-    if p:hasRole(Roles.ROLE_ULTRA_MODERATOR) then return "`#Ultra Moderator`o" end
-    if p:hasRole(Roles.ROLE_MODERATOR)       then return "`5Super Moderator`o" end
+    if p:hasRole(Roles.ROLE_ULTRA_MODERATOR) then return "`#Ultra-Moderator`o" end
+    if p:hasRole(Roles.ROLE_MODERATOR)       then return "`5Super-Moderator`o" end
   elseif cmd=="divsb" then
-    if p:hasRole(Roles.ROLE_SUPER_DIVINE) then return "`3Super Divine`o" end
+    if p:hasRole(Roles.ROLE_SUPER_DIVINE) then return "`3Super-Divine`o" end
     if p:hasRole(Roles.ROLE_DIVINE)       then return "`cDivine`o" end
   elseif cmd=="rsb" then
-    if p:hasRole(Roles.ROLE_RESTOCKER_MAX) then return "`rRestocker Max`o" end
+    if p:hasRole(Roles.ROLE_RESTOCKER_MAX) then return "`rRestocker-Max`o" end
     if p:hasRole(Roles.ROLE_RESTOCKER)     then return "`tRestocker`o" end
   elseif cmd=="msb" then
     if p:hasRole(Roles.ROLE_MERCHANTS) then return "`&Merchants`o" end
@@ -55,7 +55,7 @@ local function tagFor(cmd, p)
     if p:hasRole(Roles.ROLE_CO_OWNER) then return "`pCo-Owner`o" end
   elseif cmd=="scsb" then
     if p:hasRole(Roles.ROLE_DEVELOPER)      then return "`@Developer`o" end
-    if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server Creator`o" end
+    if p:hasRole(Roles.ROLE_SERVER_CREATOR) then return "`@Server-Creator`o" end
   end
   return nil
 end
