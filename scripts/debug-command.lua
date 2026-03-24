@@ -1,12 +1,22 @@
 -- MODULE
+print("(Loaded) debug-command")
 
 local ROLE_DEVELOPER = 51
 
-registerLuaCommand({
+local debugCommandData = {
     command = "debug",
     roleRequired = ROLE_DEVELOPER,
     description = "Show debug info to developer console"
-})
+}
+
+local debugAliasCommandData = {
+    command = "debugs",
+    roleRequired = ROLE_DEVELOPER,
+    description = "Alias for debug command"
+}
+
+registerLuaCommand(debugCommandData)
+registerLuaCommand(debugAliasCommandData)
 
 local function safeName(player)
     return (player and player.getName and player:getName()) or "Unknown"
@@ -45,7 +55,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     if not cmd then return false end
     cmd = cmd:lower():gsub("^/", "")
 
-    if cmd ~= "debug" then
+    if cmd ~= "debug" and cmd ~= "debugs" then
         return false
     end
 
@@ -71,3 +81,5 @@ onPlayerCommandCallback(function(world, player, fullCommand)
 
     return true
 end)
+
+print("(Ready) debug-command")

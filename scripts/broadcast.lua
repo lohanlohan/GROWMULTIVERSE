@@ -11,9 +11,9 @@ local Roles = {
 }
 
 local SFX = {
-  LSB   = "audio/terraform.wav",       -- LORD
-  OSB   = "audio/friend_logon.wav",   -- OVERLORD
-  SSB   = "audio/double_chance.wav",   -- SUPREME
+  LSB   = {"audio/terraform.wav", "audio/beep.wav"},       -- LORD
+  OSB   = { "audio/friend_logon.wav", "audio/beep.wav" },   -- OVERLORD (multi sfx)
+  SSB   = { "audio/double_chance.wav", "audio/beep.wav" },   -- SUPREME
   MODS  = "audio/secret.wav",          -- Moderator / Ultra Moderator
   MERCH = "audio/cumbia_horns.wav",    -- Merchants
   CO    = "audio/choir.wav",           -- Co-Owner
@@ -31,7 +31,20 @@ local function getName(p)  return p and p.getName and p:getName() or "Unknown" e
 local function getWorld(p) return p and p.getWorldName and p:getWorldName() or "??" end
 local function getUID(p)   return p and p.getUserID and p:getUserID() or -1 end
 local function say(p,t)    if p and p.onConsoleMessage then p:onConsoleMessage(t) end end
-local function sfx(p,f)    if p and f and p.sendAction then p:sendAction("action|play_sfx\nfile|"..f.."\ndelayMS|0") end end
+local function sfx(p,f)
+  if not p or not p.sendAction or not f then return end
+  if type(f) == "table" then
+    for _, file in ipairs(f) do
+      if type(file) == "string" and file ~= "" then
+        p:sendAction("action|play_sfx\nfile|"..file.."\ndelayMS|0")
+      end
+    end
+    return
+  end
+  if type(f) == "string" and f ~= "" then
+    p:sendAction("action|play_sfx\nfile|"..f.."\ndelayMS|0")
+  end
+end
 local function allPlayers() if type(getServerPlayers)=="function" then return getServerPlayers() end return {} end
 
 local function makeLine(tag, sender, world, msg, isJammed)
