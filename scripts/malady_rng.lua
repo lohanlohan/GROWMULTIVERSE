@@ -9,8 +9,6 @@ local MaladySystem = {}
 local MALADY_DURATION = 12 * 60 * 60 -- 12 hours
 local CORE_RECOVERING_MOD_ID = nil -- disabled: hasMod with negative IDs can crash
 local AUTOMATION_PLAYMOD_ID = -111
-local LOCKED_SERVER_ID = "4552"
-local LOCK_MESSAGE = "Error: you are trying to crack script, please contact @luhnox on Discord for access."
 
 MaladySystem.MALADY = {
     CHICKEN_FEET         = "CHICKEN_FEET",
@@ -180,23 +178,6 @@ local function safeBubble(player, text)
     if hasMethod(player, "onTalkBubble") and hasMethod(player, "getNetID") then
         player:onTalkBubble(player:getNetID(), text, 0)
     end
-end
-
-local function isAuthorizedServer()
-    if type(getServerID) ~= "function" then
-        return false
-    end
-    return tostring(getServerID() or "") == LOCKED_SERVER_ID
-end
-
-local _maladyLockWarnedUID = _maladyLockWarnedUID or {}
-
-local function notifyLockedServerOnly(player)
-    local uid = getUserID(player)
-    if uid == 0 then return end
-    if _maladyLockWarnedUID[uid] then return end
-    _maladyLockWarnedUID[uid] = true
-    safeConsole(player, "`4" .. LOCK_MESSAGE .. "``")
 end
 
 local function extractColorCode(s)
@@ -562,10 +543,6 @@ end
 -- =======================================================
 
 onPlayerLoginCallback(function(player)
-    if not isAuthorizedServer() then
-        notifyLockedServerOnly(player)
-        return
-    end
     MaladySystem.refreshPlayerState(player)
     MaladySystem.syncEffects(player) -- selalu sync saat login untuk restore playmod
 end)
@@ -587,7 +564,6 @@ _maladyPunchCount = _maladyPunchCount or {}
 _maladyPunchBubbleAt = _maladyPunchBubbleAt or {} -- [uid] = os.time() last bubble shown
 
 onPlayerTick(function(player)
-    if not isAuthorizedServer() then return end
     local uid = getUserID(player)
     if uid == 0 then return end
     local x = player:getPosX()
@@ -610,7 +586,6 @@ end)
 -- 19 punch pertama di-block (return true), punch ke-20 diizinkan (return false)
 -- Setiap punch yang di-block: tampilkan bubble reminder (cooldown 3 detik, delay 2 detik)
 onTilePunchCallback(function(world, player, tile)
-    if not isAuthorizedServer() then return false end
     if MaladySystem.getActiveMalady(player) ~= MaladySystem.MALADY.TORN_PUNCHING_MUSCLE then
         return false
     end
@@ -638,14 +613,12 @@ end)
 -- BREAK: tile dipecahkan player
 -- (Nperma only — tidak akan crash jika engine tidak support, callback hanya tidak terpanggil)
 onTileBreakCallback(function(world, player, tile)
-    if not isAuthorizedServer() then return end
     MaladySystem.tryInfectFromTrigger(player, MaladySystem.TRIGGER_SOURCE.BREAK)
 end)
 
 -- WRENCH: player mewrench tile apapun
 -- Skip hospital tiles (Reception Desk=14668, Auto Surgeon=14666) agar tidak trigger RNG
 onTileWrenchCallback(function(world, player, tile)
-    if not isAuthorizedServer() then return false end
     local tileID = tile:getTileID()
     if tileID == 14668 or tileID == 14666 then return false end
     MaladySystem.tryInfectFromTrigger(player, MaladySystem.TRIGGER_SOURCE.WRENCH)
@@ -655,7 +628,6 @@ end)
 -- GEMS: player mendapat gems
 -- Sekaligus apply debuff GEMS_CUTS: kurangi gems ke 20% jika aktif
 onPlayerGemsObtainedCallback(function(world, player, amount)
-    if not isAuthorizedServer() then return end
     local amt = tonumber(amount) or 0
     if amt <= 0 then return end
     local reduced = MaladySystem.modifyGemGain(player, amt)
@@ -670,7 +642,6 @@ end)
 -- onPlayerActionCallback (Nperma) menangkap regular chat dengan action "input"
 -- Sekaligus apply debuff GRUMBLETEETH: garble chat ke semua player jika aktif
 onPlayerActionCallback(function(world, player, data)
-    if not isAuthorizedServer() then return end
     if type(data) ~= "table" then return end
     if data["action"] ~= "input" then return end
     local text = tostring(data["|text"] or "")
@@ -702,7 +673,6 @@ end)
 local AUTOMATION_ROLE_ITEM_ID = 20704
 
 onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
-    if not isAuthorizedServer() then return false end
     if itemID ~= AUTOMATION_ROLE_ITEM_ID then return false end
     if MaladySystem.getActiveMalady(player) ~= MaladySystem.MALADY.AUTOMATION_CURSE then return false end
     safeBubble(player, "`4Automation Curse! You cannot use this while cursed. Get cured first!")
@@ -721,7 +691,6 @@ _maladySurgeryBubbleAt = _maladySurgeryBubbleAt or {}
 _maladyPendingRemoveCaduceus = _maladyPendingRemoveCaduceus or {}
 
 onPlayerSurgeryCallback(function(world, surgeon, rewardID, rewardCount, targetPlayer)
-    if not isAuthorizedServer() then return false end
     if MaladySystem.getActiveMalady(surgeon) ~= MaladySystem.MALADY.BROKEN_HEARTS then return false end
     local uid = getUserID(surgeon)
     local lastAt = _maladySurgeryBubbleAt[uid] or 0
@@ -734,7 +703,6 @@ onPlayerSurgeryCallback(function(world, surgeon, rewardID, rewardCount, targetPl
 end)
 
 onPlayerTick(function(player)
-    if not isAuthorizedServer() then return end
     local uid = getUserID(player)
     if _maladyPendingRemoveCaduceus[uid] then
         local pending = _maladyPendingRemoveCaduceus[uid]

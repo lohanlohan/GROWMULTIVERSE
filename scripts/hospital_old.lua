@@ -12,7 +12,6 @@ local ROLE_DEVELOPER = 51
 
 local RECEPTION_DESK_ID = 14668
 local AUTO_SURGEON_ID   = 14666
-local OPERATING_TABLE_ID = 14662
 local WORLD_LOCK_ID     = 242
 local WORLD_KEY_ID      = 1424
 
@@ -21,46 +20,9 @@ local CURE_TAX_WL       = 2
 local MAX_TOOL_STORAGE  = 1000
 
 local HOSPITAL_LEVELS = {
-    [1] = { next_level = 2, required_surgeries = 20,  upgrade_gems = 1000000,  upgrade_wl = 10 },
-    [2] = { next_level = 3, required_surgeries = 140, upgrade_gems = 10000000, upgrade_wl = 20 },
+    [1] = { next_level = 2, required_surgeries = 25,  upgrade_gems = 1000000,  upgrade_wl = 1000  },
+    [2] = { next_level = 3, required_surgeries = 50,  upgrade_gems = 10000000, upgrade_wl = 10000 },
     [3] = { next_level = nil, required_surgeries = 0, upgrade_gems = 0,        upgrade_wl = 0     }
-}
-
-local LEVEL_UP_RULES = {
-    [1] = {
-        required_cures = 20,
-        required_doctors = 1,
-        required_rating = 1,
-        required_auto_surgeons = 0,
-        required_operating_tables = 0,
-        required_maladies = {
-            { key = MaladySystem.MALADY.TORN_PUNCHING_MUSCLE, count = 5, label = "Torn Muscle cured" },
-            { key = MaladySystem.MALADY.GEMS_CUTS, count = 5, label = "Gem Cuts cured" }
-        },
-        perks = {
-            "Operating Table Capacity: `2+1``",
-            "Surg-E Patient Duration: Between `24 hours, 5 mins`` and `26 hours``"
-        },
-        rewards = {
-            { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID },
-            { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
-        }
-    },
-    [2] = {
-        required_cures = 140,
-        required_doctors = 1,
-        required_rating = 1,
-        required_auto_surgeons = 1,
-        required_operating_tables = 1,
-        required_maladies = {},
-        perks = {
-            "None"
-        },
-        rewards = {
-            { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID },
-            { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
-        }
-    }
 }
 
 local MALADY_UNLOCK_LEVEL = {
@@ -168,45 +130,6 @@ local BTN_WITHDRAW_WL   = "v5m_withdraw_station_wl"
 local BTN_CLOSE_OWNER   = "v5m_close_station_owner"
 local BTN_CURE_MALADY   = "v5m_cure_malady_station"
 
-local BTN_SHOW_STATS    = "receptionBtn_showHospitalStats"
-local BTN_LEVEL_UP      = "receptionBtn_levelUp"
-local BTN_BACK_STATS    = "statsBtn_back"
-local BTN_LEVEL_UP_NEW_CONFIRM = "levelUpBtn_confirm"
-local BTN_LEVEL_UP_BACK = "levelUpBtn_back"
-
-local HOSPITAL_STATS_MALADY_ROWS = {
-    { label = "Brainworms cured", key = MaladySystem.MALADY.BRAINWORMS, icon = "image:game/tiles_page14.rttex;frame:29,0;frameSize:32;" },
-    { label = "Grumbleteeth cured", key = MaladySystem.MALADY.GRUMBLETEETH, icon = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;" },
-    { label = "Chicken Feet cured", key = MaladySystem.MALADY.CHICKEN_FEET, icon = "image:game/tiles_page2.rttex;frame:20,0;frameSize:32;" },
-    { label = "Gem Cuts cured", key = MaladySystem.MALADY.GEMS_CUTS, icon = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;" },
-    { label = "Torn Muscle cured", key = MaladySystem.MALADY.TORN_PUNCHING_MUSCLE, icon = "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;" },
-    { label = "Shattered Bones cured", key = MaladySystem.MALADY.SHATTERED_BONES, icon = "image:game/tiles_page9.rttex;frame:12,2;frameSize:32;" },
-    { label = "Appendicitis cured", key = MaladySystem.MALADY.APPENDICITIS, icon = "image:game/tiles_page5.rttex;frame:0,2;frameSize:32;" },
-    { label = "Swallowed World Lock cured", key = MaladySystem.MALADY.SWALLOWED_WORLD_LOCK, icon = "image:game/player_cosmetics3_icon.rttex;frame:12,0;frameSize:32;" },
-    { label = "Head Injury cured", key = MaladySystem.MALADY.HEAD_INJURY, icon = "image:game/player_hair4_icon.rttex;frame:2,6;frameSize:32;" },
-    { label = "Liver Infection cured", key = MaladySystem.MALADY.LIVER_INFECTION, icon = "image:game/tiles_page13.rttex;frame:29,30;frameSize:32;" },
-    { label = "Nose Job cured", key = MaladySystem.MALADY.NOSE_JOB, icon = "image:game/player_cosmetics1_icon.rttex;frame:17,11;frameSize:32;" },
-    { label = "Massive Trauma cured", key = MaladySystem.MALADY.MASSIVE_TRAUMA, icon = "image:game/tiles_page7.rttex;frame:4,13;frameSize:32;" },
-    { label = "Serious Trauma cured", key = MaladySystem.MALADY.SERIOUS_TRAUMA, icon = "image:game/tiles_page13.rttex;frame:9,1;frameSize:32;" },
-    { label = "Brain Tumor cured", key = MaladySystem.MALADY.BRAIN_TUMOR, icon = "image:game/player_hair4_icon.rttex;frame:4,1;frameSize:32;" },
-    { label = "Lung Tumor cured", key = MaladySystem.MALADY.LUNG_TUMOR, icon = "image:game/player_cosmetics1_icon.rttex;frame:15,22;frameSize:32;" },
-    { label = "Kidney Failure cured", key = MaladySystem.MALADY.KIDNEY_FAILURE, icon = "image:game/tiles_page8.rttex;frame:10,5;frameSize:32;" },
-    { label = "Heart Attack cured", key = MaladySystem.MALADY.HEART_ATTACK, icon = "image:game/player_cosmetics1_icon.rttex;frame:31,31;frameSize:32;" },
-    { label = "Bad Disc cured", key = MaladySystem.MALADY.BAD_DISC, icon = "image:game/tiles_page6.rttex;frame:6,15;frameSize:32;" },
-    { label = "Broken Arm cured", key = MaladySystem.MALADY.BROKEN_ARM, icon = "image:game/tiles_page7.rttex;frame:12,4;frameSize:32;" },
-    { label = "Broken Leg cured", key = MaladySystem.MALADY.BROKEN_LEG, icon = "image:game/tiles_page1.rttex;frame:30,9;frameSize:32;" },
-    { label = "Turtle Flu cured", key = MaladySystem.MALADY.TURTLE_FLU, icon = "image:game/player_cosmetics1_icon.rttex;frame:20,9;frameSize:32;" },
-    { label = "Monkey Flu cured", key = MaladySystem.MALADY.MONKEY_FLU, icon = "image:game/player_cosmetics1_icon.rttex;frame:6,23;frameSize:32;" },
-    { label = "Bird Flu cured", key = MaladySystem.MALADY.BIRD_FLU, icon = "image:game/tiles_page5.rttex;frame:4,7;frameSize:32;" },
-}
-
--- Optional mapping for non-MaladySystem surgery cases.
--- Fill with real rewardID values if you want those maladies to be auto-counted.
-local SURGERY_REWARD_MALADY_KEY = {
-    -- [1234] = MaladySystem.MALADY.SHATTERED_BONES,
-    -- [1235] = MaladySystem.MALADY.APPENDICITIS,
-}
-
 -- =======================================================
 -- STORAGE LAYER  (JSON - hospital_data.json)
 -- =======================================================
@@ -229,50 +152,25 @@ local function stationKey(worldName, x, y)
     return tostring(worldName) .. ":" .. tostring(x) .. ":" .. tostring(y)
 end
 
-local function normalizeHospitalState(state)
-    if type(state.doctors) ~= "table" then state.doctors = {} end
-    if type(state.doctor_stats) ~= "table" then state.doctor_stats = {} end
-    if type(state.treatment_stats) ~= "table" then state.treatment_stats = {} end
-    if type(state.cured_by_malady) ~= "table" then state.cured_by_malady = {} end
-
-    state.treatment_stats.total = tonumber(state.treatment_stats.total) or 0
-    state.treatment_stats.successful = tonumber(state.treatment_stats.successful) or 0
-    state.treatment_stats.failed = tonumber(state.treatment_stats.failed) or 0
-
-    for _, maladyType in pairs(MaladySystem.MALADY) do
-        state.cured_by_malady[maladyType] = tonumber(state.cured_by_malady[maladyType]) or 0
-    end
-
-    return state
-end
-
 -- Hospital world state
 local function loadHospital(worldName)
     local db = readHospitalDB()
     local w = db.worlds[tostring(worldName)]
     if type(w) == "table" and w.level then
-        return normalizeHospitalState(w)
+        if type(w.doctors)      ~= "table" then w.doctors      = {} end
+        if type(w.doctor_stats) ~= "table" then w.doctor_stats = {} end
+        return w
     end
-    return normalizeHospitalState({
-        level = 1,
-        progress = 0,
-        doctors = {},
-        doctor_stats = {},
-        treatment_stats = { total = 0, successful = 0, failed = 0 },
-        cured_by_malady = {}
-    })
+    return { level = 1, progress = 0, doctors = {}, doctor_stats = {} }
 end
 
 local function saveHospital(worldName, data)
     local db = readHospitalDB()
-    local normalized = normalizeHospitalState(data)
     db.worlds[tostring(worldName)] = {
-        level          = tonumber(normalized.level) or 1,
-        progress       = tonumber(normalized.progress) or 0,
-        doctors        = normalized.doctors,
-        doctor_stats   = normalized.doctor_stats,
-        treatment_stats = normalized.treatment_stats,
-        cured_by_malady = normalized.cured_by_malady,
+        level        = tonumber(data.level) or 1,
+        progress     = tonumber(data.progress) or 0,
+        doctors      = type(data.doctors)      == "table" and data.doctors      or {},
+        doctor_stats = type(data.doctor_stats) == "table" and data.doctor_stats or {},
     }
     writeHospitalDB(db)
 end
@@ -429,14 +327,6 @@ local function countAutoSurgeons(world)
     return count
 end
 
-local function countOperatingTables(world)
-    local count = 0
-    for _, tile in pairs(getAllWorldTiles(world)) do
-        if tile and tile:getTileID() == OPERATING_TABLE_ID then count = count + 1 end
-    end
-    return count
-end
-
 local function hasHospitalInWorld(world)
     return countReceptionDesks(world) > 0 or countAutoSurgeons(world) > 0
 end
@@ -511,35 +401,6 @@ local function addDoctorSurgery(worldName, userID)
     saveHospital(worldName, state)
 end
 
-local function recordHospitalTreatment(worldName, maladyType, isSuccess)
-    local state = loadHospital(worldName)
-    local stats = state.treatment_stats or { total = 0, successful = 0, failed = 0 }
-
-    stats.total = (tonumber(stats.total) or 0) + 1
-    if isSuccess then
-        stats.successful = (tonumber(stats.successful) or 0) + 1
-        if maladyType then
-            state.cured_by_malady[maladyType] = (tonumber(state.cured_by_malady[maladyType]) or 0) + 1
-        end
-    else
-        stats.failed = (tonumber(stats.failed) or 0) + 1
-    end
-
-    state.treatment_stats = stats
-    saveHospital(worldName, state)
-end
-
-local function getHospitalTreatmentStats(worldName)
-    local state = loadHospital(worldName)
-    local stats = state.treatment_stats or {}
-    return {
-        total = tonumber(stats.total) or 0,
-        successful = tonumber(stats.successful) or 0,
-        failed = tonumber(stats.failed) or 0,
-        cured_by_malady = state.cured_by_malady or {}
-    }
-end
-
 local function getDoctorLeaderboard(worldName)
     local state = loadHospital(worldName)
     local doctors = state.doctors or {}
@@ -558,86 +419,6 @@ local function getHospitalProgressText(level, progress)
     local levelData = HOSPITAL_LEVELS[level]
     if not levelData or not levelData.next_level then return "MAX LEVEL" end
     return tostring(progress) .. "/" .. tostring(levelData.required_surgeries)
-end
-
-local function getHospitalRating(worldName)
-    local stats = getHospitalTreatmentStats(worldName)
-    local total = tonumber(stats.total) or 0
-    local successful = tonumber(stats.successful) or 0
-    if total <= 0 then return 0 end
-    local normalized = successful / total
-    local rating = math.floor((normalized * 5) + 0.5)
-    if rating < 1 then rating = 1 end
-    if rating > 5 then rating = 5 end
-    return rating
-end
-
-local function getRequirementColor(current, required)
-    local safeCurrent = math.max(0, math.floor(tonumber(current) or 0))
-    local safeRequired = math.max(0, math.floor(tonumber(required) or 0))
-    if safeRequired <= 0 then return "`2" end
-    if safeCurrent >= safeRequired then return "`2" end
-    if (safeCurrent * 2) >= safeRequired then return "`9" end
-    return "`4"
-end
-
-local function formatRequirementProgress(current, required)
-    local safeCurrent = math.max(0, math.floor(tonumber(current) or 0))
-    local safeRequired = math.max(0, math.floor(tonumber(required) or 0))
-    return getRequirementColor(safeCurrent, safeRequired) .. tostring(safeCurrent) .. "/" .. tostring(safeRequired) .. "``"
-end
-
-local function getRequirementIconID(current, required)
-    local safeCurrent = math.max(0, math.floor(tonumber(current) or 0))
-    local safeRequired = math.max(0, math.floor(tonumber(required) or 0))
-    if safeRequired <= 0 or safeCurrent >= safeRequired then
-        return 6292 -- completed/max requirement
-    end
-    return 2946 -- requirement in progress
-end
-
-local function isDialogBackAction(buttonClicked, explicitButtonID)
-    local btn = string.lower(tostring(buttonClicked or ""))
-    local explicit = string.lower(tostring(explicitButtonID or ""))
-
-    if explicit ~= "" and btn == explicit then return true end
-    if btn == "back" or btn == "close" or btn == "cancel" or btn == "backbtn" then return true end
-    if btn:find("back", 1, true) ~= nil then return true end
-    return false
-end
-
-local function getLevelUpSnapshot(world, worldName, state, playerWL)
-    local treatmentStats = getHospitalTreatmentStats(worldName)
-    return {
-        cures = tonumber(state.progress) or 0,
-        doctors = countDoctors(worldName),
-        rating = getHospitalRating(worldName),
-        autoSurgeons = countAutoSurgeons(world),
-        operatingTables = countOperatingTables(world),
-        playerWL = math.max(0, math.floor(tonumber(playerWL) or 0)),
-        curedByMalady = treatmentStats.cured_by_malady or {}
-    }
-end
-
-local function isLevelUpReadyForRule(levelRule, snapshot, upgradeCost)
-    if not levelRule or not snapshot then return false end
-    if snapshot.playerWL < (tonumber(upgradeCost) or 0) then return false end
-    if snapshot.cures < (tonumber(levelRule.required_cures) or 0) then return false end
-    if snapshot.doctors < (tonumber(levelRule.required_doctors) or 0) then return false end
-    if snapshot.rating < (tonumber(levelRule.required_rating) or 0) then return false end
-    if snapshot.autoSurgeons < (tonumber(levelRule.required_auto_surgeons) or 0) then return false end
-    if snapshot.operatingTables < (tonumber(levelRule.required_operating_tables) or 0) then return false end
-
-    local reqMaladies = levelRule.required_maladies or {}
-    for i = 1, #reqMaladies do
-        local row = reqMaladies[i]
-        local current = tonumber(snapshot.curedByMalady[row.key]) or 0
-        if current < (tonumber(row.count) or 0) then
-            return false
-        end
-    end
-
-    return true
 end
 
 local function addHospitalProgressIfPossible(worldName, amount)
@@ -900,240 +681,85 @@ local function tryUpgradeHospital(player, world)
     safeBubble(player, "`2Hospital upgraded to level " .. tostring(levelData.next_level) .. "!")
 end
 
-local function showHospitalStatsPanel(world, player)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local worldName = getWorldName(world, player)
-    local state = getHospitalState(worldName)
-    local level = tonumber(state.level) or 1
-    local autoSurgeonCount = countAutoSurgeons(world)
-    local operatingTableCount = countOperatingTables(world)
-    local doctorCount = countDoctors(worldName)
-    local treatmentStats = getHospitalTreatmentStats(worldName)
-    local curedByMalady = treatmentStats.cured_by_malady
-
-    local d = "set_default_color|`o\n"
-    d = d .. "add_label_with_icon|big|`wHospital Stats|left|4298|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Hospital Level: `9" .. tostring(level) .. "``|left|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_label_with_icon|small|Doctors: `2" .. tostring(doctorCount) .. "/1``|left|14674|\n"
-    d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Auto Surgeon Stations: `2" .. tostring(autoSurgeonCount) .. "/1``|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
-    d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Operating Tables: `2" .. tostring(operatingTableCount) .. "/1``|left|" .. tostring(OPERATING_TABLE_ID) .. "|\n"
-    d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Patients Treated|left|\n"
-    d = d .. "add_textbox|Total: `2" .. tostring(treatmentStats.total) .. "``|left|\n"
-    d = d .. "add_textbox|Successful Surgeries: `2" .. tostring(treatmentStats.successful) .. "``|left|\n"
-    d = d .. "add_textbox|Failed Surgeries: `4" .. tostring(treatmentStats.failed) .. "``|left|\n"
-    d = d .. "add_spacer|small|\n"
-    for i = 1, #HOSPITAL_STATS_MALADY_ROWS do
-        local row = HOSPITAL_STATS_MALADY_ROWS[i]
-        local count = tonumber(curedByMalady[row.key]) or 0
-        d = d .. "add_label_with_icon|small|" .. row.label .. ": `2" .. tostring(count) .. "``|left||" .. row.icon .. "|\n"
-        d = d .. "add_custom_margin|x:0;y:8|\n"
-    end
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_button|" .. BTN_BACK_STATS .. "|Back|noflags|0|0|\n"
-    d = d .. "end_dialog|hospitalStatsUi|||\n"
-    d = d .. "add_quick_exit|\n"
-
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= "hospitalStatsUi" then return false end
-        local clicked = tostring(data["buttonClicked"] or "")
-        if isDialogBackAction(clicked, BTN_BACK_STATS) then
-            showReceptionDeskPanel(cbWorld, cbPlayer)
-            return true
-        end
-        return false
-    end)
-end
-
-local function showLevelUpPanel(world, player)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local worldName = getWorldName(world, player)
-    local state = getHospitalState(worldName)
-    local level = tonumber(state.level) or 1
-    local levelData = HOSPITAL_LEVELS[level]
-    local ownerAccess = isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER)
-
-    if not levelData or not levelData.next_level then
-        safeBubble(player, "`4Hospital is already at max level.")
-        return
-    end
-
-    local nextLevel = levelData.next_level
-    local levelRule = LEVEL_UP_RULES[level] or {}
-    local requiredSurgeries = tonumber(levelRule.required_cures) or tonumber(levelData.required_surgeries) or 0
-    local upgradeCost = levelData.upgrade_wl
-    local playerWL = tonumber(getPlayerItemAmount(player, WORLD_LOCK_ID)) or 0
-    local snapshot = getLevelUpSnapshot(world, worldName, state, playerWL)
-    local isReady = isLevelUpReadyForRule(levelRule, snapshot, upgradeCost)
-
-    local d = "set_default_color|`o\n"
-    d = d .. "add_label_with_icon|big|`wLevel Up Hospital|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Level up hospital to level: `9" .. tostring(nextLevel) .. "``|left|\n"
-    d = d .. "add_spacer|small|\n"
-    local perks = levelRule.perks or {}
-    if #perks > 0 then
-        for i = 1, #perks do
-            d = d .. "add_label_with_icon|small|" .. perks[i] .. "|left|" .. tostring(OPERATING_TABLE_ID) .. "|\n"
-            d = d .. "add_custom_margin|x:0;y:8|\n"
-        end
-    end
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Rewards:|left|\n"
-    local rewards = levelRule.rewards or {}
-    if #rewards == 0 then
-        d = d .. "add_label_with_icon|small|None|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
-        d = d .. "add_custom_margin|x:0;y:8|\n"
-    else
-        for i = 1, #rewards do
-            local reward = rewards[i]
-            d = d .. "add_label_with_icon|small|" .. tostring(reward.label) .. "|left|" .. tostring(reward.icon or RECEPTION_DESK_ID) .. "|\n"
-            d = d .. "add_custom_margin|x:0;y:8|\n"
-        end
-    end
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Requirements:|left|\n"
-    d = d .. "add_label_with_icon|small|Cured Patients: " .. formatRequirementProgress(snapshot.cures, requiredSurgeries) .. "|left|" .. tostring(getRequirementIconID(snapshot.cures, requiredSurgeries)) .. "|\n"
-    d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Doctors: " .. formatRequirementProgress(snapshot.doctors, tonumber(levelRule.required_doctors) or 0) .. "|left|" .. tostring(getRequirementIconID(snapshot.doctors, tonumber(levelRule.required_doctors) or 0)) .. "|\n"
-    d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Rating: " .. formatRequirementProgress(snapshot.rating, tonumber(levelRule.required_rating) or 0) .. "|left|" .. tostring(getRequirementIconID(snapshot.rating, tonumber(levelRule.required_rating) or 0)) .. "|\n"
-    d = d .. "add_custom_margin|x:0;y:8|\n"
-
-    if (tonumber(levelRule.required_auto_surgeons) or 0) > 0 then
-        d = d .. "add_label_with_icon|small|Auto Surgeon Stations: " .. formatRequirementProgress(snapshot.autoSurgeons, levelRule.required_auto_surgeons) .. "|left|" .. tostring(getRequirementIconID(snapshot.autoSurgeons, levelRule.required_auto_surgeons)) .. "|\n"
-        d = d .. "add_custom_margin|x:0;y:8|\n"
-    end
-    if (tonumber(levelRule.required_operating_tables) or 0) > 0 then
-        d = d .. "add_label_with_icon|small|Operating Tables: " .. formatRequirementProgress(snapshot.operatingTables, levelRule.required_operating_tables) .. "|left|" .. tostring(getRequirementIconID(snapshot.operatingTables, levelRule.required_operating_tables)) .. "|\n"
-        d = d .. "add_custom_margin|x:0;y:8|\n"
-    end
-
-    local requiredMaladies = levelRule.required_maladies or {}
-    for i = 1, #requiredMaladies do
-        local req = requiredMaladies[i]
-        local curedCount = tonumber(snapshot.curedByMalady[req.key]) or 0
-        d = d .. "add_label_with_icon|small|" .. tostring(req.label) .. ": " .. formatRequirementProgress(curedCount, req.count) .. "|left|" .. tostring(getRequirementIconID(curedCount, req.count)) .. "|\n"
-        d = d .. "add_custom_margin|x:0;y:8|\n"
-    end
-
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_label_with_icon|small|Cost: `9" .. tostring(upgradeCost) .. "``|left|242|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_label_with_icon|small|Owned World Locks: `9" .. tostring(playerWL) .. "``|left|242|\n"
-    d = d .. "add_spacer|small|\n"
-
-    if not isReady then
-        d = d .. "add_textbox|`6You don't meet the requirements.|left|\n"
-        d = d .. "add_spacer|small|\n"
-    end
-
-    d = d .. "add_custom_button|" .. BTN_LEVEL_UP_BACK .. "|textLabel:Back;middle_colour:3434645503;border_colour:3434645503;|\n"
-    d = d .. "add_custom_button|" .. BTN_LEVEL_UP_NEW_CONFIRM .. "|textLabel:Level Up Hospital;middle_colour:" .. (isReady and "1744830463" or "2526451450") .. ";border_colour:" .. (isReady and "1744830463" or "2526451450") .. ";anchor:" .. BTN_LEVEL_UP_BACK .. ";left:1;margin:40,0;state:" .. (isReady and "normal" or "disabled") .. ";|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "end_dialog|hospitalLevelUpUi|||\n"
-    d = d .. "add_quick_exit|\n"
-
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= "hospitalLevelUpUi" then return false end
-        local btn = tostring(data["buttonClicked"] or "")
-
-        if isDialogBackAction(btn, BTN_LEVEL_UP_BACK) then
-            showReceptionDeskPanel(cbWorld, cbPlayer)
-            return true
-        end
-
-        if btn == BTN_LEVEL_UP_NEW_CONFIRM then
-            if ownerAccess then
-                local currentState = getHospitalState(worldName)
-                local currentWL = tonumber(getPlayerItemAmount(cbPlayer, WORLD_LOCK_ID)) or 0
-                local currentSnapshot = getLevelUpSnapshot(cbWorld, worldName, currentState, currentWL)
-                if isLevelUpReadyForRule(levelRule, currentSnapshot, levelData.upgrade_wl) then
-                    cbPlayer:changeItem(WORLD_LOCK_ID, -levelData.upgrade_wl, 0)
-                    setHospitalState(worldName, levelData.next_level, 0)
-                    safeBubble(cbPlayer, "`2Hospital upgraded to level " .. tostring(levelData.next_level) .. "!")
-                    showReceptionDeskPanel(cbWorld, cbPlayer)
-                else
-                    safeBubble(cbPlayer, "`4Upgrade requirements not met.")
-                    showLevelUpPanel(cbWorld, cbPlayer)
-                end
-            else
-                safeBubble(cbPlayer, "`4Only world owner or developer can level up this hospital.")
-            end
-            return true
-        end
-
-        return false
-    end)
-end
-
 local function showReceptionDeskPanel(world, player)
     if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
     MaladySystem.refreshPlayerState(player)
-    local worldName = getWorldName(world, player)
-    local state = getHospitalState(worldName)
-    local level = tonumber(state.level) or 1
-    local rating = getHospitalRating(worldName)
-    local playerName = tostring(player.getName and player:getName() or "Player")
-    local doctorCount = countDoctors(worldName)
+    local worldName    = getWorldName(world, player)
+    local state        = getHospitalState(worldName)
+    local level        = tonumber(state.level) or 1
+    local progress     = tonumber(state.progress) or 0
+    local progressText = getHospitalProgressText(level, progress)
+    local doctorCount  = countDoctors(worldName)
+    local levelData    = HOSPITAL_LEVELS[level]
+    local ownerAccess  = isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER)
+    local statusText   = MaladySystem.getStatusText(player)
 
-    local d = "set_default_color|`o\n"
-    d = d .. "add_label_with_icon|big|`wReception Desk|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Hello there, " .. playerName .. "`o. Welcome to `2" .. worldName .. "`o Hospital.|left|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Level: `9" .. tostring(level) .. "``|left|\n"
-    d = d .. "add_textbox|Rating: " .. formatRequirementProgress(rating, 5) .. "|left|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_custom_button|" .. BTN_SHOW_STATS .. "|textLabel:Hospital Stats;middle_colour:3389566975;border_colour:3389566975;display:block;|\n"
-    d = d .. "reset_placement_x|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_custom_button|" .. BTN_LEVEL_UP .. "|textLabel:Level Up Hospital;middle_colour:431888895;border_colour:431888895;display:block;|\n"
-    d = d .. "reset_placement_x|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_player_picker|playerNetID|`wAdd Doctors " .. tostring(doctorCount) .. "/1``|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Auto Surgeon Stations in this Hospital can cure:|left|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_custom_margin|x:32;y:0|\n"
-    d = d .. "add_custom_button|illChoose_20|image:game/tiles_page16.rttex;image_size:32,32;width:0.08;frame:8,22;state:disabled;|\n"
-    d = d .. "add_custom_label|Torn Muscle|target:illChoose_20;top:1.2;left:0.5;size:tiny;|\n"
-    d = d .. "add_custom_margin|x:64;y:0|\n"
-    d = d .. "add_custom_button|illChoose_21|image:game/tiles_page16.rttex;image_size:32,32;width:0.08;frame:22,26;state:disabled;|\n"
-    d = d .. "add_custom_label|Gem Cuts|target:illChoose_21;top:1.2;left:0.5;size:tiny;|\n"
-    d = d .. "add_custom_margin|x:64;y:0|\n"
-    d = d .. "reset_placement_x|\n"
-    d = d .. "add_custom_margin|x:0;y:125|\n"
-    d = d .. "add_textbox|`9INFO:``|left|\n"
-    d = d .. "add_smalltext|`9- The World Owner's surgeries will automatically count towards the hospital stats without needing to be registered as a doctor.``|left|\n"
-    d = d .. "add_smalltext|`9- Rating is based on the success rate of the total surgeries performed by registered doctors in the world.``|left|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "end_dialog|receptionDeskMainUi|Close||\n"
-    d = d .. "add_quick_exit|\n"
+    local dialog = {
+        "set_default_color|`o",
+        "set_bg_color|0,0,0,180|",
+        "add_label_with_icon|big|Reception Desk|left|" .. tostring(RECEPTION_DESK_ID) .. "|",
+        "add_smalltext|`wWorld: `o" .. worldName .. "|",
+        "add_smalltext|`wHospital Level: `o" .. tostring(level) .. "|",
+        "add_smalltext|`wProgress: `o" .. progressText .. "|",
+        "add_smalltext|`wRegistered Doctors: `o" .. tostring(doctorCount) .. "|",
+        "add_smalltext|`wYour Status: " .. statusText .. "|",
+        "add_spacer|small|"
+    }
 
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= "receptionDeskMainUi" then return false end
+    if levelData and levelData.next_level then
+        dialog[#dialog + 1] = "add_smalltext|`wNext Upgrade: `oLevel " .. tostring(levelData.next_level) .. "|"
+        dialog[#dialog + 1] = "add_smalltext|`wUpgrade Cost: `o" .. tostring(levelData.upgrade_gems) .. " Gems + " .. tostring(levelData.upgrade_wl) .. " WL|"
+    else
+        dialog[#dialog + 1] = "add_smalltext|`2Hospital is at max level.|"
+    end
+
+    dialog[#dialog + 1] = "add_spacer|small|"
+
+    if ownerAccess then
+        dialog[#dialog + 1] = "add_button|" .. BTN_MANAGE_DOCTORS   .. "|Manage Doctors|noflags|0|0|"
+        dialog[#dialog + 1] = "add_button|" .. BTN_UPGRADE_HOSPITAL .. "|Upgrade Hospital|noflags|0|0|"
+        dialog[#dialog + 1] = "add_button|" .. BTN_LEADERBOARD      .. "|Leaderboard|noflags|0|0|"
+        dialog[#dialog + 1] = "add_button|" .. BTN_CLOSE_RECEPTION  .. "|Close|noflags|0|0|"
+        if safeHasRole(player, ROLE_DEVELOPER) then
+            dialog[#dialog + 1] = "add_spacer|small|"
+            dialog[#dialog + 1] = "add_button|" .. BTN_DEV_RESET_HOSPITAL .. "|`4DEV: Reset Hospital|noflags|0|0|"
+        end
+    else
+        dialog[#dialog + 1] = "add_button|" .. BTN_CLOSE_RECEPTION .. "|Close|noflags|0|0|"
+    end
+
+    dialog[#dialog + 1] = "add_quick_exit|"
+    dialog[#dialog + 1] = "end_dialog|" .. DLG_RECEPTION .. "|||"
+
+    player:onDialogRequest(table.concat(dialog, "\n"), 0, function(cbWorld, cbPlayer, data)
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= DLG_RECEPTION then return end
         local btn = data["buttonClicked"]
 
-        if btn == BTN_SHOW_STATS then
-            showHospitalStatsPanel(cbWorld, cbPlayer)
+        if btn == BTN_MANAGE_DOCTORS and (isWorldOwner(cbWorld, cbPlayer) or safeHasRole(cbPlayer, ROLE_DEVELOPER)) then
+            showManageDoctorsPanel(cbWorld, cbPlayer, worldName)
+            return true
+        end
+        if btn == BTN_UPGRADE_HOSPITAL and (isWorldOwner(cbWorld, cbPlayer) or safeHasRole(cbPlayer, ROLE_DEVELOPER)) then
+            tryUpgradeHospital(cbPlayer, cbWorld)
+            showReceptionDeskPanel(cbWorld, cbPlayer)
+            return true
+        end
+        if btn == BTN_LEADERBOARD and (isWorldOwner(cbWorld, cbPlayer) or safeHasRole(cbPlayer, ROLE_DEVELOPER)) then
+            showDoctorReceptionPanel(cbWorld, cbPlayer, worldName)
+            return true
+        end
+        if btn == BTN_CLOSE_RECEPTION then
+            return true
+        end
+        if btn == BTN_DEV_RESET_HOSPITAL and safeHasRole(cbPlayer, ROLE_DEVELOPER) then
+            resetHospitalState(worldName)
+            safeBubble(cbPlayer, "`4Hospital reset to level 1.")
+            showReceptionDeskPanel(cbWorld, cbPlayer)
             return true
         end
 
-        if btn == BTN_LEVEL_UP then
-            showLevelUpPanel(cbWorld, cbPlayer)
-            return true
-        end
-
-        return false
+        return true
     end)
 end
 
@@ -1188,8 +814,8 @@ showManageDoctorsPanel = function(world, player, worldName)
     d = d .. "end_dialog|" .. DLG_MANAGE_DOCTORS .. "|||\n"
 
     player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= DLG_MANAGE_DOCTORS then return false end
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= DLG_MANAGE_DOCTORS then return end
         local btn = data["buttonClicked"]
 
         if btn and btn:match("^" .. BTN_ADD_DOCTOR_PREFIX) then
@@ -1236,12 +862,12 @@ showManageDoctorsPanel = function(world, player, worldName)
             return true
         end
 
-        if isDialogBackAction(btn, BTN_DOCTORS_BACK) then
+        if btn == BTN_DOCTORS_BACK then
             showReceptionDeskPanel(cbWorld, cbPlayer)
             return true
         end
 
-        return false
+        return true
     end)
 end
 
@@ -1273,12 +899,9 @@ showDoctorReceptionPanel = function(world, player, worldName)
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
     player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= dlgName then return false end
-        if isDialogBackAction(data["buttonClicked"], "btn_doctor_close") then
-            return false
-        end
-        return false
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= dlgName then return end
+        return true
     end)
 end
 
@@ -1313,8 +936,8 @@ showAutoSurgeonStoragePanel = function(world, player, worldName, x, y)
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
     player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= dlgName then return false end
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= dlgName then return end
         local btn = data["buttonClicked"]
 
         if btn and btn:match("^" .. BTN_WITHDRAW_TOOL_PREFIX) then
@@ -1326,12 +949,12 @@ showAutoSurgeonStoragePanel = function(world, player, worldName, x, y)
             showAutoSurgeonStoragePanel(cbWorld, cbPlayer, worldName, x, y)
             return true
         end
-        if isDialogBackAction(btn, BTN_STORAGE_BACK) then
+        if btn == BTN_STORAGE_BACK then
             showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
             return true
         end
 
-        return false
+        return true
     end)
 end
 
@@ -1426,8 +1049,8 @@ showAutoSurgeonOwnerPanel = function(world, player, worldName, x, y)
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
     player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= dlgName then return false end
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= dlgName then return end
         local btn      = data["buttonClicked"]
         local newEnabled = data["station_enabled"] == "1"
         local newPrice   = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(data["station_price_wl"]) or MIN_CURE_PRICE_WL))
@@ -1469,11 +1092,8 @@ showAutoSurgeonOwnerPanel = function(world, player, worldName, x, y)
             showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
             return true
         end
-        if isDialogBackAction(btn, BTN_CLOSE_OWNER) then
-            return false
-        end
-        -- Tombol lain yang tidak ditangani: biarkan default close behavior jalan.
-        return false
+        -- BTN_CLOSE_OWNER atau quick_exit: simpan settings lalu tutup
+        return true
     end)
 end
 
@@ -1502,9 +1122,9 @@ local function showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
     }
 
     player:onDialogRequest(table.concat(dialog, "\n"), 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return false end
-        if data["dialog_name"] ~= dlgName then return false end
-        if data["buttonClicked"] ~= BTN_CURE_MALADY then return false end
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= dlgName then return end
+        if data["buttonClicked"] ~= BTN_CURE_MALADY then return true end
 
         MaladySystem.refreshPlayerState(cbPlayer)
         local activeMalady = MaladySystem.getActiveMalady(cbPlayer)
@@ -1556,7 +1176,6 @@ local function showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
         cbPlayer:changeItem(WORLD_LOCK_ID, -priceWL, 0)
         consumeStationTools(worldName, x, y, maladyType)
         addStationEarnedWL(worldName, x, y, getOwnerNetGain(priceWL))
-        recordHospitalTreatment(worldName, maladyType, true)
         refreshStationOperationalState(worldName, x, y)
         safeBubble(cbPlayer, "`2Your malady has been cured.")
         return true
@@ -1705,16 +1324,11 @@ onPlayerSurgeryCallback(function(world, surgeon, rewardID, rewardCount, targetPl
     local worldName = getWorldName(world, surgeon)
 
     if targetPlayer and MaladySystem.hasActiveMalady(targetPlayer) then
-        local targetMalady = MaladySystem.getActiveMalady(targetPlayer)
-        local mappedMalady = SURGERY_REWARD_MALADY_KEY[tonumber(rewardID) or -1]
-        local surgeryMaladyKey = targetMalady or mappedMalady
         local ok, reason = MaladySystem.cureFromManualSurgery(targetPlayer)
         if ok then
             safeConsole(targetPlayer, "`2Your malady has been cured by surgery.")
-            recordHospitalTreatment(worldName, surgeryMaladyKey, true)
         else
             safeConsole(targetPlayer, "`4Malady cure failed: " .. tostring(reason))
-            recordHospitalTreatment(worldName, surgeryMaladyKey, false)
         end
     end
 
