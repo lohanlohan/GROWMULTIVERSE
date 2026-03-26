@@ -1,6 +1,6 @@
 -- MODULE
 
-local MaladySystem = require("malady_rng")
+local MaladySystem = require("malady_rng.plua")
 
 local HospitalSystem = {}
 
@@ -1365,7 +1365,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     if sub == "help" then
         safeConsole(player, "`w/hospitaltest panel `o= open reception panel")
         safeConsole(player, "`w/hospitaltest owner `o= open owner panel while standing on station")
-        safeConsole(player, "`w/hospitaltest infect chicken|torn|grumble|gems|auto|broken")
+        safeConsole(player, "`w/hospitaltest infect chicken/torn/grumble/gems/auto/broken")
         safeConsole(player, "`w/hospitaltest clear")
         safeConsole(player, "`w/hospitaltest state")
         safeConsole(player, "`w/hospitaltest addprogress")
