@@ -807,16 +807,34 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
     local maladyType = tostring(station.malady_type or "")
     local enabled    = tonumber(station.enabled) == 1
     local priceWL    = tonumber(station.price_wl) or MIN_CURE_PRICE_WL
+    local maladyName = maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not configured"
+    local ownedWL    = getPlayerItemAmount(player, WORLD_LOCK_ID)
+
+    local function showWarningDialog(targetPlayer, title, message)
+        local warnDlg = "autosurgeon_warn_v5m_" .. tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(os.time())
+        local warn = "set_default_color|`o\n"
+        warn = warn .. "set_bg_color|54,152,198,180|\n"
+        warn = warn .. "add_label_with_icon|big|" .. tostring(title) .. "|left|2946|\n"
+        warn = warn .. "add_spacer|small|\n"
+        warn = warn .. "add_smalltext|" .. tostring(message) .. "|\n"
+        warn = warn .. "add_spacer|small|\n"
+        warn = warn .. "add_custom_button|btn_warn_close|textLabel:Close;middle_colour:80543231;border_colour:80543231;display:block;|\n"
+        warn = warn .. "add_quick_exit|\n"
+        warn = warn .. "end_dialog|" .. warnDlg .. "|||\n"
+        targetPlayer:onDialogRequest(warn, 0)
+    end
 
     local dialog = {
         "set_default_color|`o",
         "set_bg_color|54,152,198,180|",
         "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|",
-        "add_smalltext|`oThis station cures: `o" .. (maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not configured") .. "|",
-        "add_smalltext|`oPrice of One Cure: `o" .. tostring(priceWL) .. " WL|",
-        "add_smalltext|`oYour Status: " .. MaladySystem.getStatusText(player) .. "|",
+        "add_smalltext|This friendly humanoid can cure:|",
+        "add_label_with_icon|small|`5" .. tostring(maladyName) .. "``|left|" .. tostring(getMaladyIconID(maladyType)) .. "|",
+        "add_label_with_icon|small|Cost: `2" .. tostring(priceWL) .. "``|left|" .. tostring(WORLD_LOCK_ID) .. "|",
+        "add_label_with_icon|small|Owned World Locks: `2" .. tostring(ownedWL) .. "``|left|" .. tostring(WORLD_LOCK_ID) .. "|",
         "add_spacer|small|",
-        "add_button|" .. BTN_CURE_MALADY .. "|Cure Malady|noflags|0|0|",
+        "add_custom_button|btn_player_close|textLabel:Close;middle_colour:80543231;border_colour:80543231;|",
+        "add_custom_button|" .. BTN_CURE_MALADY .. "|textLabel:Purchase Cure;middle_colour:431888895;border_colour:431888895;anchor:btn_player_close;left:1;margin:40,0;|",
         "add_quick_exit|",
         "end_dialog|" .. dlgName .. "|||"
     }
@@ -824,25 +842,27 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
     player:onDialogRequest(table.concat(dialog, "\n"), 0, function(_, cbPlayer, data)
         if type(data) ~= "table" then return end
         if data["dialog_name"] ~= dlgName then return end
-        if data["buttonClicked"] ~= BTN_CURE_MALADY then return true end
+        local clicked = tostring(data["buttonClicked"] or "")
+        if clicked == "btn_player_close" then return true end
+        if clicked ~= BTN_CURE_MALADY then return true end
 
         MaladySystem.refreshPlayerState(cbPlayer)
         local activeMalady = MaladySystem.getActiveMalady(cbPlayer)
 
         if not activeMalady then
-            safeBubble(cbPlayer, "`4You do not have any malady that requires treatment.")
+            showWarningDialog(cbPlayer, "Error", "You do not have any malady that requires treatment.")
             return true
         end
         if MaladySystem.isRecovering(cbPlayer) then
-            safeBubble(cbPlayer, "`4You are recovering and cannot use Auto Surgeon right now.")
+            showWarningDialog(cbPlayer, "Out Of Order", "You are recovering and cannot use Auto Surgeon right now.")
             return true
         end
         if maladyType == "" then
-            safeBubble(cbPlayer, "`4This Auto Surgeon Station is not configured yet.")
+            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
         if tostring(activeMalady) ~= maladyType then
-            safeBubble(cbPlayer, "`4This station does not treat your malady.")
+            showWarningDialog(cbPlayer, "Error", "This Auto Surgeon Station can only cure `5" .. tostring(maladyName) .. "``! Come back soon.")
             return true
         end
 
@@ -850,26 +870,26 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
         local hospitalLevel = tonumber(hospitalState.level) or 1
         local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
         if hospitalLevel < requiredLevel then
-            safeBubble(cbPlayer, "`4This malady treatment has not been unlocked for this hospital yet.")
+            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
         if not enabled then
-            safeBubble(cbPlayer, "`4This Auto Surgeon Station is currently disabled.")
+            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
         if not AutoSurgeon.stationHasEnoughTools(worldName, x, y, maladyType) then
             AutoSurgeon.setStationEnabled(worldName, x, y, false)
-            safeBubble(cbPlayer, "`4This Auto Surgeon Station does not have enough surgical tools to operate.")
+            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
         if getPlayerItemAmount(cbPlayer, WORLD_LOCK_ID) < priceWL then
-            safeBubble(cbPlayer, "`4You do not have enough World Locks to pay for this treatment.")
+            showWarningDialog(cbPlayer, "Error", "You do not have enough World Locks to purchase this cure.")
             return true
         end
 
         local ok, reason = MaladySystem.cureFromAutoSurgeon(cbPlayer)
         if not ok then
-            safeBubble(cbPlayer, "`4Auto Surgeon cure failed: " .. tostring(reason))
+            showWarningDialog(cbPlayer, "Error", "Auto Surgeon cure failed: " .. tostring(reason))
             return true
         end
 
