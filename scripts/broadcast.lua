@@ -134,7 +134,7 @@ local function broadcastAll(sender, tag, msg, soundFile, usedGems, world)
   local text = makeLine(tag, sname, wname, msg, isJammed)
   local currentGems = (sender and sender.getGems and sender:getGems()) or 0
   
-  say(sender, string.format(">> %s sent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems or 0))
+  say(sender, string.format(">> %s `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems or 0))
 
   for _, p in ipairs(allPlayers()) do
     if getUID(p) ~= suid then
