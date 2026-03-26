@@ -4,6 +4,7 @@
 package.loaded["malady_rng"] = nil
 package.loaded["hospital"] = nil
 package.loaded["hospital_operating_table"] = nil
+package.loaded["tile_debug"] = nil
 package.loaded["vile_vial"] = nil
 
 MaladySystem = require("malady_rng")

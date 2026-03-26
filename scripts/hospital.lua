@@ -5,6 +5,7 @@ local MaladySystem = require("malady_rng")
 local ReceptionDesk = require("hospital_reception_desk")
 local AutoSurgeon = require("hospital_auto_surgeon")
 local OperatingTable = require("hospital_operating_table")
+local TileDebug = require("tile_debug")
 
 local HospitalSystem = {}
 
@@ -477,11 +478,10 @@ local MALADY_UI_RNG = {
 }
 
 -- Auto Surgeon tile-extra selectedIllness mapping (Growtopia client visual IDs).
--- Note: On this runtime/client build, Torn and Gems visual IDs are reversed
--- compared to some public examples.
+-- Runtime verification: ID 20 renders Torn, ID 21 renders Gems.
 local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
-    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 21,
-    [MaladySystem.MALADY.GEMS_CUTS] = 20,
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 20,
+    [MaladySystem.MALADY.GEMS_CUTS] = 21,
     [MaladySystem.MALADY.GRUMBLETEETH] = 22,
     [MaladySystem.MALADY.CHICKEN_FEET] = 23,
     [MaladySystem.MALADY.BROKEN_HEARTS] = 24,
@@ -507,10 +507,10 @@ local function resolveAutoSurgeonIllnessVisualID(maladyType)
     if upper:find("BROKEN", 1, true) or upper:find("LUPUS", 1, true) then return 24 end
     if upper:find("CHICKEN", 1, true) or upper:find("FATTY", 1, true) then return 23 end
     if upper:find("GRUMBLE", 1, true) or upper:find("BRAIN", 1, true) then return 22 end
-    if upper:find("GEMS", 1, true) or upper:find("MOLD", 1, true) then return 20 end
-    if upper:find("TORN", 1, true) or upper:find("ECTO", 1, true) then return 21 end
+    if upper:find("GEMS", 1, true) or upper:find("MOLD", 1, true) then return 21 end
+    if upper:find("TORN", 1, true) or upper:find("ECTO", 1, true) then return 20 end
 
-    return 20
+    return 21
 end
 
 local ALL_SURGICAL_TOOLS = {
@@ -761,6 +761,43 @@ local function getWorldName(world, player)
     return tostring(world:getName() or "")
 end
 
+local function getLoadedWorldByName(worldName)
+    local target = tostring(worldName or "")
+    if target == "" then return nil end
+
+    if type(getServerWorlds) == "function" then
+        local worlds = getServerWorlds()
+        if type(worlds) == "table" then
+            for _, w in pairs(worlds) do
+                if type(w) == "userdata" and w.getName and tostring(w:getName() or "") == target then
+                    return w
+                end
+            end
+        end
+    end
+
+    if type(getActiveWorlds) == "function" then
+        local worlds = getActiveWorlds()
+        if type(worlds) == "table" then
+            for _, w in pairs(worlds) do
+                if type(w) == "userdata" and w.getName and tostring(w:getName() or "") == target then
+                    return w
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function getCachedWorldByName(worldName)
+    local cache = rawget(_G, "__HOSPITAL_WORLD_CACHE")
+    if type(cache) ~= "table" then return nil end
+    local world = cache[tostring(worldName or "")]
+    if type(world) == "userdata" then return world end
+    return nil
+end
+
 local function isWorldOwner(world, player)
     if type(world) ~= "userdata" then return false end
     if type(player) ~= "userdata" then return false end
@@ -782,6 +819,59 @@ local function safeConsole(player, text)
     if player and player.onConsoleMessage then
         player:onConsoleMessage(text)
     end
+end
+
+local function compactBubbleText(text)
+    if type(text) ~= "string" then return "" end
+    return text:gsub("``", ""):gsub("`[0-9a-zA-Z^]", ""):gsub("\n", " | ")
+end
+
+local function processAutoSurgeonTileExtraProbe(world, now)
+    local probe = rawget(_G, "__HOSPITAL_TILEEXTRA_PROBE")
+    if type(probe) ~= "table" then return end
+    if type(world) ~= "userdata" then return end
+
+    local worldName = getWorldName(world)
+    if worldName == "" or tostring(probe.world_name or "") ~= worldName then return end
+
+    local nextAt = tonumber(probe.next_at) or 0
+    if now < nextAt then return end
+
+    local x = tonumber(probe.x)
+    local y = tonumber(probe.y)
+    if not x or not y then
+        _G.__HOSPITAL_TILEEXTRA_PROBE = nil
+        return
+    end
+
+    local tile = world:getTile(math.floor(x), math.floor(y))
+    if not tile or tile:getTileID() ~= AUTO_SURGEON_ID then
+        _G.__HOSPITAL_TILEEXTRA_PROBE = nil
+        return
+    end
+
+    local currentID = tonumber(probe.current_id) or 0
+    local endID = tonumber(probe.end_id) or 40
+    local intervalSec = math.max(1, math.floor(tonumber(probe.interval_sec) or 2))
+
+    _G.__HOSPITAL_FORCE_ILLNESS_ID = currentID
+    world:updateTile(tile)
+
+    local ownerUID = tonumber(probe.owner_uid) or 0
+    if ownerUID > 0 and type(getPlayer) == "function" then
+        local owner = getPlayer(ownerUID)
+        if owner and owner.onConsoleMessage then
+            owner:onConsoleMessage("`wTileExtra probe selectedIllness ID => `o" .. tostring(currentID))
+        end
+    end
+
+    if currentID >= endID then
+        _G.__HOSPITAL_TILEEXTRA_PROBE = nil
+        return
+    end
+
+    probe.current_id = currentID + 1
+    probe.next_at = now + intervalSec
 end
 
 local function getPlayerItemAmount(player, itemID)
@@ -1545,6 +1635,8 @@ _G.isLevelUpReadyForRule = isLevelUpReadyForRule
 _G.setHospitalState = setHospitalState
 _G.getOperatingTableCapacityByLevel = getOperatingTableCapacityByLevel
 _G.getOperatingPatientDurationByLevel = getOperatingPatientDurationByLevel
+_G.getOperatingStatusForTable = OperatingTable.getOperatingStatusForTable
+_G.getOperatingStatusSummary = OperatingTable.getOperatingStatusSummary
 
 -- =======================================================
 -- CALLBACKS
@@ -1611,6 +1703,62 @@ local function buildAutoSurgeonTileExtraData(world, tile, game_version)
     return wr:GetCurrentString()
 end
 
+local function getAutoSurgeonTileDebugInfo(world, tile)
+    if type(world) ~= "userdata" or type(tile) ~= "userdata" then return nil end
+    if tile:getTileID() ~= AUTO_SURGEON_ID then return nil end
+
+    local worldName = getWorldName(world)
+    local x = tile:getPosX()
+    local y = tile:getPosY()
+    local station = getStation(worldName, x, y)
+
+    local maladyType = tostring(station and station.malady_type or "")
+    local illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
+    local forcedIllnessID = tonumber(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID"))
+    if forcedIllnessID then
+        illnessID = math.max(0, math.min(255, math.floor(forcedIllnessID)))
+    end
+
+    local wlCount = tonumber(station and station.earned_wl) or 0
+    local wlCountVisual = wlCount > 0 and 1 or 0
+    local forcedWLVisual = tonumber(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL"))
+    if forcedWLVisual then
+        wlCountVisual = forcedWLVisual > 0 and 1 or 0
+    end
+
+    local outOfOrder = 0
+    if not station or maladyType == "" or tonumber(station.enabled) ~= 1 then
+        outOfOrder = 1
+    end
+
+    local storageCount = 0
+    if station and type(station.storage) == "table" then
+        for _, amount in pairs(station.storage) do
+            local n = tonumber(amount) or 0
+            if n > 0 then storageCount = storageCount + n end
+        end
+    end
+
+    return {
+        world_name = worldName,
+        x = x,
+        y = y,
+        station_exists = station ~= nil,
+        malady_type = maladyType,
+        enabled = tonumber(station and station.enabled) or 0,
+        price_wl = tonumber(station and station.price_wl) or MIN_CURE_PRICE_WL,
+        earned_wl = wlCount,
+        storage_total = storageCount,
+        out_of_order = outOfOrder,
+        selected_illness_id = illnessID,
+        wl_count_visual = wlCountVisual,
+        forced_illness_id = forcedIllnessID,
+        forced_wl_visual = forcedWLVisual,
+    }
+end
+
+_G.getAutoSurgeonTileDebugInfo = getAutoSurgeonTileDebugInfo
+
 -- Avoid duplicate callback stacking on reloadScripts().
 -- Register once, then always route to latest handler through _G.
 _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER = buildAutoSurgeonTileExtraData
@@ -1665,8 +1813,66 @@ onTileWrenchCallback(function(world, player, tile)
         end
         return true
     end
+    if tile:getTileID() == OPERATING_TABLE_ID then
+        local worldName = getWorldName(world, player)
+        local statusText = OperatingTable.getOperatingStatusForTable(worldName, tile:getPosX(), tile:getPosY(), os.time())
+        if type(statusText) == "string" then
+            local compact = compactBubbleText(statusText)
+            safeBubble(player, compact)
+        else
+            safeBubble(player, "`9Operating Table status unavailable right now.")
+        end
+        return true
+    end
     return false
 end)
+
+if type(onPlayerTick) == "function" then
+    onPlayerTick(function(player)
+        if type(player) ~= "userdata" then return end
+        local worldName = getWorldName(nil, player)
+        if worldName == "" then return end
+
+        local world = getCachedWorldByName(worldName)
+        if type(world) ~= "userdata" then
+            world = getLoadedWorldByName(worldName)
+        end
+        if type(world) ~= "userdata" then return end
+
+        local px = math.floor((player:getPosX() or 0) / 32)
+        local py = math.floor((player:getPosY() or 0) / 32)
+        local tile = world:getTile(px, py)
+        if not tile or tile:getTileID() ~= OPERATING_TABLE_ID then return end
+
+        local gate = rawget(_G, "__HOSPITAL_OPERATING_STAND_BUBBLE_GATE")
+        if type(gate) ~= "table" then
+            gate = {}
+            _G.__HOSPITAL_OPERATING_STAND_BUBBLE_GATE = gate
+        end
+
+        local uid = getUserID(player)
+        local now = os.time()
+        local key = tostring(uid) .. ":" .. worldName
+        local tableKey = tostring(tile:getPosX()) .. ":" .. tostring(tile:getPosY())
+        local state = gate[key]
+        if type(state) ~= "table" then
+            state = { next_at = 0, table_key = "" }
+            gate[key] = state
+        end
+
+        local justEnteredTile = state.table_key ~= tableKey
+        local nextAt = tonumber(state.next_at) or 0
+        if not justEnteredTile and now < nextAt then return end
+        state.table_key = tableKey
+        state.next_at = now + 3
+
+        local statusText = OperatingTable.getOperatingStatusForTable(worldName, tile:getPosX(), tile:getPosY(), now)
+        if type(statusText) == "string" then
+            local compact = compactBubbleText(statusText)
+            safeBubble(player, compact)
+        end
+    end)
+end
 
 onTilePlaceCallback(function(world, player, tile, placingID)
     local itemID = safeItemID(placingID)
@@ -1760,6 +1966,13 @@ if type(onWorldTick) == "function" then
         local worldName = getWorldName(world)
         if worldName == "" then return end
 
+        local cache = rawget(_G, "__HOSPITAL_WORLD_CACHE")
+        if type(cache) ~= "table" then
+            cache = {}
+            _G.__HOSPITAL_WORLD_CACHE = cache
+        end
+        cache[worldName] = world
+
         local now = os.time()
         local gate = rawget(_G, "__HOSPITAL_OPERATING_WORLD_TICK_GATE")
         if type(gate) ~= "table" then
@@ -1770,6 +1983,8 @@ if type(onWorldTick) == "function" then
         local nextAllowed = tonumber(gate[worldName]) or 0
         if now < nextAllowed then return end
         gate[worldName] = now + OPERATING_PROCESS_INTERVAL_SEC
+
+        processAutoSurgeonTileExtraProbe(world, now)
 
         processOperatingTablesInWorld(world, now)
     end)
@@ -1851,6 +2066,10 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     end
     local cmd = string.lower(parts[1] or "")
 
+    if TileDebug.handleTileCommand(world, player, parts, safeConsole, safeBubble) then
+        return true
+    end
+
     if cmd == "sleep" or cmd == "/sleep" then
         local px = math.floor((player:getPosX() or 0) / 32)
         local py = math.floor((player:getPosY() or 0) / 32)
@@ -1888,6 +2107,8 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         safeConsole(player, "`w/hospitaltest tileextra id <0-255> `o= force selectedIllness visual ID")
         safeConsole(player, "`w/hospitaltest tileextra auto `o= clear forced selectedIllness ID")
         safeConsole(player, "`w/hospitaltest tileextra wl 0|1 `o= force wlCount visual flag")
+        safeConsole(player, "`w/hospitaltest tileextra scan [start] [end] [intervalSec] `o= auto-cycle selectedIllness IDs")
+        safeConsole(player, "`w/hospitaltest tileextra stopscan `o= stop auto-cycle visual scan")
         return true
     end
 
@@ -2028,14 +2249,47 @@ onPlayerCommandCallback(function(world, player, fullCommand)
                 safeBubble(player, "`4Usage: /hospitaltest tileextra id <0-255>")
                 return true
             end
+            _G.__HOSPITAL_TILEEXTRA_PROBE = nil
             _G.__HOSPITAL_FORCE_ILLNESS_ID = math.max(0, math.min(255, math.floor(raw)))
             world:updateTile(tile)
             safeConsole(player, "`wForced selectedIllness ID => `o" .. tostring(_G.__HOSPITAL_FORCE_ILLNESS_ID))
             return true
         elseif mode == "auto" then
+            _G.__HOSPITAL_TILEEXTRA_PROBE = nil
             _G.__HOSPITAL_FORCE_ILLNESS_ID = nil
             world:updateTile(tile)
             safeConsole(player, "`wForced selectedIllness ID cleared (back to malady mapping).")
+            return true
+        elseif mode == "scan" then
+            local startID = tonumber(parts[4])
+            local endID = tonumber(parts[5])
+            local intervalSec = tonumber(parts[6])
+
+            startID = startID and math.max(0, math.min(255, math.floor(startID))) or 0
+            endID = endID and math.max(0, math.min(255, math.floor(endID))) or 40
+            intervalSec = intervalSec and math.max(1, math.floor(intervalSec)) or 2
+            if startID > endID then
+                local tmp = startID
+                startID = endID
+                endID = tmp
+            end
+
+            _G.__HOSPITAL_TILEEXTRA_PROBE = {
+                world_name = getWorldName(world),
+                x = tile:getPosX(),
+                y = tile:getPosY(),
+                current_id = startID,
+                end_id = endID,
+                interval_sec = intervalSec,
+                next_at = 0,
+                owner_uid = getUserID(player)
+            }
+            safeConsole(player, "`wTileExtra probe started: `o" .. tostring(startID) .. "`w -> `o" .. tostring(endID) .. " `w(interval `o" .. tostring(intervalSec) .. "s`w)")
+            safeConsole(player, "`wWatch sprite and note ID printed in console when desired icon appears.")
+            return true
+        elseif mode == "stopscan" then
+            _G.__HOSPITAL_TILEEXTRA_PROBE = nil
+            safeConsole(player, "`wTileExtra probe stopped.")
             return true
         elseif mode == "wl" then
             local raw = tonumber(parts[4])

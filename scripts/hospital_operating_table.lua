@@ -100,6 +100,43 @@ local function formatDuration(seconds)
     return string.format("%02dh %02dm %02ds", h, m, s)
 end
 
+local function resolveNPCAvatarMeta(npcResult)
+    if type(npcResult) == "userdata" then return npcResult end
+    if type(npcResult) ~= "table" then return nil end
+
+    if type(npcResult.npc) == "userdata" then return npcResult.npc end
+    if type(npcResult.player) == "userdata" then return npcResult.player end
+    if type(npcResult.avatar) == "userdata" then return npcResult.avatar end
+
+    local indexed = npcResult[1]
+    if type(indexed) == "userdata" then return indexed end
+    if type(indexed) == "table" then
+        if type(indexed.npc) == "userdata" then return indexed.npc end
+        if type(indexed.player) == "userdata" then return indexed.player end
+        if type(indexed.avatar) == "userdata" then return indexed.avatar end
+    end
+
+    for _, value in pairs(npcResult) do
+        if type(value) == "userdata" then return value end
+    end
+
+    return nil
+end
+
+local function removeNPCByName(world, npcName)
+    if type(world) ~= "userdata" then return false end
+    if type(world.findNPCByName) ~= "function" then return false end
+    if type(world.removeNPC) ~= "function" then return false end
+    if tostring(npcName or "") == "" then return false end
+
+    local found = world:findNPCByName(tostring(npcName))
+    local npc = resolveNPCAvatarMeta(found)
+    if not npc then return false end
+
+    world:removeNPC(npc)
+    return true
+end
+
 local function buildOperatingStatusText(row, now)
     if tostring(row.status or "") == "active" then
         local remain = math.max(0, (tonumber(row.expire_at) or 0) - now)
@@ -113,6 +150,60 @@ local function buildOperatingStatusText(row, now)
     end
 
     return "`4Operating Table``\n`wOUT OF ORDER``"
+end
+
+function OperatingTable.getOperatingStatusTextByRow(row, now)
+    return buildOperatingStatusText(row or {}, tonumber(now) or os.time())
+end
+
+function OperatingTable.getOperatingStatusForTable(worldName, x, y, now)
+    local ts = tonumber(now) or os.time()
+    local state = loadHospital(tostring(worldName or ""))
+    local row = OperatingTable.getOperatingStateRow(state, x, y, ts)
+    return buildOperatingStatusText(row, ts), row
+end
+
+function OperatingTable.getOperatingStatusSummary(worldName, maxRows, now)
+    local ts = tonumber(now) or os.time()
+    local state = loadHospital(tostring(worldName or ""))
+    local rows = {}
+    local limit = math.max(1, math.floor(tonumber(maxRows) or 5))
+
+    for key, row in pairs(state.operating_tables or {}) do
+        local xStr, yStr = tostring(key):match("^(%-?%d+):(%-?%d+)$")
+        local x = tonumber(xStr) or 0
+        local y = tonumber(yStr) or 0
+        local status = tostring(row and row.status or "idle")
+        local remain = 0
+        if status == "active" then
+            remain = math.max(0, (tonumber(row.expire_at) or 0) - ts)
+        else
+            local nextSpawn = tonumber(row and row.next_spawn_at) or 0
+            remain = math.max(0, nextSpawn - ts)
+        end
+        rows[#rows + 1] = {
+            key = key,
+            x = x,
+            y = y,
+            status = status,
+            remain = remain,
+            text = buildOperatingStatusText(row, ts)
+        }
+    end
+
+    table.sort(rows, function(a, b)
+        if a.status ~= b.status then
+            if a.status == "active" then return true end
+            if b.status == "active" then return false end
+        end
+        return a.remain < b.remain
+    end)
+
+    if #rows > limit then
+        for i = #rows, limit + 1, -1 do rows[i] = nil end
+    end
+
+    return rows
 end
 
 local function emitOperatingStatusBubble(world, x, y, row, now)
@@ -134,12 +225,8 @@ local function emitOperatingStatusBubble(world, x, y, row, now)
 
     -- Some runtimes interpret bubble coordinates as tile-space,
     -- others expect pixel-space. Emit both to maximize compatibility.
-    pcall(function()
-        world:onCreateChatBubble(tx, ty, text, 0)
-    end)
-    pcall(function()
-        world:onCreateChatBubble((tx * 32) + 16, (ty * 32) + 16, text, 0)
-    end)
+    world:onCreateChatBubble(tx, ty, text, 0)
+    world:onCreateChatBubble((tx * 32) + 16, (ty * 32) + 16, text, 0)
 end
 
 function OperatingTable.debugEmitOperatingStatusBubble(world, x, y)
@@ -212,10 +299,7 @@ function OperatingTable.processOperatingTablesInWorld(world, now)
 
             if row.status == "active" then
                 if now >= row.expire_at then
-                    if row.npc_name ~= "" and world.findNPCByName and world.removeNPC then
-                        local npc = world:findNPCByName(row.npc_name)
-                        if npc then world:removeNPC(npc) end
-                    end
+                    if row.npc_name ~= "" then removeNPCByName(world, row.npc_name) end
                     row.status = "idle"
                     row.spawned_at = 0
                     row.expire_at = 0
@@ -227,10 +311,7 @@ function OperatingTable.processOperatingTablesInWorld(world, now)
             elseif now >= row.next_spawn_at then
                 if world.createNPC then
                     local npcName = getSurgBotNameForTable(x, y)
-                    if world.findNPCByName and world.removeNPC then
-                        local existingNpc = world:findNPCByName(npcName)
-                        if existingNpc then world:removeNPC(existingNpc) end
-                    end
+                    removeNPCByName(world, npcName)
                     local npc = world:createNPC(npcName, x, y)
                     if npc then
                         row.status = "active"
@@ -280,10 +361,7 @@ function OperatingTable.resolveOperatingTableSurgery(world, surgeon, targetPlaye
     row.expire_at = 0
     row.next_spawn_at = now + spawnInterval
 
-    if row.npc_name ~= "" and world.findNPCByName and world.removeNPC then
-        local npc = world:findNPCByName(row.npc_name)
-        if npc then world:removeNPC(npc) end
-    end
+    if row.npc_name ~= "" then removeNPCByName(world, row.npc_name) end
     row.npc_name = ""
 
     saveHospital(worldName, state)
@@ -297,9 +375,8 @@ function OperatingTable.clearOperatingTable(world, worldName, x, y)
     _statusBubbleGate[tostring(worldName) .. ":" .. key] = nil
     local row = state.operating_tables and state.operating_tables[key] or nil
 
-    if row and type(row) == "table" and row.npc_name and row.npc_name ~= "" and type(world) == "userdata" and world.findNPCByName and world.removeNPC then
-        local npc = world:findNPCByName(row.npc_name)
-        if npc then world:removeNPC(npc) end
+    if row and type(row) == "table" and row.npc_name and row.npc_name ~= "" then
+        removeNPCByName(world, row.npc_name)
     end
 
     if state.operating_tables then

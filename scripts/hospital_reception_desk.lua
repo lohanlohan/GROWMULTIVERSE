@@ -186,6 +186,24 @@ local function getOperatingPatientDurationByLevel(level)
     return 0
 end
 
+local function getOperatingStatusSummary(worldName, maxRows)
+    local fn = rawget(_G, "getOperatingStatusSummary")
+    if type(fn) == "function" then
+        local rows = fn(worldName, maxRows)
+        if type(rows) == "table" then return rows end
+    end
+    return {}
+end
+
+local function formatDurationShort(seconds)
+    local s = math.max(0, math.floor(tonumber(seconds) or 0))
+    local h = math.floor(s / 3600)
+    s = s - (h * 3600)
+    local m = math.floor(s / 60)
+    s = s - (m * 60)
+    return string.format("%02d:%02d:%02d", h, m, s)
+end
+
 local function getRequirementIconID(current, required)
     local fn = rawget(_G, "getRequirementIconID")
     if type(fn) == "function" then return fn(current, required) end
@@ -430,6 +448,17 @@ function ReceptionDesk.showHospitalStatsPanel(world, player)
     d = d .. "add_textbox|Successful Surgeries: `2" .. tostring(treatmentStats.successful) .. "``|left|\n"
     d = d .. "add_textbox|Failed Surgeries: `6" .. tostring(treatmentStats.failed) .. "``|left|\n"
     d = d .. "add_spacer|small|\n"
+    local opRows = getOperatingStatusSummary(worldName, 6)
+    if #opRows > 0 then
+        d = d .. "add_textbox|Operating Table Runtime|left|\n"
+        for i = 1, #opRows do
+            local row = opRows[i]
+            local stateLabel = tostring(row.status or "idle") == "active" and "`2ACTIVE``" or "`9IDLE``"
+            d = d .. "add_smalltext|Table (" .. tostring(row.x or 0) .. "," .. tostring(row.y or 0) .. ") " .. stateLabel .. " - `w" .. formatDurationShort(row.remain or 0) .. "``|\n"
+        end
+        d = d .. "add_spacer|small|\n"
+    end
+
     local hasCuredRows = false
     for i = 1, #HOSPITAL_STATS_MALADY_ROWS do
         local row = HOSPITAL_STATS_MALADY_ROWS[i]
