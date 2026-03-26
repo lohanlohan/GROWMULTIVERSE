@@ -3,12 +3,15 @@
 -- Requires: hospital.lua (parent) untuk shared functions & constants
 
 local ReceptionDesk = {}
+local MaladySystem = rawget(_G, "MaladySystem") or require("malady_rng")
 
 -- Local fallback constants to avoid nil globals during reload race.
 local RECEPTION_DESK_ID = tonumber(rawget(_G, "RECEPTION_DESK_ID")) or 14668
 local AUTO_SURGEON_ID = tonumber(rawget(_G, "AUTO_SURGEON_ID")) or 14666
 local OPERATING_TABLE_ID = tonumber(rawget(_G, "OPERATING_TABLE_ID")) or 14662
 local WORLD_LOCK_ID = tonumber(rawget(_G, "WORLD_LOCK_ID")) or 242
+local DIAMOND_LOCK_ID = tonumber(rawget(_G, "DIAMOND_LOCK_ID")) or 1796
+local BGL_ID = tonumber(rawget(_G, "BGL_ID")) or 7188
 local MAX_HOSPITAL_RATING = tonumber(rawget(_G, "MAX_HOSPITAL_RATING")) or 5
 local RATING_STEP_CURES = tonumber(rawget(_G, "RATING_STEP_CURES")) or 100
 
@@ -25,6 +28,39 @@ local DLG_MANAGE_DOCTORS = tostring(rawget(_G, "DLG_MANAGE_DOCTORS") or "hosp_ma
 local HOSPITAL_LEVELS = rawget(_G, "HOSPITAL_LEVELS") or {}
 local LEVEL_UP_RULES = rawget(_G, "LEVEL_UP_RULES") or {}
 local HOSPITAL_STATS_MALADY_ROWS = rawget(_G, "HOSPITAL_STATS_MALADY_ROWS") or {}
+local MALADY_ICON_VISUAL = rawget(_G, "MALADY_ICON_VISUAL") or {}
+local MALADY_ICON = rawget(_G, "MALADY_ICON") or {}
+
+local MALADY_PREVIEW_LABEL = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "Torn Muscle",
+    [MaladySystem.MALADY.GEMS_CUTS] = "Gem Cuts",
+    [MaladySystem.MALADY.CHICKEN_FEET] = "Chicken Feet",
+    [MaladySystem.MALADY.GRUMBLETEETH] = "Grumbleteeth"
+}
+
+local function getUnlockedAutoSurgeonMaladies(level)
+    local fn = rawget(_G, "getUnlockedAutoSurgeonMaladies")
+    if type(fn) == "function" then
+        local list = fn(level)
+        if type(list) == "table" then return list end
+    end
+    return {
+        MaladySystem.MALADY.TORN_PUNCHING_MUSCLE,
+        MaladySystem.MALADY.GEMS_CUTS
+    }
+end
+
+local function getMaladyVisualIcon(maladyType)
+    local visualMap = rawget(_G, "MALADY_ICON_VISUAL") or MALADY_ICON_VISUAL or {}
+    local visual = visualMap[maladyType]
+    if type(visual) == "string" and visual ~= "" then return visual end
+    return nil
+end
+
+local function getMaladyIconID(maladyType)
+    local iconMap = rawget(_G, "MALADY_ICON") or MALADY_ICON or {}
+    return tonumber(iconMap[maladyType]) or AUTO_SURGEON_ID
+end
 
 local function getTierColor(current, required)
     local c = math.max(0, math.floor(tonumber(current) or 0))
@@ -35,7 +71,7 @@ local function getTierColor(current, required)
     local ratio = c / r
     if ratio <= 0 then return "`4" end
     if ratio < 0.25 then return "`6" end
-    if ratio < 0.5 then return "`9" end
+    if ratio < 0.7 then return "`9" end
     return "`^"
 end
 
@@ -159,6 +195,15 @@ local function getPlayerItemAmount(player, itemID)
     return 0
 end
 
+local function getTotalWLEquivalent(player)
+    local fn = rawget(_G, "getTotalWLEquivalent")
+    if type(fn) == "function" then return tonumber(fn(player)) or 0 end
+    local wl = getPlayerItemAmount(player, WORLD_LOCK_ID)
+    local dl = getPlayerItemAmount(player, DIAMOND_LOCK_ID)
+    local bgl = getPlayerItemAmount(player, BGL_ID)
+    return math.max(0, wl + (dl * 100) + (bgl * 10000))
+end
+
 local function getLevelUpSnapshot(world, worldName, state, playerWL)
     local fn = rawget(_G, "getLevelUpSnapshot")
     if type(fn) == "function" then return fn(world, worldName, state, playerWL) end
@@ -280,15 +325,30 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     d = d .. "add_spacer|small|\n"
     d = d .. "add_player_picker|playerNetID|`wAdd Doctors " .. tostring(doctorCount) .. "/1``|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Auto Surgeon Stations in this Hospital can cure:|left|\n"
+    d = d .. "add_textbox|Auto Surgeon Stations in this Hospital can cure (Lv " .. tostring(level) .. ") :|left|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_custom_margin|x:32;y:0|\n"
-    d = d .. "add_custom_button|illChoose_20|image:game/tiles_page16.rttex;image_size:32,32;width:0.08;frame:8,22;state:disabled;|\n"
-    d = d .. "add_custom_label|Torn Muscle|target:illChoose_20;top:1.2;left:0.5;size:tiny;|\n"
-    d = d .. "add_custom_margin|x:64;y:0|\n"
-    d = d .. "add_custom_button|illChoose_21|image:game/tiles_page16.rttex;image_size:32,32;width:0.08;frame:22,26;state:disabled;|\n"
-    d = d .. "add_custom_label|Gem Cuts|target:illChoose_21;top:1.2;left:0.5;size:tiny;|\n"
-    d = d .. "add_custom_margin|x:64;y:0|\n"
+    local unlockedMaladies = getUnlockedAutoSurgeonMaladies(level)
+    d = d .. "add_custom_margin|x:26;y:0|\n"
+    for i = 1, #unlockedMaladies do
+        local maladyType = unlockedMaladies[i]
+        local visual = getMaladyVisualIcon(maladyType)
+        local displayName = tostring(MALADY_PREVIEW_LABEL[maladyType] or MaladySystem.MALADY_DISPLAY[maladyType] or maladyType)
+        local btnName = "illChoose_" .. tostring(i)
+
+        if type(visual) == "string" and visual ~= "" then
+            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.105;state:disabled;|\n"
+            d = d .. "add_custom_label|" .. displayName .. "|target:" .. btnName .. ";top:1.2;left:0.5;size:tiny;|\n"
+        else
+            local iconID = getMaladyIconID(maladyType)
+            d = d .. "add_label_with_icon|small|" .. displayName .. "|left|" .. tostring(iconID) .. "|\n"
+        end
+
+        d = d .. "add_custom_margin|x:66;y:0|\n"
+        if (i % 4) == 0 then
+            d = d .. "reset_placement_x|\n"
+            d = d .. "add_custom_margin|x:26;y:90|\n"
+        end
+    end
     d = d .. "reset_placement_x|\n"
     d = d .. "add_custom_margin|x:0;y:125|\n"
     d = d .. "add_textbox|`9INFO:``|left|\n"
@@ -382,9 +442,10 @@ function ReceptionDesk.showLevelUpPanel(world, player)
     local nextLevel = levelData.next_level
     local levelRule = LEVEL_UP_RULES[level] or {}
     local requiredSurgeries = tonumber(levelRule.required_cures) or tonumber(levelData.required_surgeries) or 0
-    local upgradeCost = levelData.upgrade_wl
+    local upgradeCost = tonumber(levelData.upgrade_wl) or 0
     local playerWL = tonumber(getPlayerItemAmount(player, WORLD_LOCK_ID)) or 0
-    local snapshot = getLevelUpSnapshot(world, worldName, state, playerWL)
+    local totalWLEquiv = getTotalWLEquivalent(player)
+    local snapshot = getLevelUpSnapshot(world, worldName, state, totalWLEquiv)
     local isReady = isLevelUpReadyForRule(levelRule, snapshot, upgradeCost)
 
     local d = "set_default_color|`o\n"
@@ -441,7 +502,7 @@ function ReceptionDesk.showLevelUpPanel(world, player)
     d = d .. "add_spacer|small|\n"
     d = d .. "add_label_with_icon|small|Cost: `9" .. tostring(upgradeCost) .. "``|left|242|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_label_with_icon|small|Owned World Locks: " .. getTierColor(playerWL, upgradeCost) .. tostring(playerWL) .. "``|left|242|\n"
+    d = d .. "add_label_with_icon|small|Owned World Locks: " .. getTierColor(totalWLEquiv, upgradeCost) .. tostring(totalWLEquiv) .. "``|left|242|\n"
     d = d .. "add_spacer|small|\n"
 
     if not isReady then

@@ -17,88 +17,438 @@ local RECEPTION_DESK_ID = 14668
 local AUTO_SURGEON_ID   = 14666
 local OPERATING_TABLE_ID = 14662
 local WORLD_LOCK_ID     = 242
+local DIAMOND_LOCK_ID   = 1796
+local BGL_ID            = 7188
 local WORLD_KEY_ID      = 1424
 
-local MIN_CURE_PRICE_WL = 3
-local CURE_TAX_WL       = 2
+local MIN_CURE_PRICE_WL = 2
+local CURE_TAX_RATE     = 0.30
 local MAX_TOOL_STORAGE  = 1000
 local MAX_HOSPITAL_RATING = 5
 local RATING_STEP_CURES = 100
 
-local HOSPITAL_LEVELS = {
-    [1] = { next_level = 2, required_surgeries = 20,  upgrade_gems = 1000000,  upgrade_wl = 10 },
-    [2] = { next_level = 3, required_surgeries = 140, upgrade_gems = 10000000, upgrade_wl = 20 },
-    [3] = { next_level = nil, required_surgeries = 0, upgrade_gems = 0,        upgrade_wl = 0     }
+local MAX_HOSPITAL_LEVEL = 52
+
+local function getRequiredCuresForNextLevel(nextLevel)
+    return math.max(0, (30 * nextLevel * nextLevel) - (30 * nextLevel) - 40)
+end
+
+local function getUpgradeCostWLByLevel(level)
+    if level == 1 then return 10 end
+    if level <= 3 then return 20 end
+    if level <= 5 then return 30 end
+    if level <= 7 then return 40 end
+    if level <= 10 then return 50 end
+    if level <= 12 then return 60 end
+    if level <= 16 then return 70 end
+    if level <= 20 then return 80 end
+    if level <= 24 then return 90 end
+    if level <= 29 then return 100 end
+    if level <= 36 then return 110 end
+    if level <= 45 then return 120 end
+    return 130
+end
+
+local function getRequiredDoctorsByLevel(level)
+    if level <= 2 then return 1 end
+    if level <= 4 then return 2 end
+    if level <= 7 then return 3 end
+    if level <= 10 then return 4 end
+    if level <= 13 then return 5 end
+    if level <= 17 then return 6 end
+    if level <= 21 then return 7 end
+    if level <= 26 then return 8 end
+    if level <= 32 then return 9 end
+    if level <= 40 then return 10 end
+    if level <= 48 then return 11 end
+    return 12
+end
+
+local function getRequiredRatingByLevel(level)
+    if level <= 5 then return 1 end
+    if level <= 10 then return 2 end
+    if level <= 15 then return 3 end
+    return 4
+end
+
+local REQUIRED_AUTO_SURGEONS = {
+    [1]=0,[2]=1,[3]=1,[4]=2,[5]=2,[6]=3,[7]=3,[8]=3,[9]=4,[10]=4,
+    [11]=4,[12]=5,[13]=5,[14]=5,[15]=6,[16]=6,[17]=6,[18]=6,[19]=6,[20]=7,
+    [21]=7,[22]=7,[23]=7,[24]=8,[25]=8,[26]=8,[27]=8,[28]=8,[29]=8,[30]=9,
+    [31]=9,[32]=9,[33]=9,[34]=9,[35]=9,[36]=9,[37]=9,[38]=9,[39]=10,[40]=10,
+    [41]=10,[42]=10,[43]=10,[44]=10,[45]=10,[46]=10,[47]=11,[48]=11,[49]=11,[50]=11,[51]=11
 }
 
-local LEVEL_UP_RULES = {
-    [1] = {
-        required_cures = 20,
-        required_doctors = 1,
-        required_rating = 1,
-        required_auto_surgeons = 0,
-        required_operating_tables = 0,
-        required_maladies = {
+local REQUIRED_OPERATING_TABLES = {
+    [1]=0,[2]=1,[3]=2,[4]=3,[5]=4,[6]=5,[7]=5,[8]=6,[9]=7,[10]=7,
+    [11]=8,[12]=9,[13]=9,[14]=10,[15]=10,[16]=10,[17]=11,[18]=11,[19]=12,[20]=12,
+    [21]=12,[22]=13,[23]=13,[24]=14,[25]=14,[26]=14,[27]=14,[28]=15,[29]=15,[30]=15,
+    [31]=15,[32]=16,[33]=16,[34]=16,[35]=16,[36]=17,[37]=17,[38]=17,[39]=17,[40]=17,
+    [41]=18,[42]=18,[43]=18,[44]=18,[45]=18,[46]=18,[47]=19,[48]=19,[49]=19,[50]=19,[51]=19
+}
+
+local function getRequiredMaladiesByLevel(level)
+    if level == 1 then
+        return {
             { key = MaladySystem.MALADY.TORN_PUNCHING_MUSCLE, count = 5, label = "Torn Muscle cured" },
             { key = MaladySystem.MALADY.GEMS_CUTS, count = 5, label = "Gem Cuts cured" }
-        },
-        perks = {
-            "Operating Table Capacity: `2+1``",
-            "Surg-E Patient Duration: Between `24 hours, 5 mins`` and `26 hours``"
-        },
-        rewards = {
-            { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID },
-            { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
         }
+    end
+    if level == 3 then
+        return {
+            { key = MaladySystem.MALADY.GRUMBLETEETH, count = 5, label = "Grumbleteeth cured" },
+            { key = MaladySystem.MALADY.CHICKEN_FEET, count = 5, label = "Chicken Feet cured" }
+        }
+    end
+    if level == 5 then
+        return {
+            { key = MaladySystem.MALADY.BROKEN_HEARTS, count = 5, label = "Broken Hearts cured" },
+            { key = MaladySystem.MALADY.BRAINWORMS, count = 5, label = "Brainworms cured" }
+        }
+    end
+    if level == 7 then
+        return {
+            { key = MaladySystem.MALADY.FATTY_LIVER, count = 5, label = "Fatty Liver cured" },
+            { key = MaladySystem.MALADY.ECTO_BONES, count = 5, label = "Ecto-Bones cured" }
+        }
+    end
+    if level == 9 then
+        return {
+            { key = MaladySystem.MALADY.MOLDY_GUTS, count = 5, label = "Moldy Guts cured" },
+            { key = MaladySystem.MALADY.CHAOS_INFECTION, count = 5, label = "Chaos Infection cured" },
+            { key = MaladySystem.MALADY.LUPUS, count = 5, label = "Lupus cured" }
+        }
+    end
+    return {}
+end
+
+local LEVEL_UP_PERKS_BY_LEVEL = {
+    [1] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 5 mins`` and `26 hours``"
     },
-    [2] = {
-        required_cures = 140,
-        required_doctors = 1,
-        required_rating = 1,
-        required_auto_surgeons = 1,
-        required_operating_tables = 1,
-        required_maladies = {},
-        perks = {
-            "None"
-        },
-        rewards = {
-            { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID },
-            { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
-        }
+    [2] = { "None" },
+    [3] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 55 mins`` and `21 day, 1 hour``",
+        "Surg-E Patient Duration: Between `24 hours, 10 mins`` and `26 hours, 10 mins``",
+        "All Auto Surgeon maladies require `21 less Surgical Scalpel``"
+    },
+    [4] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Auto Surgeon can now cure `2Chaos Infection`` & `2Broken Hearts``"
+    },
+    [5] = {
+        "Surg-E Patient Duration: Between `24 hours, 15 mins`` and `26 hours, 10 mins``"
+    },
+    [6] = {
+        "Operating Table Capacity: `2+1``",
+        "Auto Surgeon can now cure `2Brainworms`` & `2Moldy Guts``"
+    },
+    [7] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 50 mins`` and `21 day, 50 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 20 mins`` and `26 hours, 20 mins``",
+        "All Auto Surgeon maladies require `21 less Surgical Stitches``"
+    },
+    [8] = {
+        "Auto Surgeon can now cure `2Fatty Liver``, `2Ecto-Bones`` & `2Lupus``"
+    },
+    [9] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 25 mins`` and `26 hours, 20 mins``"
+    },
+    [10] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``"
+    },
+    [11] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 45 mins`` and `21 day, 50 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 30 mins`` and `26 hours, 30 mins``",
+        "Ecto-Bones Auto Surgeon treatment requires `21 less Surgical Splint``"
+    },
+    [12] = {
+        "Operating Table Capacity: `2+1``"
+    },
+    [13] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 35 mins`` and `26 hours, 30 mins``"
+    },
+    [14] = { "None" },
+    [15] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 40 mins`` and `21 day, 40 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 40 mins`` and `26 hours, 40 mins``"
+    },
+    [16] = { "None" },
+    [17] = {
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 45 mins`` and `26 hours, 40 mins``"
+    },
+    [18] = {
+        "Auto Surgeon Station Capacity: `2+1``"
+    },
+    [19] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 35 mins`` and `21 day, 40 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 50 mins`` and `26 hours, 50 mins``"
+    },
+    [20] = { "Operating Table Capacity: `2+1``" },
+    [21] = {
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 55 mins`` and `26 hours, 50 mins``"
+    },
+    [22] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``"
+    },
+    [23] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 30 mins`` and `21 day, 30 mins``",
+        "Surg-E Patient Duration: Between `25 hours`` and `27 hours``"
+    },
+    [24] = { "None" },
+    [25] = {
+        "Surg-E Patient Duration: Between `25 hours, 5 mins`` and `27 hours``"
+    },
+    [26] = {
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``"
+    },
+    [27] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 25 mins`` and `21 day, 30 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 10 mins`` and `27 hours, 10 mins``"
+    },
+    [28] = {
+        "Auto Surgeon Station Capacity: `2+1``"
+    },
+    [29] = {
+        "Surg-E Patient Duration: Between `25 hours, 15 mins`` and `27 hours, 10 mins``"
+    },
+    [30] = {
+        "Operating Table Capacity: `2+1``"
+    },
+    [31] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 20 mins`` and `21 day, 20 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 20 mins`` and `27 hours, 20 mins``"
+    },
+    [32] = {
+        "Doctor Capacity: `2+1``"
+    },
+    [33] = {
+        "Surg-E Patient Duration: Between `25 hours, 25 mins`` and `27 hours, 20 mins``"
+    },
+    [34] = {
+        "Operating Table Capacity: `2+1``"
+    },
+    [35] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 15 mins`` and `21 day, 20 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 30 mins`` and `27 hours, 30 mins``"
+    },
+    [36] = {
+        "Auto Surgeon Station Capacity: `2+1``"
+    },
+    [37] = {
+        "Surg-E Patient Duration: Between `25 hours, 35 mins`` and `27 hours, 30 mins``"
+    },
+    [38] = { "None" },
+    [39] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 10 mins`` and `21 day, 10 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 40 mins`` and `27 hours, 40 mins``"
+    },
+    [40] = {
+        "Doctor Capacity: `2+1``"
+    },
+    [41] = {
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `25 hours, 45 mins`` and `27 hours, 40 mins``"
+    },
+    [42] = { "None" },
+    [43] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 5 mins`` and `21 day, 10 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 50 mins`` and `27 hours, 50 mins``"
+    },
+    [44] = { "None" },
+    [45] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `25 hours, 55 mins`` and `27 hours, 50 mins``"
+    },
+    [46] = { "None" },
+    [47] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours`` and `21 day``",
+        "Surg-E Patient Duration: Between `26 hours`` and `28 hours``"
+    },
+    [48] = {
+        "Doctor Capacity: `2+1``"
+    },
+    [49] = {
+        "Surg-E Patient Duration: Between `26 hours, 5 mins`` and `28 hours``"
+    },
+    [50] = { "None" },
+    [51] = {
+        "Surg-E Patient Spawn Delay: Between `221 hours, 55 mins`` and `21 day``",
+        "Surg-E Patient Duration: Between `26 hours, 10 mins`` and `28 hours, 10 mins``"
     }
 }
 
+local LEVEL_UP_REWARDS_BY_LEVEL = {
+    [1] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [2] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [3] = { "OPERATING_TABLE" },
+    [4] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [5] = { "OPERATING_TABLE" },
+    [6] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [7] = { "NONE" },
+    [8] = { "OPERATING_TABLE" },
+    [9] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [10] = { "NONE" },
+    [11] = { "OPERATING_TABLE" },
+    [12] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [13] = { "NONE" },
+    [14] = { "OPERATING_TABLE" },
+    [15] = { "AUTO_SURGEON" },
+    [16] = { "NONE" },
+    [17] = { "OPERATING_TABLE" },
+    [18] = { "NONE" },
+    [19] = { "OPERATING_TABLE" },
+    [20] = { "AUTO_SURGEON" },
+    [21] = { "NONE" },
+    [22] = { "OPERATING_TABLE" },
+    [23] = { "NONE" },
+    [24] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [25] = { "NONE" },
+    [26] = { "NONE" },
+    [27] = { "NONE" },
+    [28] = { "OPERATING_TABLE" },
+    [29] = { "NONE" },
+    [30] = { "AUTO_SURGEON" },
+    [31] = { "NONE" },
+    [32] = { "OPERATING_TABLE" },
+    [33] = { "NONE" },
+    [34] = { "NONE" },
+    [35] = { "NONE" },
+    [36] = { "OPERATING_TABLE" },
+    [37] = { "NONE" },
+    [38] = { "AUTO_SURGEON" },
+    [39] = { "NONE" },
+    [40] = { "NONE" },
+    [41] = { "OPERATING_TABLE" },
+    [42] = { "NONE" },
+    [43] = { "NONE" },
+    [44] = { "NONE" },
+    [45] = { "NONE" },
+    [46] = { "NONE" },
+    [47] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [48] = { "NONE" },
+    [49] = { "NONE" },
+    [50] = { "NONE" },
+    [51] = { "OPERATING_TABLE" }
+}
+
+local function cloneTextArray(arr)
+    local out = {}
+    if type(arr) ~= "table" then return out end
+    for i = 1, #arr do out[i] = tostring(arr[i]) end
+    return out
+end
+
+local function buildRewardsFromCodes(codes)
+    local rewards = {}
+    if type(codes) ~= "table" or #codes == 0 then
+        rewards[1] = { label = "None", icon = RECEPTION_DESK_ID }
+        return rewards
+    end
+
+    for i = 1, #codes do
+        local code = tostring(codes[i])
+        if code == "OPERATING_TABLE" then
+            rewards[#rewards + 1] = { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID }
+        elseif code == "AUTO_SURGEON" then
+            rewards[#rewards + 1] = { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
+        end
+    end
+
+    if #rewards == 0 then
+        rewards[1] = { label = "None", icon = RECEPTION_DESK_ID }
+    end
+    return rewards
+end
+
+local HOSPITAL_LEVELS = {}
+local LEVEL_UP_RULES = {}
+for level = 1, MAX_HOSPITAL_LEVEL do
+    local nextLevel = level < MAX_HOSPITAL_LEVEL and (level + 1) or nil
+    HOSPITAL_LEVELS[level] = {
+        next_level = nextLevel,
+        required_surgeries = nextLevel and getRequiredCuresForNextLevel(nextLevel) or 0,
+        upgrade_gems = 0,
+        upgrade_wl = nextLevel and getUpgradeCostWLByLevel(level) or 0
+    }
+
+    LEVEL_UP_RULES[level] = {
+        required_cures = nextLevel and getRequiredCuresForNextLevel(nextLevel) or 0,
+        required_doctors = nextLevel and getRequiredDoctorsByLevel(level) or 0,
+        required_rating = nextLevel and getRequiredRatingByLevel(level) or 0,
+        required_auto_surgeons = nextLevel and (REQUIRED_AUTO_SURGEONS[level] or 0) or 0,
+        required_operating_tables = nextLevel and (REQUIRED_OPERATING_TABLES[level] or 0) or 0,
+        required_maladies = getRequiredMaladiesByLevel(level),
+        perks = cloneTextArray(LEVEL_UP_PERKS_BY_LEVEL[level] or { "None" }),
+        rewards = buildRewardsFromCodes(LEVEL_UP_REWARDS_BY_LEVEL[level])
+    }
+end
+
 local MALADY_UNLOCK_LEVEL = {
-    CHICKEN_FEET         = 1,
-    GRUMBLETEETH         = 1,
-    TORN_PUNCHING_MUSCLE = 2,
-    GEMS_CUTS            = 2,
-    AUTOMATION_CURSE     = 3,
-    BROKEN_HEARTS        = 3,
+    TORN_PUNCHING_MUSCLE = 1,
+    GEMS_CUTS            = 1,
+    CHICKEN_FEET         = 3,
+    GRUMBLETEETH         = 3,
     CHAOS_INFECTION      = 4,
-    LUPUS                = 4,
-    BRAINWORMS           = 4,
-    MOLDY_GUTS           = 4,
-    ECTO_BONES           = 4,
-    FATTY_LIVER          = 4
+    BROKEN_HEARTS        = 4,
+    BRAINWORMS           = 6,
+    MOLDY_GUTS           = 6,
+    FATTY_LIVER          = 8,
+    ECTO_BONES           = 8,
+    LUPUS                = 8,
+    AUTOMATION_CURSE     = 999
 }
 
 -- Icon per malady di owner panel
 -- Vile Vial maladies pakai icon vial mereka sendiri
 -- RNG maladies pakai placeholder (ganti iconID sesuai kebutuhan)
 local MALADY_ICON = {
-    CHICKEN_FEET         = 14668, -- placeholder
-    GRUMBLETEETH         = 14668, -- placeholder
-    TORN_PUNCHING_MUSCLE = 14668, -- placeholder
-    GEMS_CUTS            = 14668, -- placeholder
+    CHICKEN_FEET         = 2,
+    GRUMBLETEETH         = 2,
+    TORN_PUNCHING_MUSCLE = 2,
+    GEMS_CUTS            = 2,
     AUTOMATION_CURSE     = 20704,
-    BROKEN_HEARTS        = 14668, -- placeholder
+    BROKEN_HEARTS        = 2,
     CHAOS_INFECTION      = 8538,
     LUPUS                = 8544,
     BRAINWORMS           = 8542,
     MOLDY_GUTS           = 8540,
     ECTO_BONES           = 8546,
     FATTY_LIVER          = 8548,
+}
+
+local MALADY_ICON_VISUAL = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;",
+    [MaladySystem.MALADY.GEMS_CUTS] = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;",
+    [MaladySystem.MALADY.CHICKEN_FEET] = "image:game/tiles_page2.rttex;frame:20,0;frameSize:32;",
+    [MaladySystem.MALADY.GRUMBLETEETH] = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;",
+    [MaladySystem.MALADY.BRAINWORMS] = "image:game/tiles_page14.rttex;frame:29,0;frameSize:32;",
+    [MaladySystem.MALADY.CHAOS_INFECTION] = "image:game/tiles_page14.rttex;frame:31,1;frameSize:32;",
+    [MaladySystem.MALADY.LUPUS] = "image:game/tiles_page14.rttex;frame:31,2;frameSize:32;",
+    [MaladySystem.MALADY.MOLDY_GUTS] = "image:game/tiles_page14.rttex;frame:31,3;frameSize:32;",
+    [MaladySystem.MALADY.ECTO_BONES] = "image:game/tiles_page14.rttex;frame:31,4;frameSize:32;",
+    [MaladySystem.MALADY.FATTY_LIVER] = "image:game/tiles_page14.rttex;frame:31,5;frameSize:32;",
+    [MaladySystem.MALADY.BROKEN_HEARTS] = "image:game/player_cosmetics1_icon.rttex;frame:31,31;frameSize:32;"
 }
 
 -- Urutan tampil di UI: vile vial dulu, RNG di bawahnya
@@ -120,6 +470,17 @@ local MALADY_UI_RNG = {
     MaladySystem.MALADY.AUTOMATION_CURSE,
 }
 
+-- Auto Surgeon tile-extra selectedIllness mapping (Growtopia client visual IDs).
+-- If a malady is not mapped yet, fallback uses Gem Cuts visual ID (21).
+local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 20,
+    [MaladySystem.MALADY.GEMS_CUTS] = 21,
+    [MaladySystem.MALADY.GRUMBLETEETH] = 22,
+    [MaladySystem.MALADY.CHICKEN_FEET] = 23,
+    [MaladySystem.MALADY.BROKEN_HEARTS] = 24,
+    [MaladySystem.MALADY.AUTOMATION_CURSE] = 25
+}
+
 local ALL_SURGICAL_TOOLS = {
     1258, 1260, 1262, 1264, 1266, 1268, 1270,
     4308, 4310, 4312, 4314, 4316, 4318
@@ -134,19 +495,32 @@ for _, maladyType in pairs(MaladySystem.MALADY) do
 end
 
 local AUTO_SURGEON_MALADY_ORDER = {
-    MaladySystem.MALADY.CHICKEN_FEET,
-    MaladySystem.MALADY.GRUMBLETEETH,
     MaladySystem.MALADY.TORN_PUNCHING_MUSCLE,
     MaladySystem.MALADY.GEMS_CUTS,
-    MaladySystem.MALADY.AUTOMATION_CURSE,
+    MaladySystem.MALADY.CHICKEN_FEET,
+    MaladySystem.MALADY.GRUMBLETEETH,
     MaladySystem.MALADY.BROKEN_HEARTS,
     MaladySystem.MALADY.CHAOS_INFECTION,
-    MaladySystem.MALADY.LUPUS,
     MaladySystem.MALADY.BRAINWORMS,
     MaladySystem.MALADY.MOLDY_GUTS,
     MaladySystem.MALADY.ECTO_BONES,
-    MaladySystem.MALADY.FATTY_LIVER
+    MaladySystem.MALADY.FATTY_LIVER,
+    MaladySystem.MALADY.LUPUS,
+    MaladySystem.MALADY.AUTOMATION_CURSE
 }
+
+local function getUnlockedAutoSurgeonMaladies(level)
+    local hospitalLevel = math.max(1, math.floor(tonumber(level) or 1))
+    local result = {}
+    for i = 1, #AUTO_SURGEON_MALADY_ORDER do
+        local maladyType = AUTO_SURGEON_MALADY_ORDER[i]
+        local reqLevel = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
+        if hospitalLevel >= reqLevel then
+            result[#result + 1] = maladyType
+        end
+    end
+    return result
+end
 
 local DLG_RECEPTION      = "reception_desk_panel_v5m"
 local DLG_MANAGE_DOCTORS = "hosp_manage_doctors_v5m"
@@ -383,6 +757,50 @@ local function getPlayerItemAmount(player, itemID)
     return 0
 end
 
+local function getTotalWLEquivalent(player)
+    local wl = getPlayerItemAmount(player, WORLD_LOCK_ID)
+    local dl = getPlayerItemAmount(player, DIAMOND_LOCK_ID)
+    local bgl = getPlayerItemAmount(player, BGL_ID)
+    return math.max(0, wl + (dl * 100) + (bgl * 10000))
+end
+
+local function rebalanceLocksByWLEquivalent(player, targetTotalWL)
+    local total = math.max(0, math.floor(tonumber(targetTotalWL) or 0))
+    local targetBGL = 0
+    local targetDL = 0
+    local targetWL = total
+
+    if BGL_ID > 0 then
+        targetBGL = math.floor(targetWL / 10000)
+        targetWL = targetWL - (targetBGL * 10000)
+    end
+    targetDL = math.floor(targetWL / 100)
+    targetWL = targetWL - (targetDL * 100)
+
+    local currentBGL = BGL_ID > 0 and getPlayerItemAmount(player, BGL_ID) or 0
+    local currentDL = getPlayerItemAmount(player, DIAMOND_LOCK_ID)
+    local currentWL = getPlayerItemAmount(player, WORLD_LOCK_ID)
+
+    local deltaBGL = targetBGL - currentBGL
+    local deltaDL = targetDL - currentDL
+    local deltaWL = targetWL - currentWL
+
+    if BGL_ID > 0 and deltaBGL ~= 0 then player:changeItem(BGL_ID, deltaBGL, 0) end
+    if deltaDL ~= 0 then player:changeItem(DIAMOND_LOCK_ID, deltaDL, 0) end
+    if deltaWL ~= 0 then player:changeItem(WORLD_LOCK_ID, deltaWL, 0) end
+end
+
+local function deductWLEquivalent(player, amountWL)
+    local need = math.max(0, math.floor(tonumber(amountWL) or 0))
+    if need <= 0 then return true end
+    local currentTotal = getTotalWLEquivalent(player)
+    if currentTotal < need then return false end
+
+    local remainingTotal = currentTotal - need
+    rebalanceLocksByWLEquivalent(player, remainingTotal)
+    return getTotalWLEquivalent(player) == remainingTotal
+end
+
 local function safeItemID(value)
     if type(value) == "number" then return math.floor(value) end
     if type(value) == "string" then
@@ -400,8 +818,14 @@ end
 
 local function getOwnerNetGain(priceWL)
     local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
-    local gain = safePrice - CURE_TAX_WL
+    local tax = math.max(1, math.ceil(safePrice * CURE_TAX_RATE))
+    local gain = safePrice - tax
     return gain < 0 and 0 or gain
+end
+
+local function getWorldTaxWL(priceWL)
+    local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
+    return math.max(1, math.ceil(safePrice * CURE_TAX_RATE))
 end
 
 -- =======================================================
@@ -972,7 +1396,10 @@ _G.getHospitalTreatmentStats = getHospitalTreatmentStats
 _G.formatRequirementProgress = formatRequirementProgress
 _G.getRequirementIconID = getRequirementIconID
 _G.getOwnerNetGain = getOwnerNetGain
+_G.getWorldTaxWL = getWorldTaxWL
 _G.getPlayerItemAmount = getPlayerItemAmount
+_G.getTotalWLEquivalent = getTotalWLEquivalent
+_G.deductWLEquivalent = deductWLEquivalent
 _G.getUserID = getUserID
 _G.getWorldName = getWorldName
 _G.isWorldOwner = isWorldOwner
@@ -985,18 +1412,21 @@ _G.MIN_CURE_PRICE_WL = MIN_CURE_PRICE_WL
 _G.MAX_TOOL_STORAGE = MAX_TOOL_STORAGE
 _G.MAX_HOSPITAL_RATING = MAX_HOSPITAL_RATING
 _G.RATING_STEP_CURES = RATING_STEP_CURES
-_G.CURE_TAX_WL = CURE_TAX_WL
 _G.ALL_SURGICAL_TOOLS = ALL_SURGICAL_TOOLS
 _G.TOOL_REQUIREMENT = TOOL_REQUIREMENT
 _G.MALADY_UI_VIAL = MALADY_UI_VIAL
 _G.MALADY_UI_RNG = MALADY_UI_RNG
 _G.MALADY_ICON = MALADY_ICON
+_G.MALADY_ICON_VISUAL = MALADY_ICON_VISUAL
 _G.MALADY_UNLOCK_LEVEL = MALADY_UNLOCK_LEVEL
+_G.getUnlockedAutoSurgeonMaladies = getUnlockedAutoSurgeonMaladies
 _G.HOSPITAL_STATS_MALADY_ROWS = HOSPITAL_STATS_MALADY_ROWS
 _G.HOSPITAL_LEVELS = HOSPITAL_LEVELS
 _G.LEVEL_UP_RULES = LEVEL_UP_RULES
 _G.ROLE_DEVELOPER = ROLE_DEVELOPER
 _G.WORLD_LOCK_ID = WORLD_LOCK_ID
+_G.DIAMOND_LOCK_ID = DIAMOND_LOCK_ID
+_G.BGL_ID = BGL_ID
 _G.BTN_BIND_PREFIX = BTN_BIND_PREFIX
 _G.BTN_TOOL_PREFIX = BTN_TOOL_PREFIX
 _G.BTN_WITHDRAW_TOOL_PREFIX = BTN_WITHDRAW_TOOL_PREFIX
@@ -1024,6 +1454,58 @@ _G.setHospitalState = setHospitalState
 -- =======================================================
 -- CALLBACKS
 -- =======================================================
+
+if type(onGetTileExtraDataCallback) == "function" then
+    onGetTileExtraDataCallback(function(world, tile, game_version)
+        if type(tile) ~= "userdata" then return false end
+
+        local fg = 0
+        if tile.getTileForeground then
+            fg = tonumber(tile:getTileForeground()) or 0
+        elseif tile.getTileID then
+            fg = tonumber(tile:getTileID()) or 0
+        end
+        if fg ~= AUTO_SURGEON_ID then return false end
+
+        if tonumber(game_version) and tonumber(game_version) < 4.65 then
+            return false
+        end
+        if type(BinaryWriter) ~= "function" then
+            return false
+        end
+
+        local worldName = getWorldName(world)
+        local x = tile:getPosX()
+        local y = tile:getPosY()
+        local station = getStation(worldName, x, y)
+
+        local maladyType = tostring(station and station.malady_type or "")
+        local illnessID = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[maladyType]) or 21
+        local wlCount = tonumber(station and station.price_wl) or 0
+        local outOfOrder = 0
+        if not station or maladyType == "" or tonumber(station.enabled) ~= 1 then
+            outOfOrder = 1
+        end
+
+        local wr = BinaryWriter("")
+        wr:WriteUInt32(39)
+        wr:WriteUInt8(163)
+
+        wr:WriteUInt8(106)
+        wr:WriteString("outOfOrder")
+        wr:WriteUInt8(outOfOrder)
+
+        wr:WriteUInt8(111)
+        wr:WriteString("selectedIllness")
+        wr:WriteUInt8(illnessID)
+
+        wr:WriteUInt8(103)
+        wr:WriteString("wlCount")
+        wr:WriteUInt8(math.max(0, math.min(255, math.floor(wlCount))))
+
+        return wr:GetCurrentString()
+    end)
+end
 
 onTileWrenchCallback(function(world, player, tile)
     if tile:getTileID() == RECEPTION_DESK_ID then
@@ -1226,6 +1708,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         safeConsole(player, "`w/hospitaltest state")
         safeConsole(player, "`w/hospitaltest addprogress")
         safeConsole(player, "`w/hospitaltest stationstate")
+        safeConsole(player, "`w/hospitaltest tileextra `o= debug Auto Surgeon tile extra values")
         return true
     end
 
@@ -1313,6 +1796,33 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         return true
     end
 
+    if sub == "tileextra" then
+        local px   = math.floor((player:getPosX() or 0) / 32)
+        local py   = math.floor((player:getPosY() or 0) / 32)
+        local tile = world:getTile(px, py)
+        if not tile or tile:getTileID() ~= AUTO_SURGEON_ID then
+            safeBubble(player, "`4Stand on an Auto Surgeon Station first.")
+            return true
+        end
+
+        local station = getStation(getWorldName(world), tile:getPosX(), tile:getPosY())
+        if not station then
+            safeBubble(player, "`4Station data not found.")
+            return true
+        end
+
+        local maladyType = tostring(station.malady_type or "")
+        local illnessID = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[maladyType]) or 21
+        local wlCount = tonumber(station.price_wl) or 0
+        local outOfOrder = (maladyType == "" or tonumber(station.enabled) ~= 1) and 1 or 0
+
+        safeConsole(player, "`wTileExtra Malady: `o" .. maladyType)
+        safeConsole(player, "`wTileExtra selectedIllness ID: `o" .. tostring(illnessID))
+        safeConsole(player, "`wTileExtra outOfOrder: `o" .. tostring(outOfOrder))
+        safeConsole(player, "`wTileExtra wlCount: `o" .. tostring(wlCount))
+        return true
+    end
+
     return true
 end)
 
@@ -1366,19 +1876,18 @@ onPlayerDialogCallback(function(world, player, data)
             local ownerAccess = isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER)
             
             if ownerAccess and levelData and levelData.next_level then
-                local upgradeCost = levelData.upgrade_wl
-                local playerWL = tonumber(getPlayerItemAmount(player, WORLD_LOCK_ID)) or 0
-                local snapshot = getLevelUpSnapshot(world, worldName, state, playerWL)
+                local upgradeCost = tonumber(levelData.upgrade_wl) or 0
+                local totalWLEquiv = getTotalWLEquivalent(player)
+                local snapshot = getLevelUpSnapshot(world, worldName, state, totalWLEquiv)
                 local levelRule = LEVEL_UP_RULES[level] or {}
                 
-                if playerWL >= upgradeCost and isLevelUpReadyForRule(levelRule, snapshot, upgradeCost) then
-                    player:changeItem(WORLD_LOCK_ID, -upgradeCost, 0)
+                if totalWLEquiv >= upgradeCost and isLevelUpReadyForRule(levelRule, snapshot, upgradeCost) and deductWLEquivalent(player, upgradeCost) then
                     setHospitalState(worldName, levelData.next_level, 0)
                     safeConsole(player, "`2Hospital has been upgraded to level " .. tostring(levelData.next_level) .. "!")
                     ReceptionDesk.showReceptionDeskPanel(world, player)
                     return true
                 else
-                    safeBubble(player, "`4You don't meet the requirements or don't have enough world locks.")
+                    safeBubble(player, "`4You don't meet the requirements or don't have enough locks (WL/DL/BGL).")
                 end
             end
             return false

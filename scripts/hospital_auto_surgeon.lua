@@ -7,9 +7,9 @@ local AutoSurgeon = {}
 local MaladySystem = rawget(_G, "MaladySystem") or require("malady_rng")
 
 -- Local fallback constants to avoid nil globals during reload race.
-local MIN_CURE_PRICE_WL = tonumber(rawget(_G, "MIN_CURE_PRICE_WL")) or 3
+local MIN_CURE_PRICE_WL = tonumber(rawget(_G, "MIN_CURE_PRICE_WL")) or 2
 local MAX_TOOL_STORAGE = tonumber(rawget(_G, "MAX_TOOL_STORAGE")) or 1000
-local CURE_TAX_WL = tonumber(rawget(_G, "CURE_TAX_WL")) or 2
+local CURE_TAX_RATE = 0.30
 local AUTO_SURGEON_ID = tonumber(rawget(_G, "AUTO_SURGEON_ID")) or 14666
 local WORLD_LOCK_ID = tonumber(rawget(_G, "WORLD_LOCK_ID")) or 242
 
@@ -31,6 +31,7 @@ end
 local MALADY_UI_VIAL = rawget(_G, "MALADY_UI_VIAL") or {}
 local MALADY_UI_RNG = rawget(_G, "MALADY_UI_RNG") or {}
 local MALADY_ICON = rawget(_G, "MALADY_ICON") or {}
+local MALADY_ICON_VISUAL = rawget(_G, "MALADY_ICON_VISUAL") or {}
 local MALADY_UNLOCK_LEVEL = rawget(_G, "MALADY_UNLOCK_LEVEL") or {}
 
 local BTN_BIND_PREFIX = tostring(rawget(_G, "BTN_BIND_PREFIX") or "v5m_bind_")
@@ -41,6 +42,24 @@ local BTN_STORAGE_BACK = tostring(rawget(_G, "BTN_STORAGE_BACK") or "v5m_storage
 local BTN_WITHDRAW_WL = tostring(rawget(_G, "BTN_WITHDRAW_WL") or "v5m_withdraw_station_wl")
 local BTN_CLOSE_OWNER = tostring(rawget(_G, "BTN_CLOSE_OWNER") or "v5m_close_station_owner")
 local BTN_CURE_MALADY = tostring(rawget(_G, "BTN_CURE_MALADY") or "v5m_cure_malady_station")
+local BTN_OWNER_CONFIRM = tostring(rawget(_G, "BTN_OWNER_CONFIRM") or "v5m_owner_confirm")
+local BTN_CHOOSE_ILLNESS = tostring(rawget(_G, "BTN_CHOOSE_ILLNESS") or "v5m_choose_illness")
+local BTN_PICKER_BACK = tostring(rawget(_G, "BTN_PICKER_BACK") or "v5m_picker_back")
+
+local MALADY_PICKER_LABEL = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "Torn Muscle",
+    [MaladySystem.MALADY.GEMS_CUTS] = "Gem Cuts",
+    [MaladySystem.MALADY.CHICKEN_FEET] = "Chicken Feet",
+    [MaladySystem.MALADY.GRUMBLETEETH] = "Grumbleteeth",
+    [MaladySystem.MALADY.BROKEN_HEARTS] = "Broken Hearts",
+    [MaladySystem.MALADY.CHAOS_INFECTION] = "Chaos Infection",
+    [MaladySystem.MALADY.BRAINWORMS] = "Brainworms",
+    [MaladySystem.MALADY.MOLDY_GUTS] = "Moldy Guts",
+    [MaladySystem.MALADY.ECTO_BONES] = "Ecto-Bones",
+    [MaladySystem.MALADY.FATTY_LIVER] = "Fatty Liver",
+    [MaladySystem.MALADY.LUPUS] = "Lupus",
+    [MaladySystem.MALADY.AUTOMATION_CURSE] = "Automation Curse"
+}
 
 local function getStation(worldName, x, y)
     local fn = rawget(_G, "getStation")
@@ -88,8 +107,16 @@ local function getOwnerNetGain(priceWL)
     local fn = rawget(_G, "getOwnerNetGain")
     if type(fn) == "function" then return tonumber(fn(priceWL)) or 0 end
     local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
-    local gain = safePrice - CURE_TAX_WL
+    local tax = math.max(1, math.ceil(safePrice * CURE_TAX_RATE))
+    local gain = safePrice - tax
     return gain < 0 and 0 or gain
+end
+
+local function getWorldTaxWL(priceWL)
+    local fn = rawget(_G, "getWorldTaxWL")
+    if type(fn) == "function" then return tonumber(fn(priceWL)) or 0 end
+    local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
+    return math.max(1, math.ceil(safePrice * CURE_TAX_RATE))
 end
 
 local function extractButtonSuffix(buttonName, prefix)
@@ -98,6 +125,41 @@ local function extractButtonSuffix(buttonName, prefix)
     if type(buttonName) ~= "string" then return "" end
     local result = buttonName:gsub("^" .. prefix, "")
     return result
+end
+
+local function getUnlockedAutoSurgeonMaladies(level)
+    local fn = rawget(_G, "getUnlockedAutoSurgeonMaladies")
+    if type(fn) == "function" then
+        local list = fn(level)
+        if type(list) == "table" then return list end
+    end
+
+    local merged = {}
+    local pools = { MALADY_UI_RNG, MALADY_UI_VIAL }
+    local currentLevel = math.max(1, math.floor(tonumber(level) or 1))
+    for p = 1, #pools do
+        local arr = pools[p]
+        for i = 1, #arr do
+            local m = arr[i]
+            local need = tonumber(MALADY_UNLOCK_LEVEL[m]) or 999
+            if currentLevel >= need then
+                merged[#merged + 1] = m
+            end
+        end
+    end
+    return merged
+end
+
+local function getVisualIconString(maladyType)
+    local visualMap = rawget(_G, "MALADY_ICON_VISUAL") or MALADY_ICON_VISUAL or {}
+    local visual = visualMap[maladyType]
+    if type(visual) == "string" and visual ~= "" then return visual end
+    return nil
+end
+
+local function getMaladyIconID(maladyType)
+    local iconMap = rawget(_G, "MALADY_ICON") or MALADY_ICON or {}
+    return tonumber(iconMap[maladyType]) or AUTO_SURGEON_ID
 end
 
 -- =======================================================
@@ -309,9 +371,9 @@ function AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
 
     local d = "set_default_color|`o\n"
     d = d .. "text_scaling_string|aaaaaaaaaa|\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
+    d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Storage|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
-    d = d .. "add_smalltext|`wClick a tool to withdraw all stock for that tool.|\n"
+    d = d .. "add_smalltext|`oClick a tool to withdraw all stock for that tool.|\n"
     d = d .. "add_spacer|small|\n"
 
     for rowStart = 1, #ALL_SURGICAL_TOOLS, 5 do
@@ -342,6 +404,126 @@ function AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
 end
 
 -- =======================================================
+-- PANEL: AUTO SURGEON ILLNESS PICKER
+-- =======================================================
+
+function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName, x, y)
+    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
+    local dlgName = "autosurgeon_picker_v5m_" .. tostring(x) .. "_" .. tostring(y)
+    local station = getStation(worldName, x, y) or AutoSurgeon.ensureStation(worldName, x, y)
+    local selected = tostring(station.malady_type or "")
+    local hospitalState = getHospitalState(worldName)
+    local hospitalLevel = tonumber(hospitalState.level) or 1
+
+    local d = "set_default_color|`o\n"
+    d = d .. "set_bg_color|54,152,198,180|\n"
+    d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
+    d = d .. "add_textbox|`oPick which illness this Auto Surgeon Station can cure:|left|\n"
+    d = d .. "add_spacer|small|\n"
+
+    local unlockedMaladies = getUnlockedAutoSurgeonMaladies(hospitalLevel)
+    local perRow = 4
+    local rowCount = math.max(1, math.floor((#unlockedMaladies + perRow - 1) / perRow))
+    local pickerBottomPad = 30 + (rowCount * 92)
+
+    d = d .. "add_custom_margin|x:34;y:0|\n"
+    for i = 1, #unlockedMaladies do
+        local m = unlockedMaladies[i]
+        local btnName = BTN_BIND_PREFIX .. tostring(m)
+        local displayName = tostring(MALADY_PICKER_LABEL[m] or MaladySystem.MALADY_DISPLAY[m] or m)
+        local visual = getVisualIconString(m)
+        local labelColor = selected == m and "`2" or "`o"
+
+        if visual then
+            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.11;|\n"
+            d = d .. "add_custom_label|" .. labelColor .. displayName .. "|target:" .. btnName .. ";top:1.32;left:0.62;size:tiny;|\n"
+        else
+            local iconID = getMaladyIconID(m)
+            d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|" .. tostring(iconID) .. "|\n"
+        end
+
+        d = d .. "add_custom_margin|x:86;y:0|\n"
+        if (i % perRow) == 0 then
+            d = d .. "reset_placement_x|\n"
+            d = d .. "add_custom_margin|x:34;y:92|\n"
+        end
+    end
+    d = d .. "reset_placement_x|\n"
+    d = d .. "add_custom_margin|x:0;y:" .. tostring(pickerBottomPad) .. "|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_button|" .. BTN_PICKER_BACK .. "|Back|noflags|0|0|\n"
+    d = d .. "add_quick_exit|\n"
+    d = d .. "end_dialog|" .. dlgName .. "|||\n"
+
+    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= dlgName then return end
+
+        local btn = tostring(data["buttonClicked"] or "")
+        if btn == BTN_PICKER_BACK then
+            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
+            return true
+        end
+
+        local newMalady = nil
+        if btn:match("^" .. BTN_BIND_PREFIX) then
+            newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
+        else
+            -- Some UI skins send custom-button clicks via keyed fields instead of buttonClicked.
+            local function isTruthyChoice(value, keyName)
+                if value == nil then return false end
+                local v = string.lower(tostring(value))
+                if v == "" or v == "0" or v == "false" or v == "off" or v == "no" or v == "nil" then
+                    return false
+                end
+                if keyName and (v == string.lower(tostring(keyName))) then
+                    return true
+                end
+                return true
+            end
+
+            for i = 1, #unlockedMaladies do
+                local candidate = tostring(unlockedMaladies[i])
+                local key = BTN_BIND_PREFIX .. candidate
+                local raw = data[key]
+                if isTruthyChoice(raw, key) then
+                    newMalady = candidate
+                    break
+                end
+            end
+
+            -- Fallback: scan all payload keys that start with bind prefix.
+            if (not newMalady or newMalady == "") and type(data) == "table" then
+                for k, v in pairs(data) do
+                    local keyName = tostring(k)
+                    if keyName:match("^" .. BTN_BIND_PREFIX) and isTruthyChoice(v, keyName) then
+                        newMalady = extractButtonSuffix(keyName, BTN_BIND_PREFIX)
+                        break
+                    end
+                end
+            end
+        end
+
+        if newMalady and newMalady ~= "" then
+            local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[newMalady]) or 1
+            local currentLevel = tonumber((getHospitalState(worldName) or {}).level) or 1
+            if currentLevel < requiredLevel then
+                safeBubble(cbPlayer, "`4Hospital level is too low for this treatment.")
+                AutoSurgeon.showAutoSurgeonIllnessPickerPanel(cbWorld, cbPlayer, worldName, x, y)
+                return true
+            end
+            AutoSurgeon.setStationMalady(worldName, x, y, newMalady)
+            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+            safeBubble(cbPlayer, "`2Station bound to " .. (MaladySystem.MALADY_DISPLAY[newMalady] or newMalady) .. ".")
+            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
+            return true
+        end
+
+        return true
+    end)
+end
+
+-- =======================================================
 -- PANEL: AUTO SURGEON OWNER
 -- =======================================================
 
@@ -357,68 +539,45 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
     local priceWL    = tonumber(station.price_wl) or MIN_CURE_PRICE_WL
     local earnedWL   = tonumber(station.earned_wl) or 0
     local cureCount  = maladyType ~= "" and AutoSurgeon.getStationPossibleCures(worldName, x, y, maladyType) or 0
+    local maladyName = maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not Selected"
+    local maladyIcon = getMaladyIconID(maladyType)
+    local maladyVisual = getVisualIconString(maladyType)
+    if maladyType == "" then maladyIcon = AUTO_SURGEON_ID end
+    local withdrawFlags = earnedWL > 0 and "noflags" or "off"
+    local reqTools = {}
+    local reqMap = TOOL_REQUIREMENT[maladyType]
+    if type(reqMap) == "table" then
+        for toolID in pairs(reqMap) do
+            reqTools[#reqTools + 1] = tonumber(toolID) or 0
+        end
+        table.sort(reqTools)
+    end
+    if #reqTools == 0 then
+        for i = 1, math.min(5, #ALL_SURGICAL_TOOLS) do
+            reqTools[#reqTools + 1] = ALL_SURGICAL_TOOLS[i]
+        end
+    end
 
     local d = "set_default_color|`o\n"
-    d = d .. "text_scaling_string|aaaaaaaaaa|\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
+    d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
-    d = d .. "add_smalltext|`wStation World: `o" .. worldName .. "|\n"
-    d = d .. "add_smalltext|`wBound Malady: `o" .. (maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not set") .. "|\n"
-    d = d .. "add_smalltext|`wPossible Cures: `o" .. tostring(cureCount) .. "|\n"
-    d = d .. "add_smalltext|`wPrice of One Cure: `o" .. tostring(priceWL) .. " WL|\n"
-    d = d .. "add_smalltext|`wWorld Tax: `o" .. tostring(CURE_TAX_WL) .. " WL|\n"
-    d = d .. "add_smalltext|`wOwner Net Gain: `o" .. tostring(getOwnerNetGain(priceWL)) .. " WL|\n"
-    d = d .. "add_smalltext|`wEarned WL Ready To Withdraw: `o" .. tostring(earnedWL) .. "|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_text_input|station_price_wl|Price WL|" .. tostring(priceWL) .. "|4|\n"
-    d = d .. "add_checkbox|station_enabled|Enable Auto Surgeon Station|" .. (enabled and "1" or "0") .. "|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_smalltext|`wChoose Illness|\n"
-    d = d .. "add_smalltext|`oVile Vial Maladies:|\n"
-
-    for i = 1, #MALADY_UI_VIAL do
-        local m = MALADY_UI_VIAL[i]
-        local icon = MALADY_ICON[m] or 2
-        local label = (maladyType == m and "`2" or "`w") .. (MaladySystem.MALADY_DISPLAY[m] or m)
-        d = d .. "add_button_with_icon|" .. BTN_BIND_PREFIX .. m .. "|" .. label .. "|staticBlueFrame|" .. icon .. "|0|left|\n"
+    d = d .. "add_textbox|`oThis humanoid can cure:|left|\n"
+    if maladyVisual then
+        d = d .. "add_label_with_icon|small|`5" .. tostring(maladyName) .. "``|left||" .. maladyVisual .. "|\n"
+    else
+        d = d .. "add_label_with_icon|small|`5" .. tostring(maladyName) .. "``|left|" .. tostring(maladyIcon) .. "|\n"
     end
-    d = d .. "add_custom_break|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_smalltext|`oActivity Maladies:|\n"
+    d = d .. "add_button|" .. BTN_CHOOSE_ILLNESS .. "|Choose another illness|noflags|0|0|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "set_custom_spacing|x:20;y:0|\n"
-
-    local function rngLabel(m)
-        local color = maladyType == m and "`2" or "`w"
-        local name  = MaladySystem.MALADY_DISPLAY[m] or m
-        if #name > 8 then name = name:sub(1, 8):gsub("%s+$", "") .. "..." end
-        return color .. name
-    end
-
-    for i = 1, 3 do
-        local m = MALADY_UI_RNG[i]
-        local icon = MALADY_ICON[m] or 2
-        d = d .. "add_button_with_icon|" .. BTN_BIND_PREFIX .. m .. "|" .. rngLabel(m) .. "|staticBlueFrame|" .. icon .. "|0|left|\n"
-    end
-    d = d .. "add_custom_break|\n"
+    d = d .. "add_textbox|`oYou need these Surgeon tools:|left|\n"
+    d = d .. "add_smalltext|`5Click on the tool to deposit or withdraw|\n"
     d = d .. "add_spacer|small|\n"
-    for i = 4, #MALADY_UI_RNG do
-        local m = MALADY_UI_RNG[i]
-        local icon = MALADY_ICON[m] or 2
-        d = d .. "add_button_with_icon|" .. BTN_BIND_PREFIX .. m .. "|" .. rngLabel(m) .. "|staticBlueFrame|" .. icon .. "|0|left|\n"
-    end
-    d = d .. "add_custom_break|\n"
-    d = d .. "set_custom_spacing|x:0;y:0|\n"
-
-    d = d .. "add_custom_break|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_label_with_icon|medium|`wSurgical Tools Storage|left|1260|\n"
-    d = d .. "add_spacer|small|\n"
-
-    for rowStart = 1, #ALL_SURGICAL_TOOLS, 5 do
-        local rowEnd = math.min(rowStart + 4, #ALL_SURGICAL_TOOLS)
+    for rowStart = 1, #reqTools, 5 do
+        local rowEnd = math.min(rowStart + 4, #reqTools)
         for i = rowStart, rowEnd do
-            local toolID = ALL_SURGICAL_TOOLS[i]
+            local toolID = reqTools[i]
             d = d .. string.format(
                 "add_button_with_icon|%s%d|%s|staticBlueFrame|%d|0|left|\n",
                 BTN_TOOL_PREFIX, toolID,
@@ -429,9 +588,22 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
         d = d .. "add_spacer|small|\n"
     end
 
+    d = d .. "add_custom_margin|x:0;y:6|\n"
     d = d .. "add_button|" .. BTN_OPEN_STORAGE .. "|Storage|noflags|0|0|\n"
-    d = d .. "add_button|" .. BTN_WITHDRAW_WL  .. "|Withdraw World Locks|noflags|0|0|\n"
-    d = d .. "add_button|" .. BTN_CLOSE_OWNER  .. "|Close|noflags|0|0|\n"
+    d = d .. "add_spacer|small|\n"
+    local taxWL = getWorldTaxWL(priceWL)
+    d = d .. "add_textbox|`oPrice of one cure:|left|\n"
+    d = d .. "add_text_input|station_price_wl||" .. tostring(priceWL) .. "|4|\n"
+    d = d .. "add_smalltext|`oGrowtopia world tax will be: `9" .. tostring(taxWL) .. " World Locks|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oAuto Surgeon Station can cure " .. tostring(maladyName) .. ": `2" .. tostring(cureCount) .. " Time|left|\n"
+    d = d .. "add_textbox|`oYou have earned `2" .. tostring(earnedWL) .. "`` World Locks.|left|\n"
+    d = d .. "add_button|" .. BTN_WITHDRAW_WL  .. "|Withdraw World Locks|" .. withdrawFlags .. "|0|0|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_checkbox|station_enabled|Enable Auto Surgeon Station|" .. (enabled and "1" or "0") .. "|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_custom_button|" .. BTN_CLOSE_OWNER  .. "|textLabel:Close;middle_colour:80543231;border_colour:80543231;|\n"
+    d = d .. "add_custom_button|" .. BTN_OWNER_CONFIRM .. "|textLabel:Confirm;middle_colour:431888895;border_colour:431888895;anchor:" .. BTN_CLOSE_OWNER .. ";left:1;margin:40,0;|\n"
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
@@ -445,6 +617,21 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
 
         AutoSurgeon.setStationEnabled(worldName, x, y, newEnabled)
         AutoSurgeon.setStationPrice(worldName, x, y, newPrice)
+
+        if btn == BTN_CLOSE_OWNER then
+            return true
+        end
+
+        if btn == BTN_CHOOSE_ILLNESS then
+            AutoSurgeon.showAutoSurgeonIllnessPickerPanel(cbWorld, cbPlayer, worldName, x, y)
+            return true
+        end
+
+        if btn == BTN_OWNER_CONFIRM then
+            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
+            return true
+        end
 
         if btn:match("^" .. BTN_BIND_PREFIX) then
             local newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
@@ -505,11 +692,11 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
 
     local dialog = {
         "set_default_color|`o",
-        "set_bg_color|0,0,0,180|",
+        "set_bg_color|54,152,198,180|",
         "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|",
-        "add_smalltext|`wThis station cures: `o" .. (maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not configured") .. "|",
-        "add_smalltext|`wPrice of One Cure: `o" .. tostring(priceWL) .. " WL|",
-        "add_smalltext|`wYour Status: " .. MaladySystem.getStatusText(player) .. "|",
+        "add_smalltext|`oThis station cures: `o" .. (maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not configured") .. "|",
+        "add_smalltext|`oPrice of One Cure: `o" .. tostring(priceWL) .. " WL|",
+        "add_smalltext|`oYour Status: " .. MaladySystem.getStatusText(player) .. "|",
         "add_spacer|small|",
         "add_button|" .. BTN_CURE_MALADY .. "|Cure Malady|noflags|0|0|",
         "add_quick_exit|",
