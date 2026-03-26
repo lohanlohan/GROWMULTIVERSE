@@ -51,6 +51,14 @@ local function getUnlockedAutoSurgeonMaladies(level)
 end
 
 local function getMaladyVisualIcon(maladyType)
+    -- Stable overrides for fullscreen rendering (avoid runtime map mismatch).
+    if maladyType == MaladySystem.MALADY.TORN_PUNCHING_MUSCLE then
+        return "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;"
+    end
+    if maladyType == MaladySystem.MALADY.GEMS_CUTS then
+        return "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;"
+    end
+
     local visualMap = rawget(_G, "MALADY_ICON_VISUAL") or MALADY_ICON_VISUAL or {}
     local visual = visualMap[maladyType]
     if type(visual) == "string" and visual ~= "" then return visual end
@@ -307,14 +315,14 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     local d = "set_default_color|`o\n"
     d = d .. "add_label_with_icon|big|`wReception Desk|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Hello there, " .. playerName .. "`o. Welcome to `2" .. worldName .. "`o Hospital.|left|\n"
+    d = d .. "add_smalltext|Hello there, " .. playerName .. "`o. Welcome to `2" .. worldName .. "`o Hospital.|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Level: " .. getTierColor(level, 3) .. tostring(level) .. "``|left|\n"
-    d = d .. "add_textbox|Rating: " .. formatTierProgress(ratingData.rating, maxRating) .. "|left|\n"
+    d = d .. "add_smalltext|Level: " .. getTierColor(level, 3) .. tostring(level) .. "``|\n"
+    d = d .. "add_smalltext|Rating: " .. formatTierProgress(ratingData.rating, maxRating) .. "|\n"
     if (tonumber(ratingData.rating) or 0) >= maxRating then
-        d = d .. "add_textbox|Rating Counter: `2MAX``|left|\n"
+        d = d .. "add_smalltext|Rating Counter: `2MAX``|\n"
     else
-        d = d .. "add_textbox|Rating Counter: " .. formatTierProgress(ratingData.counter, ratingStep) .. " `o(" .. tostring(ratingData.need) .. " to next)``|left|\n"
+        d = d .. "add_smalltext|Rating Counter: " .. formatTierProgress(ratingData.counter, ratingStep) .. " `o(" .. tostring(ratingData.need) .. " to next)``|\n"
     end
     d = d .. "add_spacer|small|\n"
     d = d .. "add_custom_button|" .. BTN_SHOW_STATS .. "|textLabel:Hospital Stats;middle_colour:3389566975;border_colour:3389566975;display:block;|\n"
@@ -325,9 +333,12 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     d = d .. "add_spacer|small|\n"
     d = d .. "add_player_picker|playerNetID|`wAdd Doctors " .. tostring(doctorCount) .. "/1``|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|Auto Surgeon Stations in this Hospital can cure (Lv " .. tostring(level) .. ") :|left|\n"
+    d = d .. "add_smalltext|Auto Surgeon Stations in this Hospital can cure (Lv " .. tostring(level) .. ") :|\n"
     d = d .. "add_spacer|small|\n"
     local unlockedMaladies = getUnlockedAutoSurgeonMaladies(level)
+    local perRow = 4
+    local rowCount = math.max(1, math.floor((#unlockedMaladies + perRow - 1) / perRow))
+    local gridBottomPad = 24 + (rowCount * 92)
     d = d .. "add_custom_margin|x:26;y:0|\n"
     for i = 1, #unlockedMaladies do
         local maladyType = unlockedMaladies[i]
@@ -336,7 +347,7 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
         local btnName = "illChoose_" .. tostring(i)
 
         if type(visual) == "string" and visual ~= "" then
-            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.105;state:disabled;|\n"
+            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.05;state:disabled;|\n"
             d = d .. "add_custom_label|" .. displayName .. "|target:" .. btnName .. ";top:1.2;left:0.5;size:tiny;|\n"
         else
             local iconID = getMaladyIconID(maladyType)
@@ -350,7 +361,7 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
         end
     end
     d = d .. "reset_placement_x|\n"
-    d = d .. "add_custom_margin|x:0;y:125|\n"
+    d = d .. "add_custom_margin|x:0;y:" .. tostring(gridBottomPad) .. "|\n"
     d = d .. "add_textbox|`9INFO:``|left|\n"
     d = d .. "add_smalltext|`9- The World Owner's surgeries will automatically count towards the hospital stats without needing to be registered as a doctor.``|left|\n"
     d = d .. "add_smalltext|`9- Rating: every 100 successful cures gives +1 rating. A failed cure gives -1 rating and resets the rating counter.``|left|\n"

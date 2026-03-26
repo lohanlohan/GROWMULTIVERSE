@@ -45,6 +45,9 @@ local BTN_CURE_MALADY = tostring(rawget(_G, "BTN_CURE_MALADY") or "v5m_cure_mala
 local BTN_OWNER_CONFIRM = tostring(rawget(_G, "BTN_OWNER_CONFIRM") or "v5m_owner_confirm")
 local BTN_CHOOSE_ILLNESS = tostring(rawget(_G, "BTN_CHOOSE_ILLNESS") or "v5m_choose_illness")
 local BTN_PICKER_BACK = tostring(rawget(_G, "BTN_PICKER_BACK") or "v5m_picker_back")
+local BTN_TOOL_PANEL_ADD = tostring(rawget(_G, "BTN_TOOL_PANEL_ADD") or "v5m_tool_panel_add")
+local BTN_TOOL_PANEL_REMOVE = tostring(rawget(_G, "BTN_TOOL_PANEL_REMOVE") or "v5m_tool_panel_remove")
+local BTN_TOOL_PANEL_BACK = tostring(rawget(_G, "BTN_TOOL_PANEL_BACK") or "v5m_tool_panel_back")
 
 local MALADY_PICKER_LABEL = {
     [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "Torn Muscle",
@@ -160,6 +163,16 @@ end
 local function getMaladyIconID(maladyType)
     local iconMap = rawget(_G, "MALADY_ICON") or MALADY_ICON or {}
     return tonumber(iconMap[maladyType]) or AUTO_SURGEON_ID
+end
+
+local function getItemNameByID(itemID)
+    if type(getItem) == "function" then
+        local itemObj = getItem(itemID)
+        if itemObj and itemObj.getName then
+            return tostring(itemObj:getName())
+        end
+    end
+    return "Tool #" .. tostring(itemID)
 end
 
 -- =======================================================
@@ -360,6 +373,93 @@ function AutoSurgeon.tryWithdrawToolFromStation(player, worldName, x, y, toolID)
     return true
 end
 
+function AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
+    toolID = tonumber(toolID) or 0
+    if toolID <= 0 then
+        AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+        return
+    end
+
+    local dlgName = "autosurgeon_tool_panel_v5m_" .. tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(toolID)
+    local toolName = getItemNameByID(toolID)
+    local inBag = getPlayerItemAmount(player, toolID)
+    local inStation = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+
+    local d = "set_default_color|`o\n"
+    d = d .. "set_bg_color|54,152,198,180|\n"
+    d = d .. "add_label_with_icon|big|" .. tostring(toolName) .. "|left|" .. tostring(toolID) .. "|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_smalltext|`oYou have `$" .. tostring(inBag) .. "`2 " .. tostring(toolName) .. "`o in your backpack.|\n"
+    d = d .. "add_text_input|tool_add_amount|Amount to add:|" .. tostring(math.max(0, inBag)) .. "|3|\n"
+    d = d .. "add_custom_button|" .. BTN_TOOL_PANEL_ADD .. "|textLabel:Add;middle_colour:431888895;border_colour:431888895;display:block;|\n"
+    d = d .. "reset_placement_x|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_smalltext|`oYou have `$" .. tostring(inStation) .. "/1k`2 " .. tostring(toolName) .. "`o stored in the machine.|\n"
+    d = d .. "add_text_input|tool_remove_amount|Amount to remove:|" .. tostring(math.max(0, inStation)) .. "|3|\n"
+    d = d .. "add_custom_button|" .. BTN_TOOL_PANEL_REMOVE .. "|textLabel:Remove;middle_colour:80543231;border_colour:80543231;display:block;|\n"
+    d = d .. "reset_placement_x|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_button|" .. BTN_TOOL_PANEL_BACK .. "|Back|noflags|0|0|\n"
+    d = d .. "add_quick_exit|\n"
+    d = d .. "end_dialog|" .. dlgName .. "|||\n"
+
+    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
+        if type(data) ~= "table" then return end
+        if data["dialog_name"] ~= dlgName then return end
+
+        local btn = tostring(data["buttonClicked"] or "")
+        if btn == BTN_TOOL_PANEL_BACK then
+            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
+            return true
+        end
+
+        if btn == BTN_TOOL_PANEL_ADD then
+            local requested = math.max(1, math.floor(tonumber(data["tool_add_amount"]) or 0))
+            local haveTool = getPlayerItemAmount(cbPlayer, toolID)
+            local current = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+            local freeSpace = MAX_TOOL_STORAGE - current
+            local depositAmount = math.min(requested, haveTool, freeSpace)
+
+            if depositAmount <= 0 then
+                if current >= MAX_TOOL_STORAGE then
+                    safeBubble(cbPlayer, "`4This tool storage is already full.")
+                else
+                    safeBubble(cbPlayer, "`4You do not have enough tools in inventory.")
+                end
+            else
+                cbPlayer:changeItem(toolID, -depositAmount, 0)
+                AutoSurgeon.addStationTool(worldName, x, y, toolID, depositAmount)
+                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                safeBubble(cbPlayer, "`2Added " .. tostring(depositAmount) .. "x " .. tostring(toolName) .. ".")
+            end
+
+            AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
+            return true
+        end
+
+        if btn == BTN_TOOL_PANEL_REMOVE then
+            local requested = math.max(1, math.floor(tonumber(data["tool_remove_amount"]) or 0))
+            local current = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+            local withdrawAmount = math.min(requested, current)
+
+            if withdrawAmount <= 0 then
+                safeBubble(cbPlayer, "`4There is no stock for this tool.")
+            else
+                cbPlayer:changeItem(toolID, withdrawAmount, 0)
+                AutoSurgeon.removeStationTool(worldName, x, y, toolID, withdrawAmount)
+                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                safeBubble(cbPlayer, "`2Removed " .. tostring(withdrawAmount) .. "x " .. tostring(toolName) .. ".")
+            end
+
+            AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
+            return true
+        end
+
+        return true
+    end)
+end
+
 -- =======================================================
 -- PANEL: AUTO SURGEON STORAGE
 -- =======================================================
@@ -418,7 +518,7 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
     local d = "set_default_color|`o\n"
     d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
-    d = d .. "add_textbox|`oPick which illness this Auto Surgeon Station can cure:|left|\n"
+    d = d .. "add_smalltext|`oPick which illness this Auto Surgeon Station can cure:|\n"
     d = d .. "add_spacer|small|\n"
 
     local unlockedMaladies = getUnlockedAutoSurgeonMaladies(hospitalLevel)
@@ -435,7 +535,7 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
         local labelColor = selected == m and "`2" or "`o"
 
         if visual then
-            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.11;|\n"
+            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.05;|\n"
             d = d .. "add_custom_label|" .. labelColor .. displayName .. "|target:" .. btnName .. ";top:1.32;left:0.62;size:tiny;|\n"
         else
             local iconID = getMaladyIconID(m)
@@ -562,7 +662,7 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
     d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|`oThis humanoid can cure:|left|\n"
+    d = d .. "add_smalltext|`oThis humanoid can cure:|\n"
     if maladyVisual then
         d = d .. "add_label_with_icon|small|`5" .. tostring(maladyName) .. "``|left||" .. maladyVisual .. "|\n"
     else
@@ -571,33 +671,35 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|" .. BTN_CHOOSE_ILLNESS .. "|Choose another illness|noflags|0|0|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|`oYou need these Surgeon tools:|left|\n"
+    d = d .. "add_smalltext|`oYou need these Surgeon tools:|\n"
     d = d .. "add_smalltext|`5Click on the tool to deposit or withdraw|\n"
     d = d .. "add_spacer|small|\n"
+
     for rowStart = 1, #reqTools, 5 do
         local rowEnd = math.min(rowStart + 4, #reqTools)
         for i = rowStart, rowEnd do
             local toolID = reqTools[i]
+            local countNow = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
             d = d .. string.format(
-                "add_button_with_icon|%s%d|%s|staticBlueFrame|%d|0|left|\n",
+                "add_button_with_icon|%s%d|%s|is_count_label,noflags|%d|1|left|\n",
                 BTN_TOOL_PREFIX, toolID,
-                AutoSurgeon.getToolStorageLabel(worldName, x, y, toolID), toolID
+                AutoSurgeon.getToolStorageLabel(worldName, x, y, toolID),
+                toolID
             )
         end
         d = d .. "add_custom_break|\n"
         d = d .. "add_spacer|small|\n"
     end
-
     d = d .. "add_custom_margin|x:0;y:6|\n"
     d = d .. "add_button|" .. BTN_OPEN_STORAGE .. "|Storage|noflags|0|0|\n"
     d = d .. "add_spacer|small|\n"
     local taxWL = getWorldTaxWL(priceWL)
-    d = d .. "add_textbox|`oPrice of one cure:|left|\n"
+    d = d .. "add_smalltext|`oPrice of one cure:|\n"
     d = d .. "add_text_input|station_price_wl||" .. tostring(priceWL) .. "|4|\n"
     d = d .. "add_smalltext|`oGrowtopia world tax will be: `9" .. tostring(taxWL) .. " World Locks|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_textbox|`oAuto Surgeon Station can cure " .. tostring(maladyName) .. ": `2" .. tostring(cureCount) .. " Time|left|\n"
-    d = d .. "add_textbox|`oYou have earned `2" .. tostring(earnedWL) .. "`` World Locks.|left|\n"
+    d = d .. "add_smalltext|`oAuto Surgeon Station can cure " .. tostring(maladyName) .. ": `2" .. tostring(cureCount) .. " Time|\n"
+    d = d .. "add_smalltext|`oYou have earned `2" .. tostring(earnedWL) .. "`` World Locks.|\n"
     d = d .. "add_button|" .. BTN_WITHDRAW_WL  .. "|Withdraw World Locks|" .. withdrawFlags .. "|0|0|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_checkbox|station_enabled|Enable Auto Surgeon Station|" .. (enabled and "1" or "0") .. "|\n"
@@ -645,11 +747,27 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
         if btn:match("^" .. BTN_TOOL_PREFIX) then
             local toolID = tonumber(extractButtonSuffix(btn, BTN_TOOL_PREFIX)) or 0
             if toolID > 0 then
-                AutoSurgeon.tryDepositToolToStation(cbPlayer, worldName, x, y, toolID)
-                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
+                return true
             end
             AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
             return true
+        end
+
+        if (not btn or btn == "") and type(data) == "table" then
+            for k, v in pairs(data) do
+                local keyName = tostring(k)
+                if keyName:match("^" .. BTN_TOOL_PREFIX) then
+                    local raw = string.lower(tostring(v or ""))
+                    if raw ~= "" and raw ~= "0" and raw ~= "false" and raw ~= "off" then
+                        local toolID = tonumber(extractButtonSuffix(keyName, BTN_TOOL_PREFIX)) or 0
+                        if toolID > 0 then
+                            AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
+                            return true
+                        end
+                    end
+                end
+            end
         end
 
         if btn == BTN_OPEN_STORAGE then
