@@ -4,6 +4,102 @@
 
 local AutoSurgeon = {}
 
+local MaladySystem = rawget(_G, "MaladySystem") or require("malady_rng")
+
+-- Local fallback constants to avoid nil globals during reload race.
+local MIN_CURE_PRICE_WL = tonumber(rawget(_G, "MIN_CURE_PRICE_WL")) or 3
+local MAX_TOOL_STORAGE = tonumber(rawget(_G, "MAX_TOOL_STORAGE")) or 1000
+local CURE_TAX_WL = tonumber(rawget(_G, "CURE_TAX_WL")) or 2
+local AUTO_SURGEON_ID = tonumber(rawget(_G, "AUTO_SURGEON_ID")) or 14666
+local WORLD_LOCK_ID = tonumber(rawget(_G, "WORLD_LOCK_ID")) or 242
+
+local ALL_SURGICAL_TOOLS = rawget(_G, "ALL_SURGICAL_TOOLS") or {
+    1258, 1260, 1262, 1264, 1266, 1268, 1270,
+    4308, 4310, 4312, 4314, 4316, 4318
+}
+
+local TOOL_REQUIREMENT = rawget(_G, "TOOL_REQUIREMENT") or {}
+if next(TOOL_REQUIREMENT) == nil then
+    for _, maladyType in pairs(MaladySystem.MALADY or {}) do
+        TOOL_REQUIREMENT[maladyType] = {}
+        for _, toolID in ipairs(ALL_SURGICAL_TOOLS) do
+            TOOL_REQUIREMENT[maladyType][toolID] = 1
+        end
+    end
+end
+
+local MALADY_UI_VIAL = rawget(_G, "MALADY_UI_VIAL") or {}
+local MALADY_UI_RNG = rawget(_G, "MALADY_UI_RNG") or {}
+local MALADY_ICON = rawget(_G, "MALADY_ICON") or {}
+local MALADY_UNLOCK_LEVEL = rawget(_G, "MALADY_UNLOCK_LEVEL") or {}
+
+local BTN_BIND_PREFIX = tostring(rawget(_G, "BTN_BIND_PREFIX") or "v5m_bind_")
+local BTN_TOOL_PREFIX = tostring(rawget(_G, "BTN_TOOL_PREFIX") or "v5m_tool_")
+local BTN_WITHDRAW_TOOL_PREFIX = tostring(rawget(_G, "BTN_WITHDRAW_TOOL_PREFIX") or "v5m_withdraw_tool_")
+local BTN_OPEN_STORAGE = tostring(rawget(_G, "BTN_OPEN_STORAGE") or "v5m_open_storage_panel")
+local BTN_STORAGE_BACK = tostring(rawget(_G, "BTN_STORAGE_BACK") or "v5m_storage_back")
+local BTN_WITHDRAW_WL = tostring(rawget(_G, "BTN_WITHDRAW_WL") or "v5m_withdraw_station_wl")
+local BTN_CLOSE_OWNER = tostring(rawget(_G, "BTN_CLOSE_OWNER") or "v5m_close_station_owner")
+local BTN_CURE_MALADY = tostring(rawget(_G, "BTN_CURE_MALADY") or "v5m_cure_malady_station")
+
+local function getStation(worldName, x, y)
+    local fn = rawget(_G, "getStation")
+    if type(fn) == "function" then return fn(worldName, x, y) end
+    return nil
+end
+
+local function saveStation(worldName, x, y, data)
+    local fn = rawget(_G, "saveStation")
+    if type(fn) == "function" then fn(worldName, x, y, data) end
+end
+
+local function deleteStationData(worldName, x, y)
+    local fn = rawget(_G, "deleteStationData")
+    if type(fn) == "function" then fn(worldName, x, y) end
+end
+
+local function getHospitalState(worldName)
+    local fn = rawget(_G, "getHospitalState")
+    if type(fn) == "function" then return fn(worldName) end
+    return { level = 1 }
+end
+
+local function getPlayerItemAmount(player, itemID)
+    local fn = rawget(_G, "getPlayerItemAmount")
+    if type(fn) == "function" then return tonumber(fn(player, itemID)) or 0 end
+    if player and player.getItemAmount then
+        return tonumber(player:getItemAmount(itemID)) or 0
+    end
+    return 0
+end
+
+local function safeBubble(player, text)
+    local fn = rawget(_G, "safeBubble")
+    if type(fn) == "function" then
+        fn(player, text)
+        return
+    end
+    if player and player.onTalkBubble and player.getNetID then
+        player:onTalkBubble(player:getNetID(), text, 0)
+    end
+end
+
+local function getOwnerNetGain(priceWL)
+    local fn = rawget(_G, "getOwnerNetGain")
+    if type(fn) == "function" then return tonumber(fn(priceWL)) or 0 end
+    local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
+    local gain = safePrice - CURE_TAX_WL
+    return gain < 0 and 0 or gain
+end
+
+local function extractButtonSuffix(buttonName, prefix)
+    local fn = rawget(_G, "extractButtonSuffix")
+    if type(fn) == "function" then return tostring(fn(buttonName, prefix) or "") end
+    if type(buttonName) ~= "string" then return "" end
+    local result = buttonName:gsub("^" .. prefix, "")
+    return result
+end
+
 -- =======================================================
 -- STATION MANAGEMENT
 -- =======================================================

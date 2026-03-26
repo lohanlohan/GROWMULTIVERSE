@@ -4,6 +4,28 @@
 
 local ReceptionDesk = {}
 
+-- Local fallback constants to avoid nil globals during reload race.
+local RECEPTION_DESK_ID = tonumber(rawget(_G, "RECEPTION_DESK_ID")) or 14668
+local AUTO_SURGEON_ID = tonumber(rawget(_G, "AUTO_SURGEON_ID")) or 14666
+local OPERATING_TABLE_ID = tonumber(rawget(_G, "OPERATING_TABLE_ID")) or 14662
+local WORLD_LOCK_ID = tonumber(rawget(_G, "WORLD_LOCK_ID")) or 242
+local MAX_HOSPITAL_RATING = tonumber(rawget(_G, "MAX_HOSPITAL_RATING")) or 5
+local RATING_STEP_CURES = tonumber(rawget(_G, "RATING_STEP_CURES")) or 100
+
+local BTN_SHOW_STATS = tostring(rawget(_G, "BTN_SHOW_STATS") or "receptionBtn_showHospitalStats")
+local BTN_LEVEL_UP = tostring(rawget(_G, "BTN_LEVEL_UP") or "receptionBtn_levelUp")
+local BTN_BACK_STATS = tostring(rawget(_G, "BTN_BACK_STATS") or "statsBtn_back")
+local BTN_LEVEL_UP_BACK = tostring(rawget(_G, "BTN_LEVEL_UP_BACK") or "levelUpBtn_back")
+local BTN_LEVEL_UP_NEW_CONFIRM = tostring(rawget(_G, "BTN_LEVEL_UP_NEW_CONFIRM") or "levelUpBtn_confirm")
+local BTN_ADD_DOCTOR_PREFIX = tostring(rawget(_G, "BTN_ADD_DOCTOR_PREFIX") or "v5m_add_dr_")
+local BTN_REMOVE_DOCTOR_PREFIX = tostring(rawget(_G, "BTN_REMOVE_DOCTOR_PREFIX") or "v5m_rm_dr_")
+local BTN_DOCTORS_BACK = tostring(rawget(_G, "BTN_DOCTORS_BACK") or "v5m_doctors_back")
+local DLG_MANAGE_DOCTORS = tostring(rawget(_G, "DLG_MANAGE_DOCTORS") or "hosp_manage_doctors_v5m")
+
+local HOSPITAL_LEVELS = rawget(_G, "HOSPITAL_LEVELS") or {}
+local LEVEL_UP_RULES = rawget(_G, "LEVEL_UP_RULES") or {}
+local HOSPITAL_STATS_MALADY_ROWS = rawget(_G, "HOSPITAL_STATS_MALADY_ROWS") or {}
+
 local function getTierColor(current, required)
     local c = math.max(0, math.floor(tonumber(current) or 0))
     local r = math.max(0, math.floor(tonumber(required) or 0))
@@ -35,6 +57,127 @@ local function resolveWorldName(world, player)
         return tostring(world:getName() or "")
     end
     return ""
+end
+
+-- Safe wrappers so this module still works when global bridge isn't ready yet.
+local function loadHospital(worldName)
+    local fn = rawget(_G, "loadHospital")
+    if type(fn) == "function" then return fn(worldName) end
+    return { level = 1, progress = 0, rating = 0, rating_counter = 0, doctors = {}, doctor_stats = {}, treatment_stats = { total = 0, successful = 0, failed = 0 }, cured_by_malady = {} }
+end
+
+local function saveHospital(worldName, state)
+    local fn = rawget(_G, "saveHospital")
+    if type(fn) == "function" then fn(worldName, state) end
+end
+
+local function isWorldOwner(world, player)
+    local fn = rawget(_G, "isWorldOwner")
+    if type(fn) == "function" then return fn(world, player) end
+    if type(world) == "userdata" and type(player) == "userdata" and world.hasAccess then
+        return world:hasAccess(player) == true
+    end
+    return false
+end
+
+local function getUserID(player)
+    local fn = rawget(_G, "getUserID")
+    if type(fn) == "function" then return tonumber(fn(player)) or 0 end
+    if type(player) == "userdata" and player.getUserID then
+        return tonumber(player:getUserID()) or 0
+    end
+    return 0
+end
+
+local function getHospitalState(worldName)
+    local fn = rawget(_G, "getHospitalState")
+    if type(fn) == "function" then return fn(worldName) end
+    return loadHospital(worldName)
+end
+
+local function getHospitalRatingCounter(worldName)
+    local fn = rawget(_G, "getHospitalRatingCounter")
+    if type(fn) == "function" then return fn(worldName) end
+    local state = getHospitalState(worldName)
+    local rating = math.max(0, math.min(5, tonumber(state.rating) or 0))
+    local counter = math.max(0, tonumber(state.rating_counter) or 0)
+    if rating >= 5 then counter = 100 end
+    return { rating = rating, counter = counter, need = rating >= 5 and 0 or math.max(0, 100 - counter) }
+end
+
+local function getHospitalTreatmentStats(worldName)
+    local fn = rawget(_G, "getHospitalTreatmentStats")
+    if type(fn) == "function" then return fn(worldName) end
+    local state = getHospitalState(worldName)
+    local stats = state.treatment_stats or {}
+    return {
+        total = tonumber(stats.total) or 0,
+        successful = tonumber(stats.successful) or 0,
+        failed = tonumber(stats.failed) or 0,
+        cured_by_malady = state.cured_by_malady or {}
+    }
+end
+
+local function countAutoSurgeons(world)
+    local fn = rawget(_G, "countAutoSurgeons")
+    if type(fn) == "function" then return tonumber(fn(world)) or 0 end
+    return 0
+end
+
+local function countOperatingTables(world)
+    local fn = rawget(_G, "countOperatingTables")
+    if type(fn) == "function" then return tonumber(fn(world)) or 0 end
+    return 0
+end
+
+local function getRequirementIconID(current, required)
+    local fn = rawget(_G, "getRequirementIconID")
+    if type(fn) == "function" then return fn(current, required) end
+    local c = math.max(0, math.floor(tonumber(current) or 0))
+    local r = math.max(0, math.floor(tonumber(required) or 0))
+    if r <= 0 or c >= r then return 6292 end
+    return 2946
+end
+
+local function safeBubble(player, text)
+    local fn = rawget(_G, "safeBubble")
+    if type(fn) == "function" then
+        fn(player, text)
+        return
+    end
+    if player and player.onTalkBubble and player.getNetID then
+        player:onTalkBubble(player:getNetID(), text, 0)
+    end
+end
+
+local function getPlayerItemAmount(player, itemID)
+    local fn = rawget(_G, "getPlayerItemAmount")
+    if type(fn) == "function" then return tonumber(fn(player, itemID)) or 0 end
+    if player and player.getItemAmount then
+        return tonumber(player:getItemAmount(itemID)) or 0
+    end
+    return 0
+end
+
+local function getLevelUpSnapshot(world, worldName, state, playerWL)
+    local fn = rawget(_G, "getLevelUpSnapshot")
+    if type(fn) == "function" then return fn(world, worldName, state, playerWL) end
+    local treatmentStats = getHospitalTreatmentStats(worldName)
+    return {
+        cures = tonumber(state.progress) or 0,
+        doctors = ReceptionDesk.countDoctors(worldName),
+        rating = tonumber(state.rating) or 0,
+        autoSurgeons = countAutoSurgeons(world),
+        operatingTables = countOperatingTables(world),
+        playerWL = math.max(0, math.floor(tonumber(playerWL) or 0)),
+        curedByMalady = treatmentStats.cured_by_malady or {}
+    }
+end
+
+local function isLevelUpReadyForRule(levelRule, snapshot, upgradeCost)
+    local fn = rawget(_G, "isLevelUpReadyForRule")
+    if type(fn) == "function" then return fn(levelRule, snapshot, upgradeCost) end
+    return false
 end
 
 -- =======================================================
@@ -107,7 +250,12 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     local worldName = resolveWorldName(world, player)
     local state = getHospitalState(worldName)
     local level = tonumber(state.level) or 1
-    local ratingData = getHospitalRatingCounter(worldName)
+    local ratingData = getHospitalRatingCounter(worldName) or {}
+    ratingData.rating = tonumber(ratingData.rating) or 0
+    ratingData.counter = tonumber(ratingData.counter) or 0
+    ratingData.need = tonumber(ratingData.need) or math.max(0, (tonumber(RATING_STEP_CURES) or 100) - ratingData.counter)
+    local maxRating = tonumber(MAX_HOSPITAL_RATING) or 5
+    local ratingStep = tonumber(RATING_STEP_CURES) or 100
     local playerName = tostring(player.getName and player:getName() or "Player")
     local doctorCount = ReceptionDesk.countDoctors(worldName)
 
@@ -117,11 +265,11 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     d = d .. "add_textbox|Hello there, " .. playerName .. "`o. Welcome to `2" .. worldName .. "`o Hospital.|left|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_textbox|Level: " .. getTierColor(level, 3) .. tostring(level) .. "``|left|\n"
-    d = d .. "add_textbox|Rating: " .. formatTierProgress(ratingData.rating, MAX_HOSPITAL_RATING) .. "|left|\n"
-    if ratingData.rating >= MAX_HOSPITAL_RATING then
+    d = d .. "add_textbox|Rating: " .. formatTierProgress(ratingData.rating, maxRating) .. "|left|\n"
+    if (tonumber(ratingData.rating) or 0) >= maxRating then
         d = d .. "add_textbox|Rating Counter: `2MAX``|left|\n"
     else
-        d = d .. "add_textbox|Rating Counter: " .. formatTierProgress(ratingData.counter, RATING_STEP_CURES) .. " `o(" .. tostring(ratingData.need) .. " to next)``|left|\n"
+        d = d .. "add_textbox|Rating Counter: " .. formatTierProgress(ratingData.counter, ratingStep) .. " `o(" .. tostring(ratingData.need) .. " to next)``|left|\n"
     end
     d = d .. "add_spacer|small|\n"
     d = d .. "add_custom_button|" .. BTN_SHOW_STATS .. "|textLabel:Hospital Stats;middle_colour:3389566975;border_colour:3389566975;display:block;|\n"
@@ -165,7 +313,11 @@ function ReceptionDesk.showHospitalStatsPanel(world, player)
     local autoSurgeonCount = countAutoSurgeons(world)
     local operatingTableCount = countOperatingTables(world)
     local doctorCount = ReceptionDesk.countDoctors(worldName)
-    local ratingData = getHospitalRatingCounter(worldName)
+    local ratingData = getHospitalRatingCounter(worldName) or {}
+    ratingData.rating = tonumber(ratingData.rating) or 0
+    ratingData.counter = tonumber(ratingData.counter) or 0
+    local maxRating = tonumber(MAX_HOSPITAL_RATING) or 5
+    local ratingStep = tonumber(RATING_STEP_CURES) or 100
     local treatmentStats = getHospitalTreatmentStats(worldName)
     local curedByMalady = treatmentStats.cured_by_malady
 
@@ -180,9 +332,9 @@ function ReceptionDesk.showHospitalStatsPanel(world, player)
     d = d .. "add_custom_margin|x:0;y:8|\n"
     d = d .. "add_label_with_icon|small|Operating Tables: `2" .. tostring(operatingTableCount) .. "/1``|left|" .. tostring(OPERATING_TABLE_ID) .. "|\n"
     d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Rating: `2" .. tostring(ratingData.rating) .. "/" .. tostring(MAX_HOSPITAL_RATING) .. "``|left|" .. tostring(getRequirementIconID(ratingData.rating, MAX_HOSPITAL_RATING)) .. "|\n"
+    d = d .. "add_label_with_icon|small|Rating: `2" .. tostring(ratingData.rating) .. "/" .. tostring(maxRating) .. "``|left|" .. tostring(getRequirementIconID(ratingData.rating, maxRating)) .. "|\n"
     d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Rating Counter: `2" .. tostring(ratingData.counter) .. "/" .. tostring(RATING_STEP_CURES) .. "``|left|" .. tostring(getRequirementIconID(ratingData.counter, RATING_STEP_CURES)) .. "|\n"
+    d = d .. "add_label_with_icon|small|Rating Counter: `2" .. tostring(ratingData.counter) .. "/" .. tostring(ratingStep) .. "``|left|" .. tostring(getRequirementIconID(ratingData.counter, ratingStep)) .. "|\n"
     d = d .. "add_custom_margin|x:0;y:8|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_textbox|Patients Treated|left|\n"
