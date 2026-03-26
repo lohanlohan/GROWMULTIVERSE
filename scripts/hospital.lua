@@ -471,15 +471,41 @@ local MALADY_UI_RNG = {
 }
 
 -- Auto Surgeon tile-extra selectedIllness mapping (Growtopia client visual IDs).
--- If a malady is not mapped yet, fallback uses Gem Cuts visual ID (21).
+-- Note: On this runtime/client build, Torn and Gems visual IDs are reversed
+-- compared to some public examples.
 local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
-    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 20,
-    [MaladySystem.MALADY.GEMS_CUTS] = 21,
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 21,
+    [MaladySystem.MALADY.GEMS_CUTS] = 20,
     [MaladySystem.MALADY.GRUMBLETEETH] = 22,
     [MaladySystem.MALADY.CHICKEN_FEET] = 23,
     [MaladySystem.MALADY.BROKEN_HEARTS] = 24,
-    [MaladySystem.MALADY.AUTOMATION_CURSE] = 25
+    [MaladySystem.MALADY.AUTOMATION_CURSE] = 25,
+    -- Map Vile Vial maladies into the closest supported visual buckets
+    -- so selected illness no longer falls back to Gem Cuts visual.
+    [MaladySystem.MALADY.CHAOS_INFECTION] = 26,
+    [MaladySystem.MALADY.LUPUS] = 27,
+    [MaladySystem.MALADY.BRAINWORMS] = 28,
+    [MaladySystem.MALADY.MOLDY_GUTS] = 29,
+    [MaladySystem.MALADY.ECTO_BONES] = 30,
+    [MaladySystem.MALADY.FATTY_LIVER] = 31
 }
+
+local function resolveAutoSurgeonIllnessVisualID(maladyType)
+    local key = tostring(maladyType or "")
+    local mapped = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[key])
+    if mapped then return mapped end
+
+    -- Defensive fallback for any custom malady string variants.
+    local upper = string.upper(key)
+    if upper:find("AUTOMATION", 1, true) or upper:find("CHAOS", 1, true) then return 25 end
+    if upper:find("BROKEN", 1, true) or upper:find("LUPUS", 1, true) then return 24 end
+    if upper:find("CHICKEN", 1, true) or upper:find("FATTY", 1, true) then return 23 end
+    if upper:find("GRUMBLE", 1, true) or upper:find("BRAIN", 1, true) then return 22 end
+    if upper:find("GEMS", 1, true) or upper:find("MOLD", 1, true) then return 20 end
+    if upper:find("TORN", 1, true) or upper:find("ECTO", 1, true) then return 21 end
+
+    return 20
+end
 
 local ALL_SURGICAL_TOOLS = {
     1258, 1260, 1262, 1264, 1266, 1268, 1270,
@@ -1455,55 +1481,78 @@ _G.setHospitalState = setHospitalState
 -- CALLBACKS
 -- =======================================================
 
-if type(onGetTileExtraDataCallback) == "function" then
+local function buildAutoSurgeonTileExtraData(world, tile, game_version)
+    if type(tile) ~= "userdata" then return false end
+
+    local fg = 0
+    if tile.getTileForeground then
+        fg = tonumber(tile:getTileForeground()) or 0
+    elseif tile.getTileID then
+        fg = tonumber(tile:getTileID()) or 0
+    end
+    if fg ~= AUTO_SURGEON_ID then return false end
+
+    if tonumber(game_version) and tonumber(game_version) < 4.65 then
+        return false
+    end
+    if type(BinaryWriter) ~= "function" then
+        return false
+    end
+
+    local worldName = getWorldName(world)
+    local x = tile:getPosX()
+    local y = tile:getPosY()
+    local station = getStation(worldName, x, y)
+
+    local maladyType = tostring(station and station.malady_type or "")
+    local illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
+    local forcedIllnessID = tonumber(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID"))
+    if forcedIllnessID then
+        illnessID = math.max(0, math.min(255, math.floor(forcedIllnessID)))
+    end
+
+    local wlCount = tonumber(station and station.earned_wl) or 0
+    local wlCountVisual = wlCount > 0 and 1 or 0
+    local forcedWLVisual = tonumber(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL"))
+    if forcedWLVisual then
+        wlCountVisual = forcedWLVisual > 0 and 1 or 0
+    end
+
+    local outOfOrder = 0
+    if not station or maladyType == "" or tonumber(station.enabled) ~= 1 then
+        outOfOrder = 1
+    end
+
+    local wr = BinaryWriter("")
+    wr:WriteUInt32(39)
+    wr:WriteUInt8(163)
+
+    wr:WriteUInt8(106)
+    wr:WriteString("outOfOrder")
+    wr:WriteUInt8(outOfOrder)
+
+    wr:WriteUInt8(111)
+    wr:WriteString("selectedIllness")
+    wr:WriteUInt8(illnessID)
+
+    wr:WriteUInt8(103)
+    wr:WriteString("wlCount")
+    wr:WriteUInt8(wlCountVisual)
+
+    return wr:GetCurrentString()
+end
+
+-- Avoid duplicate callback stacking on reloadScripts().
+-- Register once, then always route to latest handler through _G.
+_G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER = buildAutoSurgeonTileExtraData
+if type(onGetTileExtraDataCallback) == "function" and not _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_REGISTERED then
+    _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_REGISTERED = true
     onGetTileExtraDataCallback(function(world, tile, game_version)
-        if type(tile) ~= "userdata" then return false end
-
-        local fg = 0
-        if tile.getTileForeground then
-            fg = tonumber(tile:getTileForeground()) or 0
-        elseif tile.getTileID then
-            fg = tonumber(tile:getTileID()) or 0
+        local fn = rawget(_G, "__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER")
+        if type(fn) == "function" then
+            return fn(world, tile, game_version)
         end
-        if fg ~= AUTO_SURGEON_ID then return false end
-
-        if tonumber(game_version) and tonumber(game_version) < 4.65 then
-            return false
-        end
-        if type(BinaryWriter) ~= "function" then
-            return false
-        end
-
-        local worldName = getWorldName(world)
-        local x = tile:getPosX()
-        local y = tile:getPosY()
-        local station = getStation(worldName, x, y)
-
-        local maladyType = tostring(station and station.malady_type or "")
-        local illnessID = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[maladyType]) or 21
-        local wlCount = tonumber(station and station.price_wl) or 0
-        local outOfOrder = 0
-        if not station or maladyType == "" or tonumber(station.enabled) ~= 1 then
-            outOfOrder = 1
-        end
-
-        local wr = BinaryWriter("")
-        wr:WriteUInt32(39)
-        wr:WriteUInt8(163)
-
-        wr:WriteUInt8(106)
-        wr:WriteString("outOfOrder")
-        wr:WriteUInt8(outOfOrder)
-
-        wr:WriteUInt8(111)
-        wr:WriteString("selectedIllness")
-        wr:WriteUInt8(illnessID)
-
-        wr:WriteUInt8(103)
-        wr:WriteString("wlCount")
-        wr:WriteUInt8(math.max(0, math.min(255, math.floor(wlCount))))
-
-        return wr:GetCurrentString()
+        return false
     end)
 end
 
@@ -1709,6 +1758,9 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         safeConsole(player, "`w/hospitaltest addprogress")
         safeConsole(player, "`w/hospitaltest stationstate")
         safeConsole(player, "`w/hospitaltest tileextra `o= debug Auto Surgeon tile extra values")
+        safeConsole(player, "`w/hospitaltest tileextra id <0-255> `o= force selectedIllness visual ID")
+        safeConsole(player, "`w/hospitaltest tileextra auto `o= clear forced selectedIllness ID")
+        safeConsole(player, "`w/hospitaltest tileextra wl 0|1 `o= force wlCount visual flag")
         return true
     end
 
@@ -1805,6 +1857,34 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             return true
         end
 
+        local mode = string.lower(parts[3] or "")
+        if mode == "id" then
+            local raw = tonumber(parts[4])
+            if not raw then
+                safeBubble(player, "`4Usage: /hospitaltest tileextra id <0-255>")
+                return true
+            end
+            _G.__HOSPITAL_FORCE_ILLNESS_ID = math.max(0, math.min(255, math.floor(raw)))
+            world:updateTile(tile)
+            safeConsole(player, "`wForced selectedIllness ID => `o" .. tostring(_G.__HOSPITAL_FORCE_ILLNESS_ID))
+            return true
+        elseif mode == "auto" then
+            _G.__HOSPITAL_FORCE_ILLNESS_ID = nil
+            world:updateTile(tile)
+            safeConsole(player, "`wForced selectedIllness ID cleared (back to malady mapping).")
+            return true
+        elseif mode == "wl" then
+            local raw = tonumber(parts[4])
+            if raw == nil then
+                safeBubble(player, "`4Usage: /hospitaltest tileextra wl 0|1")
+                return true
+            end
+            _G.__HOSPITAL_FORCE_WL_VISUAL = raw > 0 and 1 or 0
+            world:updateTile(tile)
+            safeConsole(player, "`wForced wlCountVisual => `o" .. tostring(_G.__HOSPITAL_FORCE_WL_VISUAL))
+            return true
+        end
+
         local station = getStation(getWorldName(world), tile:getPosX(), tile:getPosY())
         if not station then
             safeBubble(player, "`4Station data not found.")
@@ -1812,14 +1892,22 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         end
 
         local maladyType = tostring(station.malady_type or "")
-        local illnessID = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[maladyType]) or 21
-        local wlCount = tonumber(station.price_wl) or 0
+        local illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
+        local forcedIllnessID = tonumber(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID"))
+        if forcedIllnessID then illnessID = forcedIllnessID end
+        local wlCount = tonumber(station.earned_wl) or 0
+        local wlCountVisual = wlCount > 0 and 1 or 0
+        local forcedWLVisual = tonumber(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL"))
+        if forcedWLVisual then wlCountVisual = forcedWLVisual > 0 and 1 or 0 end
         local outOfOrder = (maladyType == "" or tonumber(station.enabled) ~= 1) and 1 or 0
 
         safeConsole(player, "`wTileExtra Malady: `o" .. maladyType)
         safeConsole(player, "`wTileExtra selectedIllness ID: `o" .. tostring(illnessID))
         safeConsole(player, "`wTileExtra outOfOrder: `o" .. tostring(outOfOrder))
         safeConsole(player, "`wTileExtra wlCount: `o" .. tostring(wlCount))
+        safeConsole(player, "`wTileExtra wlCountVisual(0/1): `o" .. tostring(wlCountVisual))
+        safeConsole(player, "`wTileExtra forced selectedIllness ID: `o" .. tostring(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID") or "nil"))
+        safeConsole(player, "`wTileExtra forced wlVisual: `o" .. tostring(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL") or "nil"))
         return true
     end
 
