@@ -1883,6 +1883,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         safeConsole(player, "`w/hospitaltest addprogress")
         safeConsole(player, "`w/hospitaltest stationstate")
         safeConsole(player, "`w/hospitaltest operating `o= debug operating table status in this world")
+        safeConsole(player, "`w/hospitaltest operating ping `o= force show status bubble on current operating table")
         safeConsole(player, "`w/hospitaltest tileextra `o= debug Auto Surgeon tile extra values")
         safeConsole(player, "`w/hospitaltest tileextra id <0-255> `o= force selectedIllness visual ID")
         safeConsole(player, "`w/hospitaltest tileextra auto `o= clear forced selectedIllness ID")
@@ -1891,6 +1892,24 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     end
 
     if sub == "operating" then
+        local mode = string.lower(parts[3] or "")
+        if mode == "ping" then
+            local px = math.floor((player:getPosX() or 0) / 32)
+            local py = math.floor((player:getPosY() or 0) / 32)
+            local tile = world:getTile(px, py)
+            if not tile or tile:getTileID() ~= OPERATING_TABLE_ID then
+                safeBubble(player, "`4Stand on an Operating Table first.")
+                return true
+            end
+            local ok = OperatingTable.debugEmitOperatingStatusBubble(world, tile:getPosX(), tile:getPosY())
+            if ok then
+                safeConsole(player, "`wOperating status bubble ping sent.")
+            else
+                safeConsole(player, "`4Failed to emit operating status bubble.")
+            end
+            return true
+        end
+
         local worldName = getWorldName(world, player)
         local state = getHospitalState(worldName)
         local level = tonumber(state.level) or 1
