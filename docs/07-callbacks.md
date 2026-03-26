@@ -44,6 +44,10 @@ end)
 onPlayerDisconnectCallback(function(player)
 end)
 
+-- Dipanggil saat role player berubah (bisa dikombinasikan dengan Discord guildMemberAddRole/RemoveRole)
+onPlayerRoleChangedCallback(function(player, old_role_id, new_role_id)
+end)
+
 -- (Nperma only) Saat player register akun baru
 onPlayerRegisterCallback(function(world, player)
 end)

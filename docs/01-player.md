@@ -197,6 +197,7 @@ player:doAction(actionString)  -- (nperma) kirim packet atas nama player
 player:getWorld()                        -- Return: World object atau nil
 player:getWorldName()                    -- Return: string (nama world)
 player:enterWorld(worldName, doorID?)    -- Masuk world (doorID optional)
+player:leaveWorld()                      -- Paksa player keluar dari world
 player:disconnect()                      -- Disconnect player
 player:setBroadcastWorld(worldName)      -- Set broadcast world (/go)
 ```
@@ -402,7 +403,10 @@ player:setTotalPunchedBlocks(count)    -- Set total punched blocks count
 ```lua
 player:setPassword(newPassword)
 player:setEmail(email)
-player:setGender(gender)           -- 0=Male, 1=Female
+player:setGender(gender)                       -- 0=Male, 1=Female
+player:setAccountCreationTime(epoch_seconds)   -- Set waktu pembuatan akun (epoch)
+player:setPlaytime(seconds)                    -- Set total playtime (detik)
+player:addPlaytime(seconds)                    -- Tambah playtime (detik)
 player:setAccountLevel(level)
 player:setLevel(level)             -- (nperma)
 player:addLevel(amount)            -- (nperma)

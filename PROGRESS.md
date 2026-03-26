@@ -62,7 +62,7 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 
 **Core / Active:**
 ```
-carnival.lua             ✅ Done  — Carnival (Prize Manager + Concentration R1&2 + Shooting Gallery R1)
+carnival.lua             ✅ Done  — Carnival (Prize Manager + Concentration R1&2 + Shooting Gallery R1&2 + Death Race + Mirror Maze + Growganoth Gulch R1&2 + Spiky Survivor + Brutal Bounce)
 Backpack.lua             ✅ Done  — /bp /backpack /givebp /editbp
 GrowMatic.lua            ✅ Done  — Grow-o-Matic farming machine (machine ID 25014)
 Rent_Entrance.lua        ✅ Done  — rent entrance system
@@ -115,7 +115,7 @@ tile-wrench-example.lua
 **File:** `scripts/carnival.lua`
 **Storage Key:** `"CARNIVAL_PRIZE_V1"`
 **World:** `CARNIVAL_2`
-**Status:** ✅ Done (Concentration R1&2 + Shooting Gallery R1&2 + Death Race 5000 + Mirror Maze)
+**Status:** ✅ Done (Concentration R1&2 + Shooting Gallery R1&2 + Death Race 5000 + Mirror Maze + Growganoth Gulch R1&2 + Spiky Survivor + Brutal Bounce)
 
 ### Minigames Implemented
 ```
@@ -123,6 +123,9 @@ Concentration      — Room 1 (CONCENTRATION01-03) + Room 2 (CONCENTRATION04-06)
 Shooting Gallery   — Room 1 (SHOOTING01-03) ✅ | Room 2 (SHOOTING04-06) ✅
 Death Race 5000    — DEATH01-04 ✅
 Mirror Maze        — MIRROR01-02 ✅
+Growganoth Gulch   — Room RIGHT (GLUCH01-03) + Room LEFT (GLUCH04-06) ✅
+Spiky Survivor     — SPIKE01-03 ✅
+Brutal Bounce      — BOUNCE01-04 ✅
 ```
 
 ### Prize System
@@ -225,28 +228,41 @@ Alur:
    → OnSetLabel tidak support di GTPS Cloud
    → Solusi: timer tanpa label, score update via bubble(world, avatar, "`6Score: X")
 
-9. Cross-minigame guard: getPlayerActiveGame(uid) cek semua ROOMS + SG_ROOMS + DR_ROOMS + MM_ROOMS
+9. Cross-minigame guard: getPlayerActiveGame(uid) cek semua ROOMS + SG_ROOMS + DR_ROOMS + MM_ROOMS + GG_ROOMS
    → Cek queue DAN activeUID/activePlayers di semua game type
    → Player sedang active/antri di game lain → block + reanchor ke posIngame game mereka
    → onPlayerDeathCallback: hapus dari queue semua game (bukan forfeit active game)
      DR active tidak disentuh (DR punya death handling sendiri)
+     GG active tidak disentuh (GG punya respawn via out-of-bounds detection sendiri)
 
 10. DR reanchor pakai reanchorList[] (bukan single slot) — support multiple player join bersamaan
     → table of {uid, tickAt, pos} — di-process tiap world tick (iterate reverse)
+
+11. Out-of-bounds instant respawn pattern (GG + DR):
+    → Setiap world tick: cek posisi active player vs game area bounds
+    → Kalau keluar → langsung setPlayerPosition ke checkpoint/posIngame (tanpa delay)
+    → Grace period via noDeathUntil/isRespawning mencegah respawn loop
+    → LEBIH RELIABLE dari delay-based karena tidak ada race condition dengan snap system
 ```
 
 ### Progress Coding
 ```
 Status: ✅ Done (fully tested in-game)
 
-Concentration: fully tested, 2 rooms working
-Shooting Gallery Room 1: fully tested ✅
-Shooting Gallery Room 2: done ✅ (belum tested in-game)
-Death Race 5000: done ✅ (belum tested in-game)
-Mirror Maze: done ✅ (belum tested in-game, bug fix prize.id→prize.itemID sudah difix)
+Concentration: fully tested, 2 rooms working ✅
+Shooting Gallery R1&2: done ✅
+Death Race 5000: done ✅ — fix: obstacles tidak di-clear setelah game, instant respawn (no delay)
+Mirror Maze: done ✅
+Growganoth Gulch R1&2: done ✅ — GLUCH01-06, obstacle toggle platform+evil eye, out-of-bounds respawn
+  Obstacles: DisabledPlatform(1224)↔CreepstonePlatform(1222) toggle, EvilEye(1226) open/close toggle
+  Game start: randomize obstacles (35% solid, 65% passable, 65% eye open) + guaranteed path per 6-Y-band
+  Toggle interval: 5s | flip chance: 55% platform, 60% eye
+  Win detect: pixel radius ±28px dari posEndgame Bullseye
 
-Mirror Maze: done ✅ — timer bug, maze randomness, posExit, perfect maze algorithm semua fix
-Next: Minigame lain (Growganoth Gulch, Brutal Bounce, Hall of Mirrors, Spiky Survivor)
+Brutal Bounce: done ✅ — BOUNCE01-04, last man standing, punch-to-place spikeball
+  Belum di-test in-game — mungkin ada bug
+
+Status: semua minigame carnival selesai diimplementasi ✅
 ```
 
 ---
@@ -315,6 +331,66 @@ Bug fixes:
   OnCountdownStart param 3: 1 → -1 (hapus "Score: 1" text)
 ```
 
+### Spiky Survivor
+```
+Mekanik: Survive di atas platform selama 55 detik, platform random switch setiap 5 detik
+Doors: SPIKE01 (entrance/tent 29,43) | SPIKE02 (ingame 22,42) | SPIKE03 (exit 35,43)
+posWait=(31,47) | posIngame=(22,42) | posExit=(35,43)
+gameArea: x1=17, y1=40, x2=27, y2=48
+
+Multi-player: semua pemain yang bertahan sampai akhir dapat prize masing-masing (random independent)
+Platform toggle: tiap 5 detik, 65% flip chance per platform
+  CreepPlatform solid 7180 (collision) ↔ CreepPlatform disabled 7182 (no collision)
+Spikeball 2568: fixed position, tidak di-toggle (efek lava — damage bertahap, bukan instant kill)
+Game start: ssRandomizeStart (65% solid, 35% passable) — langsung random dari awal
+
+Death — dua jenis:
+  1. Fall (keluar game area): out-of-bounds check → instant tp ke posExit + clear timer
+  2. HP death (kena spikeball): pendingExit=true → tunggu native respawn gerak ke luar area → tp ke posExit + clear timer
+     (tidak pakai fixed delay — deteksi posisi sudah di luar game area baru tp)
+Win: survive 55 detik → OnCountdownStart(0,-1) + prize + instant tp ke posExit
+Grace period: 1 detik di awal game (noDeathUntil)
+
+Auto-scan platform: ssScanPlatforms dipanggil di ssStartGame → tidak perlu hardcode koordinat
+  Scan game area setiap game baru untuk detect tile 7180 + 7182
+  Utility: ss_scan.lua (/ssscan role 51) untuk verifikasi manual
+
+Lobby countdown: 5 detik dari player pertama masuk, reset tiap ada player baru (bisa mulai 1 player)
+Snap: non-active players di game area → tp ke posExit setiap 1 detik
+Notify survivors ketika ada player yang disconnect mid-game
+```
+
+### Brutal Bounce
+```
+Mekanik: Last man standing — punch empty tiles untuk spawn spikeball (lava damage) ke musuh
+Doors: BOUNCE01 (entrance/tent) | BOUNCE02 (ingame 78,27) | BOUNCE03 (ingame 87,27) | BOUNCE04 (exit 76,36)
+posWait=(76,33) | posIngame=(78,27) | posIngame2=(87,27) — random per player
+posExit=(76,36) | gameArea: x1=77, y1=20, x2=88, y2=36
+
+Multi-player: min 2, maks 4
+Lobby countdown: 5 detik setelah min 2 player join, reset tiap player baru masuk
+Spikeball mechanic:
+  - Punch spawnzone tile (bg only, fg==0) → spawn Carnival Spikeball ID 2568
+  - Spikeball bertahan 2 detik lalu auto-hilang (world tick)
+  - Cooldown 2 detik = durasi spikeball (hanya bisa spawn 1 sekaligus)
+  - Old spikeball dihapus otomatis saat spawn baru (safety)
+  - Foreground tiles di game area diprotect dari breaking (return true)
+SpawnZones: di-scan tiap game start (bbScanSpawnZones) → tiles bg!=0, fg==0
+  Utility: bb_scan.lua (/bbscan role 51) untuk verifikasi manual
+
+Death — sama seperti SS (spikeball = lava type):
+  HP death: pendingExit=true → tunggu native respawn keluar game area → tp ke posExit + clear timer
+  Out-of-bounds: safety check → instant tp ke posExit + clear timer
+Win: tinggal 1 player → auto win (langsung, bukan tunggu timer)
+Timer habis + multiple survivors → no winner, semua exit (no prize)
+Grace period: 1 detik di awal game (noDeathUntil)
+
+Snap: non-active players di game area → tp ke posExit setiap 1 detik
+  Left bound snap: ga.x1*32 (exclude kolom x=77, tent entrance area)
+Disconnect mid-game: spikeball player dihapus, cek win condition sisa player
+/carnivalreset juga reset BB_ROOM + cleanup spikeballs
+```
+
 ### Catatan Teknis Death Race 5000
 ```
 - drStartGame: build startList dulu, baru clear queue setelah count valid
@@ -325,6 +401,37 @@ Bug fixes:
 - winner dapat OnCountdownStart(0,-1) agar timer display di-clear
 - Snap non-active players keluar gameArea setiap 1 detik (drSnapTick)
 - /carnivalreset juga reset DR_ROOMS + clear obstacles
+- Obstacles TIDAK di-clear setelah game selesai — layout tetap sampai race baru mulai
+- Instant respawn: keluar gameArea → langsung tp ke checkpoint (hapus 1s delay)
+  → noDeathUntil + 2s grace period mencegah respawn loop
+```
+
+### Growganoth Gulch
+```
+Mekanik: Solo parkour dari posIngame (bawah) ke posEndgame Bullseye (atas) dalam 40 detik
+Hindari obstacle: EvilEye (open) → keluar area → respawn posIngame
+Doors: GLUCH01/04 (entrance) | GLUCH02/05 (ingame) | GLUCH03/06 (exit destination)
+
+Room RIGHT: posWait=(93,40) | posIngame=(97,54) | posEndgame=(97,24) | posExit=(91,40)
+  gameArea: x1=95, y1=23, x2=99, y2=54
+Room LEFT:  posWait=(8,40)  | posIngame=(4,54)  | posEndgame=(4,24)  | posExit=(10,40)
+  gameArea: x1=2, y1=23, x2=6, y2=54
+
+Obstacle IDs:
+  DisabledPlatform 1224 = no collision (passable) ↔ toggle ke CreepstonePlatform 1222 (solid)
+  EvilEye 1226 = toggle IS_ON (open/dangerous ↔ closed/safe)
+  CreepstonePlatform 1222 permanent = tidak di-toggle (selalu solid)
+
+Obstacle behavior:
+  Game start: ggRandomizeStart — 35% solid, 65% passable, 65% eye open
+  Guaranteed path: sweep Y-band 6 tile, force ≥1 solid per band
+  Toggle interval: 5s | platform flip: 55% | eye flip: 60%
+
+Death/respawn: keluar gameArea → instant setPlayerPosition ke posIngame (setiap world tick 100ms)
+Win detect: pixel radius ±28px dari posEndgame → prize + instant tp ke posExit
+Lose: timer 40s habis → reset obstacles + exit 3s delay
+
+Catatan: Hall of Mirrors dihapus dari MINIGAMES list (sudah ada di world, tidak perlu script)
 ```
 
 ---

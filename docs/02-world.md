@@ -75,7 +75,9 @@ world:getAllPunishments()             -- Return: table of all punishments
 ## World Flags
 
 ```lua
-world:hasFlag(id)  -- Return: boolean
+world:hasFlag(id)       -- Return: boolean
+world:addFlag(id)       -- Tambah flag ke world
+world:removeFlag(id)    -- Hapus flag dari world
 ```
 
 | Flag ID | Property | Deskripsi |
@@ -207,6 +209,8 @@ world:getPlatformByNetID(netID)                               -- Return: Tile pl
 world:getDroppedItems()                          -- Return: table of all Drop objects
 world:removeDroppedItem(DropUID)                 -- Hapus dropped item by UID
 world:removeAllObjects()                          -- ⚠️ Hapus SEMUA dropped items
+world:removeAllDroppedItems()                    -- Hapus semua dropped items (efficient)
+world:removeDroppedItemsByID(id)                 -- Hapus semua dropped items dengan item ID tertentu
 world:spawnItem(x, y, itemID, count, center)     -- Spawn item, return: Drop object
 -- center: 1 (default)=centered, 0=not centered
 
@@ -245,6 +249,18 @@ world:getLeaderboardByBalance()     -- Return: sorted by balance
 ```
 
 Leaderboard entry properties: `name`, `wins`, `balance`
+
+---
+
+## Nuke
+
+```lua
+world:isNuked()                                                  -- Return: boolean (apakah world di-nuke?)
+world:nuke(owner_ban_time, admins_ban_time, everyone_else_ban_time)  -- Nuke world (set ban time ke 0 untuk skip)
+world:removeNuke(should_unban)                                   -- Hapus nuke (1=unban semua yg di-ban oleh nuke)
+```
+
+> **Note:** Method lama `world:isBanned()` sudah di-rename ke `world:isNuked()`.
 
 ---
 
