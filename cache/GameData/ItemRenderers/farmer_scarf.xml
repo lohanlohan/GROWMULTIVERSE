@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+	<Sprite name="s_Scarf" fileName="game/enigma_particles5.rttex" textureSize="64" frame="10,4"/>
+	<Sprite name="s_Leaves" fileName="game/enigma_particles5.rttex" textureSize="64"/>
+    <StateMachines>
+      <StateMachine name="Motion">
+        <States>
+          <State name="Idle" />
+          <State name="Move" />
+        </States>
+        <Transitions>
+          <Transition to="Idle" from="Move">
+            <Condition type="or">
+              <IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+              <IsVariableBool name="onGround">false</IsVariableBool>
+            </Condition>
+          </Transition>
+          <Transition to="Move" from="Idle">
+            <Condition type="and">
+              <IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+              <IsVariableBool name="onGround">true</IsVariableBool>
+            </Condition>
+          </Transition>
+        </Transitions>
+      </StateMachine>
+    </StateMachines>
+
+    <Animations>
+        <SpriteAnimation name="A_Scarf" autoPlay="true" sprite="s_Scarf" animTime="650" isLoop="true">
+        	<Frame>10,4</Frame>
+		    <Frame>11,4</Frame>
+            <Frame>12,4</Frame>
+            <Frame>13,4</Frame>
+            <Frame>14,4</Frame>
+        </SpriteAnimation>
+
+		 <SpriteAnimation name="A_AllLeafSprites" sprite="s_Leaves">
+			<Frame>12,0</Frame>
+			<Frame>13,0</Frame>
+            <Frame>14,0</Frame>
+            <Frame>15,0</Frame>
+		</SpriteAnimation>
+    </Animations>
+
+	<ParticleSystems>
+      <ParticleSystem name="ps_trail" updateStage="AddClothingParticles" renderStage="RenderInFront" updateState="Motion.Move">
+        <Emitter>
+          <Set name="particlesPerEmission">1</Set>
+          <Random name="particlesToEmit" min="1" max="2"/>
+          <Random name="emissionInterval" min="0.1" max="0.3"/>
+          <Set name="infParticles">true</Set>
+          <Set name="infLifeTime">true</Set>
+          <Set name="useCharacterPos">true</Set>
+          <Set name="offset">-16,-18</Set>
+        </Emitter>
+        <Particle randomSpriteFrame="true">
+          <Set name="sprite">s_Leaves</Set>
+          <Random name="lifeTime" min="1.25" max="2"/>
+          <Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+          <Set name="renderAlignment">CENTER</Set>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+			<KeyFrame>0.1, 1</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.7, 1</KeyFrame>
+			<KeyFrame>0.9, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+            <Random name="initialScale" min="0.25,0.25" max="0.5,0.5"/>
+            <Set name="useGravity">true</Set>
+            <Set name="gravityVector">0, 50</Set>
+            <Random name="initialVelocity" min="-5, 0" max="5, 0"/>
+            <Random name="initialRotationRate" min="40" max="80" />
+            <Random name="initialAngle" min="-90" max="90"/>
+        </Particle>
+      </ParticleSystem>
+    </ParticleSystems>
+  </Data>
+
+  <RenderRules>
+    <RenderChestItem>
+	  <SpriteRender name="s_Scarf" offset="-8,-17" blend="PREMULTIPLIED_ALPHA"/>
+    </RenderChestItem>
+  </RenderRules>
+</ItemRenderer>

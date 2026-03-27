@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="s_Mask" fileName="game/custom_cosmetics1.rttex" textureSize="32" frame="2,15" />
+		<Sprite name="s_Pet" fileName="game/enigma_particles5.rttex" textureSize="64" frame="4,13" />
+		<Sprite name="s_PetPunch" fileName="game/enigma_particles5.rttex" textureSize="64"/>
+		<Animations>
+			<SpriteAnimation name="a_PetIdle" sprite="s_Pet" animTime="600" isLoop="true" playOnState="Pet.Idle">
+				<Frame>4,13</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="a_PetMoving" sprite="s_Pet" animTime="700" isLoop="true" playOnState="Pet.Moving">
+				<Frame>5,13</Frame>
+				<Frame>6,13</Frame>
+				<Frame>7,13</Frame>
+                <Frame>6,13</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="a_PetPunch" sprite="s_PetPunch" animTime="600" isLoop="true" playOnState="Player.Punch">
+				<Frame>8,13</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="a_Mask" sprite="s_Mask" animTime="500" isLoop="true" autoPlay="true">
+				<Frame>2,15</Frame>
+				<Frame>3,15</Frame>
+				<Frame>4,15</Frame>
+			</SpriteAnimation>
+		</Animations>
+		<StateMachines>
+			<StateMachine name="Pet">
+				<States>
+					<State name="Idle" />
+					<State name="Moving" />
+				</States>
+				<Transitions>
+					<Transition to="Idle" from="Moving">
+						<Condition>
+							<IsVariableFloat name="pet.velocity.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition to="Moving" from="Idle">
+						<Condition>
+							<IsVariableFloat name="pet.velocity.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+			<StateMachine name="Player">
+				<States>
+					<State name="Idle"/>
+					<State name="Sleep"/>
+					<State name="Punch"/>
+					<State name="Dance"/>
+					<State name="Move"/>
+				</States>
+				<Transitions>
+					<Transition to="Sleep" from="Idle|Punch|Dance|Move">
+						<Condition type="or">
+							<IsAction>SLEEP</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Idle" from="Punch|Sleep|Dance|Move">
+						<Condition type="and">
+							<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+							<IsAction operatorType="NotEqual">PUNCH</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Punch" from="Idle|Sleep|Dance|Move">
+						<Condition>
+							<IsAction>PUNCH</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Dance" from="Idle|Sleep|Punch|Move">
+						<Condition>
+							<IsAction>DANCE</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Move" from="Idle|Sleep|Punch|Dance">
+						<Condition>
+							<IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+		<RenderOptions>
+			<Default>
+				<Set name="NeedRenderPet">true</Set>
+				<Set name="PetOffsetDuplication">-20,0</Set>
+				<Set name="UsePetForceFaceTime">false</Set>
+				<Set name="IgnorePunchTypeCheck">true</Set>
+				<Set name="RenderFrontArmInfected">true</Set>
+				<Set name="IncludeAllActions">true</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+	<RenderRules>
+		<RenderFaceItem>
+			<SpriteRender flip="0,0" name="s_Mask" offset="2,-27" rotateOffset="true" rotationPoint="0,1" blend="PREMULTIPLIED_ALPHA"/>
+		</RenderFaceItem>
+		<RenderPet>
+			<SpriteRender name="s_Pet" offset="-10,-12" onState="Player.Idle|Player.Sleep|Player.Dance|Player.Move"/>
+			<SpriteRender name="s_PetPunch" offset="-10,-12" onState="Player.Punch"/>
+		</RenderPet>
+		<UpdatePet>
+			<ContextUpdate type="SetPetFlySit">
+				<Set name="PetFlySit.speed">75</Set>
+				<Set name="PetFlySit.offset">-24,0</Set>
+				<Set name="PetFlySit.flyTime">4</Set>
+			</ContextUpdate>
+		</UpdatePet>
+	</RenderRules>
+</ItemRenderer>

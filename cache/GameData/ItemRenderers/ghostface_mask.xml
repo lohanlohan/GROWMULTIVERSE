@@ -1,0 +1,18 @@
+<ItemRenderer item="ITEM_ID_EPS_SPIKEY_BLACK_HAIR">
+    <Data>
+        <Sprite name="item_Sprite" fileName="game/custom_cosmetics1.rttex" textureSize="32" frame="19,10"/>
+    </Data>
+<RenderRules>
+    <RenderFaceItem>
+        <SpriteRender name="item_Sprite" offset="1,-2" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+    </RenderFaceItem>
+</RenderRules>
+
+<RenderRules>
+    <Update>
+        <AvatarTransform class="Emotion">
+			<Set name="emotion">EMOTION_COUNT</Set>
+		</AvatarTransform>
+	</Update>
+</RenderRules>
+</ItemRenderer>

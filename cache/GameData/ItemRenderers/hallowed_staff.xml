@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>	
+        <StateMachines>
+            <StateMachine name="playerState">
+                <States>
+                    <State name="Idle"/>
+                    <State name="Move"/>
+                    <State name="Punch"/>
+                </States>
+                <Transitions>
+                    <Transition from="Idle|Punch" to="Move" >
+                        <Condition type="and">
+                            <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                            <IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+                        </Condition>
+                    </Transition>
+                    <Transition from="Move|Punch" to="Idle" >
+                        <Condition type="and">
+                            <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                            <IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+                        </Condition>
+                    </Transition>
+                    <Transition from="Idle|Move" to="Punch">
+                        <Condition>
+                            <IsAction>PUNCH</IsAction>
+                        </Condition>
+                    </Transition>
+                </Transitions>
+            </StateMachine>
+        </StateMachines>
+
+		<Sprite name="s_Staff" fileName="game/enigma_particles5.rttex" textureSize="64" frame="15,3"/>
+		<Sprite name="s_Heart" fileName="game/enigma_particles_small2.rttex" textureSize="32" frame="9,14"/>
+		<Sprite name="s_PunchLaser" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+
+		<Animations>
+		    <SpriteCurveAnimation name="A_CurvePunch" sprite="s_Heart" playOnState="playerState.Punch" isLoop="false" animTime="250">
+			    <Curve name="alpha">
+			    	<KeyFrame>0.f, 0.f</KeyFrame>
+				    <KeyFrame>1.f, 0.85.f</KeyFrame>
+			    </Curve>
+		    </SpriteCurveAnimation>
+
+			<SpriteSinPulseAnimation name="A_HeartStretch1" autoPlay="true" sprite="s_Heart">
+				<Parameter name="scale.x">
+					<Set name="offset">1</Set>
+					<Set name="period">2500</Set>
+					<Set name="scale">0.05</Set>
+				</Parameter>
+			</SpriteSinPulseAnimation>
+			<SpriteSinPulseAnimation name="A_HeartStretch2" autoPlay="true" sprite="s_Heart">
+				<Parameter name="scale.y">
+					<Set name="offset">1</Set>
+					<Set name="period">2500</Set>
+					<Set name="scale">0.05</Set>
+				</Parameter>
+			</SpriteSinPulseAnimation>            
+
+			<SpriteAnimation name="A_Laser" sprite="s_PunchLaser" animTime="200" isLoop="true" playOnState="playerState.Punch">
+				<Frame>8,12</Frame>
+				<Frame>9,12</Frame>
+			</SpriteAnimation>
+		</Animations>
+
+		<RenderOptions>
+			<Default>
+				<Set name="IncludeAllActions">true</Set>
+				<Set name="HideParticlesOnTransform">false</Set>
+				<Set name="PunchSoundOverride">HAND</Set>
+				<Set name="PlayDefaultPunchAudio">false</Set>
+                <Set name="RenderBackArmBuild">true</Set>
+                <Set name="RenderBackArmInfected">true</Set>
+                <Set name="IgnoreDefaultDamagedTileEffect">true</Set>
+			</Default>
+		</RenderOptions>
+
+        <TileStampData>
+			<Set name="FileName">game/enigma_particles_small2.rttex</Set>
+			<Set name="EndFrame">15,15</Set>
+			<Set name="FrameCount">4</Set>
+		</TileStampData>
+
+	</Data>
+
+	<RenderRules>
+		<Update>
+			<StopIf>
+				<IsZombified>true</IsZombified>
+			</StopIf>
+			<AvatarTransform class="ArmAngle" onAction="IDLE|WALK|JUMP|JUMPSTART|FALL|DANCE|DANCE2|DAB">
+				<Set name="armName">arm1Angle</Set>
+				<Set name="armAngle">-90</Set>
+			</AvatarTransform>
+		</Update>
+		<OnPunchUpdate>
+			<AvatarTransform class="Emotion">
+				<Set name="emotion">HAPPY</Set>
+			</AvatarTransform>
+			<AvatarTransform class="ArmAngle">
+				<Set name="armName">arm1Angle</Set>
+				<Set name="armAngle">-90</Set>
+			</AvatarTransform>
+		</OnPunchUpdate>
+
+
+		<RenderBackHandItem>
+			<SpriteRender name="s_Staff" offset="31.5,2.5" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+			<SpriteRender name="s_Heart" offset="14,-15" scale="0.75,0.75" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA" onState="playerState.Punch"/>
+            <SpriteRender name="s_PunchLaser" offset="5,-15" onState="playerState.Punch" blend="PREMULTIPLIED_ALPHA" stretchToTarget="true" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER" drawShadow="false" flip="1,0"/>
+		</RenderBackHandItem>
+	</RenderRules>
+</ItemRenderer>

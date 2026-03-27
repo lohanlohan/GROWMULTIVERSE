@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>
+		<StateMachines>
+			<StateMachine name="Action">
+				<States>
+					<State name="None" />
+					<State name="Punch" />
+				</States>
+				<Transitions>
+					<Transition to="None" from="Punch">
+						<Condition>
+							<IsAction operatorType="NotEqual">PUNCH</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Punch" from="None">
+						<Condition>
+							<IsAction>PUNCH</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+
+		<Sprite name="Jumper_Sprite" fileName="game/custom_cosmetics1.rttex" textureSize="32" frame="3,13"/>
+
+		<Animations>
+			<SpriteAnimation name="a_Jumper_Sprite" sprite="Jumper_Sprite" animTime="950" autoPlay="true" isLoop="true">
+				<Frame>3,13</Frame>
+				<Frame>4,13</Frame>
+				<Frame>5,13</Frame>
+				<Frame>6,13</Frame>
+				<Frame>5,13</Frame>
+				<Frame>4,13</Frame>
+			</SpriteAnimation>
+		</Animations>
+	</Data>
+
+    <RenderRules>
+        <RenderInFront>
+			 <SpriteRender name="Jumper_Sprite" offset="0,-14" alignment="CENTER"/>
+        </RenderInFront>
+    </RenderRules>
+</ItemRenderer>

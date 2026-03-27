@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="s_Blade" fileName="game/enigma_128_sprites1.rttex" textureSize="128" frame="6,8"/>
+
+		<Animations>
+			<SequenceAnimation name="a_sword" autoPlay="true" isLoop="false">
+                <SpriteAnimation sprite="s_Blade" autoPlay="true" animTime="250" isLoop="false">
+					<Frame>6,8</Frame>
+				</SpriteAnimation>
+                <DelayAnimation delayTime="250" />
+                <SpriteAnimation sprite="s_Blade" autoPlay="true" animTime="150" isLoop="false">
+					<Frame>0,8</Frame>
+					<Frame>1,8</Frame>
+					<Frame>2,8</Frame>
+       			    <Frame>3,8</Frame>
+				</SpriteAnimation>
+
+				<SpriteAnimation sprite="s_Blade" autoPlay="true" animTime="2000" isLoop="true">
+       			    <Frame>4,8</Frame>
+				</SpriteAnimation>
+			</SequenceAnimation>
+		</Animations>
+
+		<RenderOptions>
+			<Default>
+				<Set name="IgnoreDefaultDamagedTileEffect">true</Set>
+                <Set name="PunchSoundOverride">HAND</Set>
+				<Set name="PlayDefaultPunchAudio">false</Set>
+				<Set name="HideAngelOnDeath">true</Set>
+       			<Set name="HideAvatarOnDeath">true</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+
+	<RenderRules>
+		<RenderHandItem>
+			<SpriteRender name="s_Blade" scale="0.5,0.5" rotateOffset="true" offset="10,6.5" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+		</RenderHandItem>
+
+		<OnPunchUpdate>
+			<AvatarTransform class="Face">
+				<Set name="face">MAD</Set>
+			</AvatarTransform>
+		    <AvatarTransform class="ArmAngle">
+			    <Set name="armName">arm2Angle</Set>
+			    <Set name="armAngle">1750</Set>
+			    <Set name="isAdditive">true</Set>
+			    <Set name="pointTowardsPunchTarget">false</Set>
+		    </AvatarTransform>
+		</OnPunchUpdate>
+	</RenderRules>
+</ItemRenderer>

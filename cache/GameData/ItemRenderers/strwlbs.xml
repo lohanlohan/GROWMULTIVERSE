@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="ml_idle" fileName="game/applbs.rttex" textureSize="64,64" frame="0,1"/>
+		<Sprite name="ml_walk" fileName="game/applbs.rttex" textureSize="64,64" frame="4,1"/>
+		<Sprite name="ml_jump" fileName="game/applbs.rttex" textureSize="64,64" frame="10,1"/>
+		<Sprite name="ml_fall" fileName="game/applbs.rttex" textureSize="64,64" frame="11,1"/>
+		<Sprite name="ml_sleep" fileName="game/applbs.rttex" textureSize="64,64" frame="12,1"/>
+		<Sprite name="ml_sit" fileName="game/applbs.rttex" textureSize="64,64" frame="13,1"/>
+		<Sprite name="ml_Punch" fileName="game/applbs.rttex" textureSize="64,64" frame="14,1"/>
+		<StateMachines>
+		<StateMachine name="Motion">
+			<States>
+				<State name="Idle" />
+				<State name="Move" />
+				<State name="Jump" />
+				<State name="Fall" />
+				<State name="Sleep"/>
+				<State name="Sit"/>
+				<State name="Punch"/>
+			</States>
+			<Transitions>
+				<Transition to="Idle" from="Fall|Move|Jump|Sleep|Punch|Sit" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">true</IsVariableBool>
+						<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						<IsVariableBool name="isAttacking">false</IsVariableBool>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+						<IsSitting>false</IsSitting>
+						<IsSleepingOnaBed>false</IsSleepingOnaBed>
+					</Condition>
+				</Transition>
+				<Transition to="Move" from="Jump|Fall|Idle|Sleep|Punch|Sit" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">true</IsVariableBool>
+						<IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Jump" from="Idle|Move|Fall|Sleep|Punch|Sit" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">false</IsVariableBool>
+						<IsVariableFloat name="speed.y" operator="Less">-0.1</IsVariableFloat>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Fall" from="Jump|Idle|Move|Sleep|Punch|Sit" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">false</IsVariableBool>
+						<IsVariableFloat name="speed.y" operator="Greater">0.1</IsVariableFloat>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Sleep" from="Idle|Move|Jump|Fall|Punch|Sit">
+					<Condition type="or">
+						<IsSleepingOnaBed>true</IsSleepingOnaBed>
+						<IsAction>SLEEP</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Sit" from="Idle|Move|Jump|Fall|Punch|Sleep">
+					<Condition>
+						<IsSitting>true</IsSitting>
+					</Condition>
+				</Transition>
+				<Transition to="Punch" from="Idle|Move|Jump|Fall|Sleep|Sit">
+						<Condition>
+							<IsAction>PUNCH</IsAction>
+						</Condition>
+					</Transition>
+			</Transitions>
+		</StateMachine>
+		</StateMachines>
+		<Animations>			
+			<SpriteAnimation name="ml_Idle_Animation" playOnState="Motion.Idle" sprite="ml_idle" animTime="1500" isLoop="true">
+				<Frame>0,1</Frame>	
+				<Frame>1,1</Frame>
+				<Frame>2,1</Frame>	
+				<Frame>3,1</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="ml_Sleep_Animation" playOnState="Motion.Sleep" sprite="ml_sleep" animTime="1000" isLoop="true">
+				<Frame>12,1</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="ml_Sit_Animation" playOnState="Motion.Sit" sprite="ml_sit" animTime="600" isLoop="true">
+				<Frame>13,1</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="ml_Punch_Animation" playOnState="Motion.Punch" sprite="ml_Punch" animTime="300" isLoop="true">
+				<Frame>14,1</Frame>
+				<Frame>15,1</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="ml_Jump_Animation" playOnState="Motion.Jump" sprite="ml_jump" animTime="300">
+				<Frame>10,1</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="ml_Fall_Animation" playOnState="Motion.Fall" sprite="ml_fall" animTime="300">
+				<Frame>11,1</Frame>	
+			</SpriteAnimation>
+			<SpriteAnimation name="ml_Walk_Animation" playOnState="Motion.Move" sprite="ml_walk" animTime="400" isLoop="true">
+				<Frame>4,1</Frame>	
+				<Frame>5,1</Frame>
+				<Frame>6,1</Frame>
+				<Frame>7,1</Frame>
+				<Frame>8,1</Frame>
+				<Frame>9,1</Frame>
+			</SpriteAnimation>
+		</Animations>
+		
+		<RenderOptions>
+			<Default>
+				<Set name="JumpEndStateRange">100</Set>
+				<Set name="ClothingOffsetFromShoes">-8</Set>
+				<Set name="IsRidingBird">true</Set>
+				<Set name="IsVehicle">true</Set>
+				<Set name="UserNameOffset">10</Set>
+				<Set name="RenderShoesWithMermaidTail">true</Set>
+				<Set name="ShoesHidesBodyLegs">true</Set>
+				<Set name="IsToRenderPants">false</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+	<RenderRules>
+		<RenderInFront>
+			<StopIf>
+				<IsVariableBool name="isMannequin">true</IsVariableBool>
+				<IsRenderMod>RENDER_MOD_MINI_YOU</IsRenderMod>
+			</StopIf>
+			<SpriteRender name="ml_idle" offset="0,-20" drawShadow="true" onState="Motion.Idle" scale="1,1"/>
+			<SpriteRender name="ml_sleep" offset="2,-55" drawShadow="true" onState="Motion.Sleep" scale="1,1"/>
+			<SpriteRender name="ml_sit" offset="0,-48" drawShadow="true" onState="Motion.Sit" scale="1,1"/>
+			<SpriteRender name="ml_Punch" offset="0,-20" drawShadow="true" onState="Motion.Punch" scale="1,1"/>
+			<SpriteRender name="ml_walk" offset="0,-20" drawShadow="true" onState="Motion.Move" scale="1,1"/>
+			<SpriteRender name="ml_jump" offset="0,-20" drawShadow="true" onState="Motion.Jump" scale="1,1"/>
+            <SpriteRender name="ml_fall" offset="0,-20" drawShadow="true" onState="Motion.Fall" scale="1,1"/>
+			
+		</RenderInFront>
+		<RenderShoes>
+			<StopIf>
+				<IsWearing slot="SHIRT">ITEM_ID_TACTICAL_STEALTH_DEVICE</IsWearing>
+			</StopIf>
+		</RenderShoes>
+	</RenderRules>
+</ItemRenderer>

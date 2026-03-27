@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="s_Car" fileName="game/enigma_128_sprites1.rttex" textureSize="128"/>
+		<Sprite name="s_Lightbeam" fileName="game/enigma_particles4.rttex" textureSize="64" frame="1,7"/>
+
+		<Animations>
+			<SpriteAnimation name="a_Move" sprite="s_Car" animTime="200" isLoop="true" playOnAction="WALK">
+				<Frame>10,3</Frame>
+				<Frame>11,3</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="a_Idle" sprite="s_Car" animTime="200" isLoop="true" playOnAction="IDLE">
+				<Frame>10,3</Frame>
+			</SpriteAnimation>
+		</Animations>
+		<RenderOptions>
+			<Default>
+				<Set name="ClothingOffsetFromShoes">-5</Set>
+				<Set name="IsCar">true</Set>
+				<Set name="IsVehicle">true</Set>
+				<Set name="IsToRenderPants">false</Set>
+				<Set name="IgnoreDefaultDamagedTileEffect">false</Set>
+				<Set name="RenderShoesWithMermaidTail">true</Set>
+				<Set name="IsRidingBird">true</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+	<RenderRules>
+		<RenderShoes>
+			<SpriteRender name="s_Car" offset="8,8" alignment="DOWN_CENTER"/>
+		</RenderShoes>
+        <RenderInFront>
+            <SpriteRender name="s_Lightbeam" offset="49,8" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+            <SpriteRender name="s_Lightbeam" offset="67,8" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+        </RenderInFront>
+	</RenderRules>
+</ItemRenderer>

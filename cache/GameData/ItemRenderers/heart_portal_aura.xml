@@ -1,0 +1,453 @@
+<?xml version="1.0" ?>
+<ItemRenderer>
+    <Data>
+    <StateMachines>
+			<StateMachine name="playerState">
+				<States>
+					<State name="Idle"/>
+					<State name="Move"/>
+					<State name="Fall"/>
+					<State name="Jump"/>
+					<State name="DoubleJump"/>
+					<State name="SpiritGuide"/>
+				</States>
+				<Transitions>
+					<Transition from="SpiritGuide|Jump|Fall|Move|DoubleJump" to="Idle" >
+						<Condition>
+							<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition from="SpiritGuide|Jump|Fall|Idle|DoubleJump" to="Move">
+						<Condition type="and">
+							<IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsAction>WALK</IsAction>
+						</Condition>
+					</Transition>				
+					<Transition from="Move|Jump|Fall|Idle|DoubleJump" to="SpiritGuide">
+						<Condition type="and">
+							<IsWearing slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsVariableFloat name="speed.length" operator="Greater" abs="true">0</IsVariableFloat>
+							<IsAction operatorType="NotEqual">FALL</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="SpiritGuide|Fall|Move|Idle" to="Jump">
+						<Condition type="and">
+							<IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsAction>JUMP</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="Jump|Fall" to="DoubleJump">
+						<Condition>
+							<IsAction>JUMPDOUBLE</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="DoubleJump|SpiritGuide|Jump|Idle|Move" to="Fall">
+						<Condition type="and">
+							<IsVariableFloat name="speed.y" operator="Greater" abs="false">0.01</IsVariableFloat>
+							<IsAction>FALL</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+			<StateMachine name="Facing">
+				<States>
+					<State name="Left"/>
+					<State name="Right"/>
+				</States>
+				<Transitions>
+					<Transition to="Left" from="Right">
+						<Condition>
+							<IsFacingLeft>true</IsFacingLeft>
+						</Condition>
+					</Transition>
+					<Transition to="Right" from="Left">
+						<Condition>
+							<IsFacingLeft>false</IsFacingLeft>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+
+    <Sprite name="s_Aura" fileName="game/enigma_128_sprites1.rttex" textureSize="128" frame="8,7" />
+	<Sprite name="s_Heart1" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,8" />
+	<Sprite name="s_Heart2" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,8" />
+	<Sprite name="s_Heart3" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,8" />
+	<Sprite name="s_Heart4" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,8" />
+	<Sprite name="s_Heart5" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,8" />
+	<Sprite name="s_Sparkles" fileName="game/enigma_particles_small2.rttex" textureSize="32" frame="5,13" />
+
+    <Animations>
+    <SpriteSinPulseAnimation name="FloatAnim" sprite="s_Aura" autoPlay="true">
+			<Parameter name="pos.y">
+				<Set name="period">3000</Set>
+				<Set name="scale">1</Set>
+			</Parameter>
+	</SpriteSinPulseAnimation>
+
+		<SequenceAnimation name="HeartAnimation" autoPlay="true" isLoop="true">
+			<SpriteCurveAnimation name="Heart_5off" sprite="s_Heart5" animTime="200">
+				<Curve name="alpha">
+					<KeyFrame>0.f, 1.f</KeyFrame>
+					<KeyFrame>1.f, 0.f</KeyFrame>
+				</Curve>
+			</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_4off" sprite="s_Heart4" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 1.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_3off" sprite="s_Heart3" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 1.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_2off" sprite="s_Heart2" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 1.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_1off" sprite="s_Heart1" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 1.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+    <DelayAnimation delayTime="200" />
+
+			<SpriteCurveAnimation name="Heart_1on" sprite="s_Heart1" animTime="200">
+				<Curve name="alpha">
+					<KeyFrame>0.f, 0.f</KeyFrame>
+					<KeyFrame>1.f, 1.f</KeyFrame>
+				</Curve>
+			</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_2on" sprite="s_Heart2" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>1.f, 1.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_3on" sprite="s_Heart3" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>1.f, 1.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_4on" sprite="s_Heart4" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>1.f, 1.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteCurveAnimation name="Heart_5on" sprite="s_Heart5" animTime="200">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>1.f, 1.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+    <DelayAnimation delayTime="500" />
+		</SequenceAnimation>
+    </Animations>
+
+
+    <ParticleSystems>
+      <ParticleSystem name="Ps_Sparkles_1">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="-40,-15" max="-16,-5"/>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Sparkles_2">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="-45,-30" max="-21,-40"/>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Sparkles_3">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="-40,-50" max="-16,-60"/>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Sparkles_4">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="-5,-60" max="5,-70"/>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Sparkles_5">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="40,-50" max="16,-60"/>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Sparkles_6">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="45,-30" max="21,-40"/>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Sparkles_7">
+        <Emitter>
+          <Set name="infLifeTime">true</Set>
+          <Set name="infParticles">true</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Set name="particlesPerEmission">1</Set>
+          <Set name="randomizeInterval">true</Set>
+          <Set name="intervalMin">0.2</Set>
+          <Set name="intervalMax">2</Set>
+        </Emitter>
+        <Particle>
+          <Set name="sprite">s_Sparkles</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="relativeToEmitter">true</Set>
+          <Set name="lifeTime">1</Set>
+          <Select name="initialRotationRate" input="randomNumber">
+            <Item>-180</Item>
+            <Item>180</Item>
+          </Select>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.6, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 0,0</KeyFrame>
+            <KeyFrame>0.3, 0.5,0.5</KeyFrame>
+            <KeyFrame>0.6, 0.5,0.5</KeyFrame>
+            <KeyFrame>1, 0,0</KeyFrame>
+          </Curve>
+          <Random name="offset" min="40,-15" max="16,-5"/>
+        </Particle>
+      </ParticleSystem>
+    </ParticleSystems>
+    </Data>
+
+    <RenderRules>
+    <RenderBackpack>
+     <Group>
+	  <SpriteRender name="s_Aura" offset="0,-43" blend="PREMULTIPLIED_ALPHA" drawShadow="false" alignment="CENTER"/>
+      <ContextUpdate type="SetFlip">
+        <Set name="flip">0,0</Set>
+      </ContextUpdate>
+    </Group>
+    </RenderBackpack>
+
+	<RenderBehind>
+		<SpriteRender name="s_Heart1" offset="0,-7" scale="1,1" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+		<SpriteRender name="s_Heart2" offset="0,-7" scale="0.8,0.8" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+		<SpriteRender name="s_Heart3" offset="0,-7" scale="0.6,0.6" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+		<SpriteRender name="s_Heart4" offset="0,-7" scale="0.4,0.4" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+		<SpriteRender name="s_Heart5" offset="0,-7" scale="0.2,0.2" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+	</RenderBehind>
+
+	<AddClothingParticles>
+	      <ParticleSystemUpdate name="Ps_Sparkles_1"/>
+		  <ParticleSystemUpdate name="Ps_Sparkles_2"/>
+		  <ParticleSystemUpdate name="Ps_Sparkles_3"/>
+		  <ParticleSystemUpdate name="Ps_Sparkles_4"/>
+		  <ParticleSystemUpdate name="Ps_Sparkles_5"/>
+		  <ParticleSystemUpdate name="Ps_Sparkles_6"/>
+		  <ParticleSystemUpdate name="Ps_Sparkles_7"/>
+    </AddClothingParticles>
+
+    <SwitchOffClothingParticles>
+	      <ParticleSystemOff name="Ps_Sparkles_1"/>
+		  <ParticleSystemOff name="Ps_Sparkles_2"/>
+		  <ParticleSystemOff name="Ps_Sparkles_3"/>
+		  <ParticleSystemOff name="Ps_Sparkles_4"/>
+		  <ParticleSystemOff name="Ps_Sparkles_5"/>
+		  <ParticleSystemOff name="Ps_Sparkles_6"/>
+		  <ParticleSystemOff name="Ps_Sparkles_7"/>
+	</SwitchOffClothingParticles>
+
+    </RenderRules>
+</ItemRenderer>
+    

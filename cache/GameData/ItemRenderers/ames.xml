@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer item="ITEM_ID_SERAPHIC_WINGS">
+	<Data>
+		<StateMachines>
+			<StateMachine name="playerState">
+				<States>
+					<State name="Idle"/>
+					<State name="Move"/>
+					<State name="Fall"/>
+					<State name="Jump"/>
+					<State name="DoubleJump"/>
+					<State name="SpiritGuide"/>
+				</States>
+				<Transitions>
+					<Transition from="SpiritGuide|Jump|Fall|Move|DoubleJump" to="Idle" >
+						<Condition>
+							<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition from="SpiritGuide|Jump|Fall|Idle|DoubleJump" to="Move">
+						<Condition type="and">
+							<IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsAction>WALK</IsAction>
+						</Condition>
+					</Transition>				
+					<Transition from="Move|Jump|Fall|Idle|DoubleJump" to="SpiritGuide">
+						<Condition type="and">
+							<IsWearing slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsVariableFloat name="speed.length" operator="Greater" abs="true">0</IsVariableFloat>
+							<IsAction operatorType="NotEqual">FALL</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="SpiritGuide|Fall|Move|Idle" to="Jump">
+						<Condition type="and">
+							<IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsAction>JUMP</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="Jump|Fall" to="DoubleJump">
+						<Condition>
+							<IsAction>JUMPDOUBLE</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="DoubleJump|SpiritGuide|Jump|Idle|Move" to="Fall">
+						<Condition type="and">
+							<IsVariableFloat name="speed.y" operator="Greater" abs="false">0.01</IsVariableFloat>
+							<IsAction>FALL</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+			<StateMachine name="Facing">
+				<States>
+					<State name="Left"/>
+					<State name="Right"/>
+				</States>
+				<Transitions>
+					<Transition to="Left" from="Right">
+						<Condition>
+							<IsFacingLeft>true</IsFacingLeft>
+						</Condition>
+					</Transition>
+					<Transition to="Right" from="Left">
+						<Condition>
+							<IsFacingLeft>false</IsFacingLeft>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+
+		<Sprite name="wing" fileName="game/ames.rttex" textureSize="64,48" frame="0,0"/>
+		<Sprite name="cloud1" fileName="game/ames.rttex" textureSize="64,48" frame="1,1"/>
+		<Sprite name="cloud2" fileName="game/ames.rttex" textureSize="64,48" frame="2,1"/>
+		<Sprite name="jumpeffect" fileName="game/wingflash.rttex" textureSize="110,48" frame="0,0"/>
+		<Sprite name="movement" fileName="game/lightnmv.rttex" textureSize="32" frame="0,0"/>
+
+		<Animations>
+			<SpriteAnimation name="wing_Idle" playOnState="playerState.Idle|playerState.SpiritGuide|playerState.Move" sprite="wing" isLoop="true" animTime="900">
+				<Frame>3,0</Frame>
+			</SpriteAnimation>
+			
+			<SpriteAnimation name="wing_DoubleJ" playOnState="playerState.DoubleJump" sprite="wing" isLoop="false" animTime="700">
+				<Frame>1,0</Frame>
+				<Frame>0,0</Frame>
+			</SpriteAnimation>		
+
+      		<SpriteAnimation name="wing_Fall" playOnState="playerState.Fall" sprite="wing" isLoop="false" animTime="300">
+        		<Frame>0,0</Frame>
+			</SpriteAnimation>		
+		
+			<SpriteAnimation name="wing_Jump" playOnState="playerState.Jump" sprite="wing" isLoop="true" animTime="800">
+				<Frame>2,0</Frame>
+				<Frame>1,0</Frame>
+				<Frame>0,0</Frame>
+			</SpriteAnimation>
+
+			<SpriteAnimation name="electric" playOnState="playerState.Move" autoPlay="false" sprite="movement" animTime="300">
+				<Frame>0,0</Frame>
+				<Frame>1,0</Frame>
+				<Frame>2,0</Frame>
+				<Frame>3,0</Frame>
+				<Frame>4,0</Frame>
+				<Frame>5,0</Frame>
+				<Frame>6,0</Frame>
+				<Frame>7,0</Frame>
+			</SpriteAnimation>
+
+		</Animations>
+		
+		<ParticleSystems>
+
+			<ParticleSystem name="wingflash">
+				<Emitter>
+					<Set name="emissionInterval">0.1</Set>
+					<Set name="infParticles">true</Set>
+					<Set name="infLifeTime">true</Set>
+					<Set name="particlesPerEmission">1</Set>
+					<Set name="offset">-2, -15</Set>
+				</Emitter>
+				<Particle>
+					<Set name="sprite">jumpeffect</Set>
+					<Set name="relativeToEmitter">true</Set>
+					<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+						<KeyFrame>1, 0</KeyFrame>
+					</Curve>
+					<Set name="isBackgroundParticle">true</Set>
+					<Curve name="initialScale">
+						<KeyFrame>0, 1.5, 1.5</KeyFrame>
+						<KeyFrame>1, 2, 2</KeyFrame>
+					</Curve>
+					<Set name="lifeTime">0.5</Set>
+				</Particle>
+			</ParticleSystem>
+            
+			<ParticleSystem name="ps_cloud">
+				<Emitter>
+					<Set name="offset">0,0</Set>
+					<Set name="emissionInterval">0.3</Set>
+					<Set name="infParticles">true</Set>
+					<Set name="infLifeTime">true</Set>
+					<Set name="particlesPerEmission">2</Set>
+				</Emitter>
+				<Particle randomSpriteFrame="true">
+					<Random name="variantId" min="0" max="2" />
+					<Select name="sprite" input="variantId">
+						<Item>"cloud1"</Item>
+						<Item>"cloud2"</Item>
+					</Select>
+					<Random name="offset" min="-17, 0" max="0, 7" />
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 0.7</KeyFrame>
+						<KeyFrame>0.6, 0.7</KeyFrame>
+						<KeyFrame>1, 0</KeyFrame>
+					</Curve>
+					<Set name="useGravity">true</Set>
+					<Set name="initialScale">1, 1</Set>
+					<Set name="lifeTime">1.6</Set>
+					<RandomRadial name="initialVelocity" angleRange="-180,0" radiusRange="5,6" />
+					<Random name="gravityVector" min="2, 0" max="-2, 0" />
+				</Particle>
+			</ParticleSystem>
+
+			<ParticleSystem name="electro_trail">
+				<Emitter>
+					<Set name="infLifeTime">true</Set>
+					<Set name="infParticles">true</Set>
+					<Set name="particlesToEmit">6</Set>
+					<Set name="particlesPerEmission">6</Set>
+					<Set name="randomizeInterval">true</Set>
+					<Set name="intervalMin">0.1</Set>
+					<Set name="intervalMax">0.13</Set>
+					<Random name="offset" min="-18, 0" max="-18, -20"/>
+				</Emitter>
+				<Particle usePlayerFacing="true" angleRelativeToPlayerSpeed="true" randomSpriteFrame="true">
+					<Set name="offset">-10,-10</Set>
+					<Set name="isBackgroundParticle">true</Set>
+					<Set name="sprite">movement</Set>
+					<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+					<Set name="lifeTime">1</Set>
+				    <Curve name="initialScale">
+            		    <KeyFrame>0, 1,1</KeyFrame>
+            		    <KeyFrame>3, 3, 3</KeyFrame>
+          		    </Curve>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 0.95</KeyFrame>
+						<KeyFrame>0.5, 0.45</KeyFrame>
+						<KeyFrame>1, 0.05</KeyFrame>
+					</Curve>
+				</Particle>
+			</ParticleSystem>
+		</ParticleSystems>
+
+		<RenderOptions>
+			<Default>
+				<Set name="PlayDefaultPunchAudio">true</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+
+	<RenderRules>
+	<OnDrawCustomOutline>
+      <AvatarTransform class="RenderData">
+        <Set name="saturation">getCurrent</Set>
+        <Set name="brightness">getCurrent</Set>
+        <Set name="contrast">getCurrent</Set>
+      </AvatarTransform>
+      <AvatarTransform class="Scale">
+        <Set name="targetScale">getCurrent</Set>
+      </AvatarTransform>
+      <AvatarTransform class="RenderData">
+        <Set name="saturation">3</Set>
+        <Set name="brightness">1</Set>
+        <Set name="contrast">0.1</Set>
+      </AvatarTransform>
+      <AvatarOutline duration="3000" startScale="0.85,0.85" endScale="1.15,1.15">
+		<Colours>
+          <Colour>203,195,227,225</Colour>
+          <Colour>0,0,0,225</Colour>
+        </Colours>
+      </AvatarOutline>
+      <AvatarTransform class="RenderData">
+        <Set name="saturation">reset</Set>
+        <Set name="brightness">reset</Set>
+        <Set name="contrast">reset</Set>
+      </AvatarTransform>
+      <AvatarTransform class="Scale">
+        <Set name="targetScale">reset</Set>
+      </AvatarTransform>
+    </OnDrawCustomOutline>
+		<RenderBackpack>
+			
+			<SpriteRender name="wing" offset="2, -26"  scale="1.25,1.25" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER"/>
+			<SpriteRender name="wing" offset="-2,-26" scale="1.25,1.25" flip="1,0" alignmentLeft="RIGHT_CENTER" alignmentRight="LEFT_CENTER"/>
+			<ParticleSystemRenderer name="wingflash" onAction="JUMPDOUBLE" drawShadow="false"/>
+			<StopIf>
+				<IsRenderMod>RENDER_MOD_MINI_YOU</IsRenderMod>
+			</StopIf>
+		</RenderBackpack>
+		<ParticleSystemRender>
+			<ParticleSystemRenderer name="ps_cloud" onAction="MOVE|IDLE" drawShadow="false"/>
+			<ParticleSystemRenderer name="electro_trail" onAction="MOVE" drawShadow="false"/>
+			
+		</ParticleSystemRender>
+
+
+
+		<OnPunchUpdate>
+			<AvatarTransform class="Face">
+				<Set name="face">MAD</Set>
+			</AvatarTransform>
+		</OnPunchUpdate>
+
+		<AddClothingParticles>
+			
+			<ParticleSystemUpdate name="electro_trail" onAction="JUMP|FALL|WALK|PUNCH|SWIM" drawShadow="false"/>
+			<ParticleSystemUpdate name="ps_cloud" onAction="IDLE|JUMP|FALL|WALK|PUNCH|" drawShadow="false"/>
+			<ParticleSystemUpdate name="wingflash" onAction="JUMPDOUBLE" drawShadow="false"/>
+			
+		</AddClothingParticles>
+    
+		<SwitchOffClothingParticles>
+			<ParticleSystemOff name="electro_trail"/>
+			<ParticleSystemOff name="wingflash"/>
+		</SwitchOffClothingParticles>
+
+	</RenderRules>
+</ItemRenderer>

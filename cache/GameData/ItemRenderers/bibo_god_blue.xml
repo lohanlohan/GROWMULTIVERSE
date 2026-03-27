@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="Aura" fileName="game/enigma_128_sprites1.rttex" textureSize="128" frame="0,9"/>
+		<Sprite name="neck_sprite" fileName="game/custom_cosmetics1.rttex" textureSize="32" frame="16,9" />
+		<Animations>
+			<SpriteAnimation name="a_Aura" sprite="Aura" animTime="600" autoPlay="true" isLoop="true">
+				<Frame>0,9</Frame>
+				<Frame>1,9</Frame>
+				<Frame>2,9</Frame>
+				<Frame>3,9</Frame>
+				<Frame>4,9</Frame>
+				<Frame>5,9</Frame>
+				<Frame>6,9</Frame>
+			</SpriteAnimation>
+		</Animations>
+	</Data>
+	<RenderRules>
+		<RenderChestItem>
+            <SpriteRender name="neck_sprite" offset="2,-12" blend="PREMULTIPLIED_ALPHA"/>
+		</RenderChestItem>
+		<RenderBehind>
+			<StopIf>
+				<IsZombified>true</IsZombified>
+			</StopIf>
+			<SpriteRender name="Aura" offset="1,29" scale="0.5,0.5" alignment="DOWN_CENTER" drawShadow="false" blend="PREMULTIPLIED_ALPHA" tintOverride="255,255,255,255"/>
+		</RenderBehind>
+	</RenderRules>
+</ItemRenderer>

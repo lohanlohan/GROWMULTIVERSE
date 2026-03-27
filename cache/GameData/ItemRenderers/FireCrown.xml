@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+    <Sprite name="s_crown" fileName="game/eventcrowns.rttex" textureSize="64" frame="1,0"/>
+    <Sprite name="s_crown_glow" fileName="game/eventcrowns.rttex" textureSize="64" frame="0,0"/>
+
+    <Animations>
+      <SpriteCurveAnimation name="s_crown_glowing" isLoop="true" autoPlay="true" sprite="s_crown_glow" animTime="5000">
+				<Curve name="alpha">
+					<KeyFrame>0.f, 0.f</KeyFrame>
+					<KeyFrame>0.1f, 0.f </KeyFrame>
+					<KeyFrame>0.5f, 1.f</KeyFrame>
+					<KeyFrame>0.9f, 1.f</KeyFrame>
+					<KeyFrame>1.f, 0.f</KeyFrame>
+				</Curve>
+			</SpriteCurveAnimation>
+      <SpriteCurveAnimation name="a_crownGlowFloat" sprite="s_crown_glow" animTime="3000" autoPlay="true" isLoop="true">
+        <Curve name="pos.y">
+          <KeyFrame>0.f, -4</KeyFrame>
+          <KeyFrame>0.1f, -3</KeyFrame>
+          <KeyFrame>0.5f, 0</KeyFrame>
+          <KeyFrame>0.9f, -3</KeyFrame>
+          <KeyFrame>1.f, -4</KeyFrame>
+        </Curve>
+      </SpriteCurveAnimation>
+      <SpriteCurveAnimation name="a_crownFloat" sprite="s_crown" animTime="3000" autoPlay="true" isLoop="true">
+        <Curve name="pos.y">
+          <KeyFrame>0.f, -4</KeyFrame>
+          <KeyFrame>0.1f, -3</KeyFrame>
+          <KeyFrame>0.5f, 0</KeyFrame>
+          <KeyFrame>0.9f, -3</KeyFrame>
+          <KeyFrame>1.f, -4</KeyFrame>
+        </Curve>
+      </SpriteCurveAnimation>
+    </Animations>
+    <RenderOptions>
+      <Default>
+        <Set name="UserNameOffset">15</Set>
+      </Default>
+    </RenderOptions>
+  </Data>
+
+  <RenderRules>
+    <RenderHat>
+      <Group>
+        <SpriteRender name="s_crown" scale="1.25,1.25" offset="0,4" alignment="DOWN_CENTER" drawShadow="false"/>
+        <SpriteRender name="s_crown_glow" scale="1.25,1.25" offset="0,4" alignment="DOWN_CENTER" drawShadow="false"/>
+      </Group>
+    </RenderHat>
+  </RenderRules>
+</ItemRenderer>

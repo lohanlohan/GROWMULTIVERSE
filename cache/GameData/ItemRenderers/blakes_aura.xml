@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+		<StateMachines>
+			<StateMachine name="playerState">
+				<States>
+					<State name="Idle"/>
+					<State name="Move"/>
+					<State name="Fall"/>
+					<State name="Jump"/>
+					<State name="DoubleJump"/>
+					<State name="SpiritGuide"/>
+				</States>
+				<Transitions>
+					<Transition from="SpiritGuide|Jump|Fall|Move|DoubleJump" to="Idle" >
+						<Condition>
+							<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition from="SpiritGuide|Jump|Fall|Idle|DoubleJump" to="Move">
+						<Condition type="and">
+							<IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsAction>WALK</IsAction>
+						</Condition>
+					</Transition>				
+					<Transition from="Move|Jump|Fall|Idle|DoubleJump" to="SpiritGuide">
+						<Condition type="and">
+							<IsWearing slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsVariableFloat name="speed.length" operator="Greater" abs="true">0</IsVariableFloat>
+							<IsAction operatorType="NotEqual">FALL</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="SpiritGuide|Fall|Move|Idle" to="Jump">
+						<Condition type="and">
+							<IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+							<IsAction>JUMP</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="Jump|Fall" to="DoubleJump">
+						<Condition>
+							<IsAction>JUMPDOUBLE</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="DoubleJump|SpiritGuide|Jump|Idle|Move" to="Fall">
+						<Condition type="and">
+							<IsVariableFloat name="speed.y" operator="Greater" abs="false">0.01</IsVariableFloat>
+							<IsAction>FALL</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+        </StateMachines>
+
+	<Sprite name="s_Aura" fileName="game/blakes_aura.rttex" textureSize="512x512" frame="0,0"/>
+	<Sprite name="s_AuraGlow" fileName="game/blakes_aura.rttex" textureSize="512x512" frame="1,0"/>
+
+	<Animations>
+		<SpriteCurveAnimation name="A_AuraGlow" isLoop="true" autoPlay="true" sprite="s_AuraGlow" animTime="10000">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>0.4f, 1.f </KeyFrame>
+				<KeyFrame>0.5f, 1.f</KeyFrame>
+				<KeyFrame>0.6f, 1.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+        <SpriteCurveAnimation name="A_AuraSpin" sprite="s_Aura" animTime="40000" autoPlay="true" isLoop="true">
+            <Curve name="rotation">
+				<KeyFrame>0, 0</KeyFrame>
+				<KeyFrame>1, 360</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>	
+        <SpriteCurveAnimation name="A_AuraGlowSpin" sprite="s_AuraGlow" animTime="40000" autoPlay="true" isLoop="true">
+            <Curve name="rotation">
+				<KeyFrame>0, 0</KeyFrame>
+				<KeyFrame>1, 360</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+    </Animations>
+
+    <VariableMap>
+      <Set name="projectile_offset">0, 0</Set>
+      <Set name="projectile_angle">0</Set>
+    </VariableMap>
+
+	<ParticleSystems>
+		<ParticleSystem name="Trail_particle">
+			<Emitter>
+				<Random name="offset" min="-50, -50" max="50, 50"/>
+				<Random name="emissionInterval" min="0.07" max="0.085"/>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle>
+				<Set name="sprite">s_AuraGlow</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Set name="isBackgroundParticle">false</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+                        <KeyFrame>0.75, 1</KeyFrame>
+						<KeyFrame>1, 0</KeyFrame>
+					</Curve>
+					<Curve name="initialScale">
+						<KeyFrame>0, 0.035,0.035</KeyFrame>
+						<KeyFrame>1, 0.055,0.055</KeyFrame>
+					</Curve>
+                    <Curve name="initialRotationRate">
+                        <KeyFrame>0, 90</KeyFrame>
+                        <KeyFrame>1, 120</KeyFrame>
+                    </Curve>
+				<Random name="lifeTime" min="1.45" max="2"/>
+			</Particle>
+		</ParticleSystem>
+    </ParticleSystems>
+
+  </Data>
+
+  <RenderRules>
+	<RenderBehind>
+		<SpriteRender name="s_Aura" offset="0,7" scale="0.35,0.35" alignment="CENTER" blend="ADDITIVE"/>
+		<SpriteRender name="s_AuraGlow" offset="0,7" scale="0.35,0.35" alignment="CENTER" blend="ADDITIVE"/>
+	</RenderBehind>
+	
+	<AddClothingParticles>
+		<ParticleSystemUpdate name="Trail_particle" onState="playerState.Move|playerState.Jump|playerState.DoubleJump|playerState.Fall"/>
+	</AddClothingParticles>
+
+	<SwitchOffClothingParticles>
+		<ParticleSystemOff name="Trail_particle"/>
+	</SwitchOffClothingParticles>
+  </RenderRules>
+</ItemRenderer>

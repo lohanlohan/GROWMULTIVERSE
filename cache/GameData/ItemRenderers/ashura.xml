@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="s_Projectile" fileName="game/ashura_punch.rttex" textureSize="656,337" />
+		<Sprite name="s_Wings" fileName="game/ashura.rttex" textureSize="368" />
+		<Animations>
+			<SpriteAnimation name="a_WingsIdle" sprite="s_Wings" animTime="600" isLoop="true" playOnState="ScytheAnimation.Idle">
+				<Frame>0,2</Frame>
+				<Frame>1,2</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="a_before" sprite="s_Wings" animTime="800" autoPlay="true" playerState="ScytheAnimation.Before">
+				<Frame>0,0</Frame>
+				<Frame>1,0</Frame>
+				<Frame>2,0</Frame>
+				<Frame>0,1</Frame>
+				<Frame>1,1</Frame>
+				<Frame>2,1</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="a_particle" sprite="s_Projectile" animTime="400" isLoop="true">
+				<Frame>0,0</Frame>
+				<Frame>1,0</Frame>
+				<Frame>2,0</Frame>
+				<Frame>0,1</Frame>
+				<Frame>1,1</Frame>
+			</SpriteAnimation>
+		</Animations>
+		<ParticleSystems>
+			<ParticleSystem name="ps_Projectile_Right" updateStage="OnPunchStart" updateState="Facing.Right">
+				<Emitter>
+					<Set name="offset">5, -18</Set>
+					<Set name="particlesPerEmission">1</Set>
+				</Emitter>
+				<Particle>
+					<Set name="sprite">s_Projectile</Set>
+					<Select name="offset" input="punchCount">
+						<Item>-8, 0</Item>
+						<Item>8, 0</Item>
+					</Select>
+					<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+					<Set name="rotateWithVelocity">true</Set>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+						<KeyFrame>1, 1</KeyFrame>
+					</Curve>
+					<Curve name="initialScale">
+						<KeyFrame>0, 0.25, 0.25</KeyFrame>
+						<KeyFrame>0, 0.25, 0.25</KeyFrame>
+					</Curve>
+					<Set name="lifeTime">0.3</Set>
+					<VectorTo name="initialVelocity" source="targetPos" duration="lifeTime" x="1" />
+				</Particle>
+			</ParticleSystem>
+			<ParticleSystem name="ps_Projectile_left" updateStage="OnPunchStart" updateState="Facing.Left">
+				<Emitter>
+					<Set name="offset">5, -18</Set>
+					<Set name="particlesPerEmission">1</Set>
+				</Emitter>
+				<Particle>
+					<Set name="sprite">s_Projectile</Set>
+					<Select name="offset" input="punchCount">
+						<Item>-8, 0</Item>
+						<Item>8, 0</Item>
+					</Select>
+					<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+					<Set name="flipY">true</Set>
+					<Set name="rotateWithVelocity">true</Set>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+						<KeyFrame>1, 1</KeyFrame>
+					</Curve>
+					<Curve name="initialScale">
+						<KeyFrame>0, 0.25, 0.25</KeyFrame>
+						<KeyFrame>0, 0.25, 0.25</KeyFrame>
+					</Curve>
+					<Set name="lifeTime">0.3</Set>
+					<VectorTo name="initialVelocity" source="targetPos" duration="lifeTime" x="1" />
+				</Particle>
+			</ParticleSystem>
+		</ParticleSystems>
+		<StateMachines>
+			<StateMachine name="Motion">
+				<States>
+					<State name="Idle" />
+					<State name="Move" />
+					<State name="Jump" />
+					<State name="Fall" />
+				</States>
+				<Transitions>
+					<Transition to="Idle" from="Fall|Move">
+						<Condition type="and">
+							<IsVariableBool name="onGround">true</IsVariableBool>
+							<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition to="Move" from="Jump|Fall|Idle">
+						<Condition type="and">
+							<IsVariableBool name="onGround">true</IsVariableBool>
+							<IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition to="Jump" from="Idle|Move">
+						<Condition type="and">
+							<IsVariableBool name="onGround">false</IsVariableBool>
+							<IsVariableFloat name="speed.y" operator="Less">-0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+					<Transition to="Fall" from="Jump|Idle|Move">
+						<Condition type="and">
+							<IsVariableBool name="onGround">false</IsVariableBool>
+							<IsVariableFloat name="speed.y" operator="Greater">0.1</IsVariableFloat>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+			<StateMachine name="Action">
+				<States>
+					<State name="None" />
+					<State name="Punch" />
+				</States>
+				<Transitions>
+					<Transition to="None" from="Punch">
+						<Condition>
+							<IsAction operatorType="NotEqual">PUNCH</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Punch" from="None">
+						<Condition>
+							<IsAction>PUNCH</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+			<StateMachine name="Facing">
+				<States>
+					<State name="Left"/>
+					<State name="Right"/>
+				</States>
+				<Transitions>
+					<Transition to="Left" from="Right">
+						<Condition>
+							<IsFacingLeft>true</IsFacingLeft>
+						</Condition>
+					</Transition>
+					<Transition to="Right" from="Left">
+						<Condition>
+							<IsFacingLeft>false</IsFacingLeft>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+			<StateMachine name="ScytheAnimation">
+				<States>
+					<State name="Before" />
+					<State name="Idle" />
+				</States>
+				<Transitions>
+					<Transition from="Before" to="Idle">
+						<Condition>
+							<IsAnimationFinished>a_before</IsAnimationFinished>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+		<RenderOptions>
+			<Default>
+				<Set name="IncludeAllActions">true</Set>
+				<Set name="IgnoreDefaultDamagedTileEffect">true</Set>
+				<Set name="DefaultPunchSound">audio/woosh_punch.wav</Set>
+				<Set name="PlayDefaultPunchAudio">true</Set>
+			</Default>
+		</RenderOptions>
+		<TileStampData>
+			<Set name="FileName">game/particles11.rttex</Set>
+			<Set name="EndFrame">30,24</Set>
+			<Set name="FrameCount">4</Set>
+		</TileStampData>
+	</Data>
+	<RenderRules>
+		<RenderBackpack>
+			<SpriteRender name="s_Wings" alignment="CENTER" offset="0,-25" scale="0.4,0.4" />
+		</RenderBackpack>
+		<OnPunchUpdate>
+			<AvatarTransform class="Emotion">
+				<Set name="emotion">ANGRY</Set>
+			</AvatarTransform>
+			<AvatarTransform class="ArmAngle">
+				<Set name="armName">arm2Angle</Set>
+				<Set name="armAngle">120</Set>
+				<Set name="pulseArmScale">5</Set>
+				<Set name="pulseArmRate">250</Set>
+			</AvatarTransform>
+			<AvatarTransform class="ArmAngle">
+				<Set name="armName">arm1Angle</Set>
+				<Set name="armAngle">-120</Set>
+				<Set name="pulseArmScale">5</Set>
+				<Set name="pulseArmRate">250</Set>
+			</AvatarTransform>
+		</OnPunchUpdate>
+	</RenderRules>
+</ItemRenderer>

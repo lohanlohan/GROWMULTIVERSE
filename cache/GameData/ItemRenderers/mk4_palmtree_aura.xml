@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+    <Data>
+        <StateMachines>
+            <StateMachine name="playerState">
+                <States>
+                    <State name="Idle"/>
+                    <State name="Move"/>
+                    <State name="Fall"/>
+                    <State name="Jump"/>
+                    <State name="DoubleJump"/>
+                    <State name="SpiritGuide"/>
+                </States>
+                <Transitions>
+                    <Transition from="SpiritGuide|Jump|Fall|Move|DoubleJump" to="Idle">
+                        <Condition>
+                            <IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+                        </Condition>
+                    </Transition>
+                    <Transition from="SpiritGuide|Jump|Fall|Idle|DoubleJump" to="Move">
+                        <Condition type="and">
+                            <IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+                            <IsAction>WALK</IsAction>
+                        </Condition>
+                    </Transition>
+                    <Transition from="Move|Jump|Fall|Idle|DoubleJump" to="SpiritGuide">
+                        <Condition type="and">
+                            <IsWearing slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+                            <IsVariableFloat name="speed.length" operator="Greater" abs="true">0</IsVariableFloat>
+                            <IsAction operatorType="NotEqual">FALL</IsAction>
+                        </Condition>
+                    </Transition>
+                    <Transition from="SpiritGuide|Fall|Move|Idle" to="Jump">
+                        <Condition type="and">
+                            <IsWearing operatorType="NotEqual" slot="CHESTITEM">ITEM_ID_HAUNTED</IsWearing>
+                            <IsAction>JUMP</IsAction>
+                        </Condition>
+                    </Transition>
+                    <Transition from="Jump|Fall" to="DoubleJump">
+                        <Condition>
+                            <IsAction>JUMPDOUBLE</IsAction>
+                        </Condition>
+                    </Transition>
+                    <Transition from="DoubleJump|SpiritGuide|Jump|Idle|Move" to="Fall">
+                        <Condition type="and">
+                            <IsVariableFloat name="speed.y" operator="Greater" abs="false">0.01</IsVariableFloat>
+                            <IsAction>FALL</IsAction>
+                        </Condition>
+                    </Transition>
+                </Transitions>
+            </StateMachine>
+            <StateMachine name="Dance">
+                <States>
+                    <State name="False"/>
+                    <State name="True"/>
+                </States>
+                <Transitions>
+                    <Transition from="False" to="True">
+                        <Condition>
+                            <IsDancing>true</IsDancing>
+                        </Condition>
+                    </Transition>
+                    <Transition from="True" to="False">
+                        <Condition>
+                            <IsDancing>false</IsDancing>
+                        </Condition>
+                    </Transition>
+                </Transitions>
+            </StateMachine>
+        </StateMachines>
+        <Sprite name="item_Sprite_1" fileName="game//mk4_enigma_particles4.rttex" textureSize="64" frame="0,11"/>
+        <Sprite name="item_Sprite_1_Glow" fileName="game//mk4_enigma_particles4.rttex" textureSize="64" frame="1,11"/>
+        <Animations>
+            <SpriteCurveAnimation name="AuraGlow" isLoop="true" autoPlay="true" sprite="item_Sprite_1_Glow" animTime="5000">
+                <Curve name="alpha">
+                    <KeyFrame>0.f, 0.f</KeyFrame>
+                    <KeyFrame>0.5f, 1.f</KeyFrame>
+                    <KeyFrame>1.f, 0.f</KeyFrame>
+                </Curve>
+            </SpriteCurveAnimation>
+            <SpriteCurveAnimation name="AuraGlowDance" isLoop="true" playOnState="Dance.True" sprite="item_Sprite_1_Glow" animTime="1000">
+                <Curve name="alpha">
+                    <KeyFrame>0.f, 0.1.f</KeyFrame>
+                    <KeyFrame>0.5f, 1.f</KeyFrame>
+                    <KeyFrame>1.f, 0.1.f</KeyFrame>
+                </Curve>
+            </SpriteCurveAnimation>
+            <SpriteSinPulseAnimation name="auro_float" sprite="item_Sprite_1" autoPlay="true">
+                <Parameter name="pos.y">
+                    <Set name="period">3000</Set>
+                    <Set name="scale">1.5</Set>
+                </Parameter>
+            </SpriteSinPulseAnimation>
+            <SpriteSinPulseAnimation name="auro_float1" sprite="item_Sprite_1_Glow" autoPlay="true">
+                <Parameter name="pos.y">
+                    <Set name="period">3000</Set>
+                    <Set name="scale">1.5</Set>
+                </Parameter>
+            </SpriteSinPulseAnimation>
+            <SpriteAnimation name="trail" sprite="trailSprites">
+                <Frame>9,3</Frame>
+                <Frame>10,3</Frame>
+                <Frame>11,3</Frame>
+            </SpriteAnimation>
+        </Animations>
+        <RenderOptions>
+            <Default>
+                <Set name="IncludeAllActions">true</Set>
+                <Set name="PlayDefaultPunchAudio">true</Set>
+            </Default>
+        </RenderOptions>
+    </Data>
+    <RenderRules>
+        <RenderBehind>
+            <SpriteRender name="item_Sprite_1" offset="0,-5" alignment="CENTER" scale="0.9,0.9"/>
+            <SpriteRender name="item_Sprite_1_Glow" offset="0,-5" alignment="CENTER" scale="0.9,0.9"/>
+        </RenderBehind>
+    </RenderRules>
+</ItemRenderer>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+	<StateMachines>
+		<StateMachine name="playerState">
+			<States>
+				<State name="Idle"/>
+				<State name="Punch"/>
+				<State name="ZombiePunch"/>
+			</States>
+			<Transitions>
+				<Transition from="ZombiePunch|Punch" to="Idle" >
+					<Condition>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition from="ZombiePunch|Idle" to="Punch">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+						<IsZombified>false</IsZombified>
+					</Condition>
+				</Transition>
+				<Transition from="Idle|Punch" to="ZombiePunch">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+						<IsZombified>true</IsZombified>
+					</Condition>
+				</Transition>
+			</Transitions>
+		</StateMachine>
+	</StateMachines>
+	<Sprite name="case" fileName="game/server_2831/stalincase.rttex" textureSize="32" frame="0,0"/>
+    <Sprite name="money1" fileName="game/server_2831/stalincase.rttex" textureSize="32" frame="1,0"/>
+    <Sprite name="money2" fileName="game/server_2831/stalincase.rttex" textureSize="32" frame="2,0"/>
+    <Sprite name="money3" fileName="game/server_2831/stalincase.rttex" textureSize="32" frame="3,0"/>
+    <Animations>
+		<SpriteAnimation name="briefcase" playOnAction="JUMP|FALL|IDLE|WALK" sprite="case" animTime="1050" autoPlay="true" isLoop="true" >
+			<Frame>0,0</Frame>
+		</SpriteAnimation>
+    </Animations>
+<ParticleSystems>
+<ParticleSystem name="moneyy">
+    <Emitter>
+        <Set name="offset">-10,3</Set>
+        <Set name="lifeTime">1.5</Set> 
+        <Set name="particlesPerEmission">2</Set>
+        <Set name="infParticles">false</Set>
+        <Set name="infLifeTime">true</Set>
+        <Set name="delayTimer">0.1</Set>
+      </Emitter>
+<Particle usePlayerFacing="true">
+    <Random name="variantId" min="0" max="3"/>
+     <Select name="sprite" input="variantId">
+       <Item>"money1"</Item>
+       <Item>"money2"</Item>
+       <Item>"money3"</Item>
+     </Select>
+    <Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+    <Set name="isBackgroundParticle">false</Set>
+    <Set name="relativeToEmitter">false</Set>
+    <Set name="rotateWithVelocity">true</Set>
+    <Set name="interpolateScale">true</Set>
+    <Set name="interpolateAlpha">true</Set>
+    <Set name="lifeTime">1</Set>
+    <Set name="initialScale">0.8,0.8</Set>
+    <Set name="finalScale">1.3, 1.3</Set>
+      <Curve name="initialAlpha">
+        <KeyFrame>0, 1</KeyFrame>
+        <KeyFrame>0.3, 1</KeyFrame>
+        <KeyFrame>1, 0</KeyFrame>
+      </Curve>
+    <RandomRadial name="initialVelocity" angleRange="-85,-150" radiusRange="20,30"/>
+       <Random name="offset" min="-2, 0" max="2,0"/>
+ </Particle>
+</ParticleSystem>
+</ParticleSystems>
+</Data>
+
+<RenderRules>
+  	<OnDrawCustomOutline>
+      <AvatarTransform class="RenderData">
+        <Set name="saturation">getCurrent</Set>
+        <Set name="brightness">getCurrent</Set>
+        <Set name="contrast">getCurrent</Set>
+      </AvatarTransform>
+      <AvatarTransform class="Scale">
+        <Set name="targetScale">getCurrent</Set>
+      </AvatarTransform>
+      <AvatarTransform class="RenderData">
+        <Set name="saturation">3</Set>
+        <Set name="brightness">1</Set>
+        <Set name="contrast">0.1</Set>
+      </AvatarTransform>
+      <AvatarOutline duration="1500" startScale="1,1" endScale="1.1,1.1">
+		<Colours>
+          <Colour>92,92,94,225</Colour>
+          <Colour>0,0,0,225</Colour>
+        </Colours>
+      </AvatarOutline>
+      <AvatarTransform class="RenderData">
+        <Set name="saturation">reset</Set>
+        <Set name="brightness">reset</Set>
+        <Set name="contrast">reset</Set>
+      </AvatarTransform>
+      <AvatarTransform class="Scale">
+        <Set name="targetScale">reset</Set>
+      </AvatarTransform>
+    </OnDrawCustomOutline>
+
+    <RenderHandItem>
+	  <SpriteRender name="case" rotateOffset="true" offset="0,32" alignment="DOWN_CENTER"/>
+    </RenderHandItem>
+	<RenderInFront>
+		<ParticleSystemRender name="money"/>
+	</RenderInFront>
+  <AddClothingParticles>
+      <ParticleSystemUpdate name="moneyy" onAction="JUMP|FALL|WALK" drawShadow="false"/>
+      <ParticleSystemUpdate name="money2" onAction="JUMP|FALL|WALK" drawShadow="false"/>
+      <ParticleSystemUpdate name="money3" onAction="JUMP|FALL|WALK" drawShadow="false"/>
+  </AddClothingParticles>
+  <SwitchOffClothingParticles>
+      <ParticleSystemOff name="moneyy"/>
+  </SwitchOffClothingParticles>
+ </RenderRules>
+</ItemRenderer>

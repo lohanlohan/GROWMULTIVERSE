@@ -1,0 +1,55 @@
+<rml>
+<head>
+	<link type="text/rcss" href="relic_menu.rcss"/>
+</head>
+<body id="relic_menu">
+	<div class="relic_container">
+		<div class="relic_header">
+			<img src="?i242?" class="relic_icon"/>
+			<h1>Celestial Relic Expedition</h1>
+		</div>
+		
+		<div id="inactive_section" class="relic_section">
+			<div class="relic_content">
+				<p>Ignite the celebration with a brand-new relic quest!</p>
+				<p>Cost: <span class="cost_text">100000</span> Gems</p>
+				<p>Your Gems: <span class="gems_text">0</span></p>
+			</div>
+			<div class="button_container">
+				<button class="btn btn_left" id="relic_start">Let's Go!</button>
+				<button class="btn btn_right" id="close">Maybe Later</button>
+			</div>
+		</div>
+		
+		<div id="active_section" class="relic_section">
+			<div class="relic_content">
+				<h3>Journey Progress</h3>
+				<div class="progress_item">
+					<label>Trials Conquered</label>
+					<div class="progress_bar" id="journey_bar"></div>
+					<span class="progress_text">0/15</span>
+				</div>
+				<h3>Current Trial: Break Blocks</h3>
+				<div class="progress_item">
+					<label>Break Blocks</label>
+					<div class="progress_bar" id="trial_bar"></div>
+					<span class="progress_text">0%</span>
+				</div>
+			</div>
+			<div class="button_container">
+				<button class="btn btn_center" id="relic_cancel">Cancel Expedition</button>
+			</div>
+		</div>
+		
+		<div id="completed_section" class="relic_section">
+			<div class="relic_content">
+				<p class="completed_text">Journey Completed!</p>
+				<p>You conquered all relic trials.</p>
+			</div>
+			<div class="button_container">
+				<button class="btn btn_center" id="relic_claim">Claim Reward</button>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

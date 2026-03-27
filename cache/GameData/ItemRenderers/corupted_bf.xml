@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+    <Sprite name="custom_Spirit_Sprite" 
+            fileName="game//corupted_bf.rttex" 
+            textureSize="160"
+            frame="0,0"/> 
+            
+    <StateMachines>
+      <StateMachine name="Motion">
+        <States>
+            <State name="Idle" />
+            <State name="Move" />
+            <State name="Jump" />
+            <State name="Fall" />
+            <State name="Punch"/>
+        </States>
+        <Transitions>
+            <Transition to="Idle" from="Fall|Move|Jump|Punch" >
+                <Condition type="and">
+                    <IsVariableBool name="onGround">true</IsVariableBool>
+                    <IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+                    <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                </Condition>
+            </Transition>
+            <Transition to="Move" from="Jump|Fall|Idle|Punch" >
+                <Condition type="and">
+                    <IsVariableBool name="onGround">true</IsVariableBool>
+                    <IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+                    <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                </Condition>
+            </Transition>
+            <Transition to="Jump" from="Idle|Move|Fall|Punch" >
+                <Condition type="and">
+                    <IsVariableBool name="onGround">false</IsVariableBool>
+                    <IsVariableFloat name="speed.y" operator="Less">-0.1</IsVariableFloat>
+                    <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                </Condition>
+            </Transition>
+            <Transition to="Fall" from="Jump|Idle|Move|Punch" >
+                <Condition type="and">
+                    <IsVariableBool name="onGround">false</IsVariableBool>
+                    <IsVariableFloat name="speed.y" operator="Greater">0.1</IsVariableFloat>
+                    <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                </Condition>
+            </Transition>
+            <Transition to="Punch" from="Idle|Move|Jump|Fall">
+                <Condition type="and">
+                    <IsAction>PUNCH</IsAction>
+                </Condition>
+            </Transition>
+        </Transitions>
+      </StateMachine>
+    </StateMachines>
+
+    <Animations>
+        <SpriteAnimation name="spirit_animate" 
+                        playOnState="Motion.Idle|Motion.Move" sprite="custom_Spirit_Sprite" 
+                        loop="true" 
+                        animTime="500"> 
+            <Frame>0,0</Frame> 
+            <Frame>1,0</Frame> 
+            <Frame>2,0</Frame> 
+            <Frame>3,0</Frame> 
+        </SpriteAnimation>
+    </Animations>
+
+    <RenderOptions>
+      <Default>
+        <Set name="IsToRenderParticlesWhenShrunken">true</Set>
+      </Default>
+    </RenderOptions>
+  </Data>
+
+  <RenderRules>
+    <RenderInFront>
+        <SpriteRender name="custom_Spirit_Sprite" 
+                      offset="-57, -6" 
+                      scale="0.8, 0.8" 
+                      alignment="DOWN_CENTER" 
+                      blend="PREMULTIPLIED_ALPHA" 
+                      drawShadow="false"
+                      onState="Motion.Idle|Motion.Move|Motion.Jump|Motion.Fall|Motion.Punch"/>
+    </RenderInFront>
+    <OnPunchUpdate>
+        <AvatarTransform class="Emotion">
+            <Set name="emotion">ANGRY</Set>
+        </AvatarTransform>
+    </OnPunchUpdate>
+  </RenderRules>
+</ItemRenderer>

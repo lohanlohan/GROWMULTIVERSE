@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="katana" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,4"/>
+        <Sprite name="slash" fileName="game/enigma_particles_small2.rttex" textureSize="32" frame="13,11"/>
+        
+        <Animations>
+			<SpriteCurveAnimation name="slash_fade" isLoop="true" autoPlay="true" sprite="slash" animTime="175">
+				<Curve name="alpha">
+					<KeyFrame>0.f, 0.f</KeyFrame>
+					<KeyFrame>0.5f, 0.9.f</KeyFrame>
+					<KeyFrame>1.f, 0.f</KeyFrame>
+				</Curve>
+			</SpriteCurveAnimation>
+        </Animations>
+		
+
+		<RenderOptions>
+			<Default>
+				<Set name="PunchSoundOverride">HAND</Set>
+				<Set name="PlayDefaultPunchAudio">false</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+
+	<RenderRules>
+		<RenderHandItem>
+			<SpriteRender name="katana" rotateOffset="true" offset="17,3" blend="PREMULTIPLIED_ALPHA"/>
+            <SpriteRender name="slash" offset="5,0" onAction="PUNCH" blend="PREMULTIPLIED_ALPHA" stretchToTarget="true" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER" drawShadow="false" flip="1,1" scale="1,1.5"/>
+		</RenderHandItem>
+
+		<OnPunchUpdate>
+			<AvatarTransform class="Face">
+				<Set name="face">MAD</Set>
+			</AvatarTransform>
+		    <AvatarTransform class="ArmAngle">
+			    <Set name="armName">arm2Angle</Set>
+			    <Set name="armAngle">1750</Set>
+			    <Set name="isAdditive">true</Set>
+			    <Set name="pointTowardsPunchTarget">false</Set>
+		    </AvatarTransform>
+		</OnPunchUpdate>
+	</RenderRules>
+</ItemRenderer>

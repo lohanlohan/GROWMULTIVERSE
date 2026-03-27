@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+	<Sprite name="Pants" fileName="game/custom_tiles_page2.rttex" textureSize="32" frame="28,1"/>
+    <Sprite name="PantsGlow" fileName="game/custom_tiles_page2.rttex" textureSize="32" frame="29,1"/>
+	<Sprite name="Trail" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+    <Sprite name="Glitch" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+
+    <StateMachines>
+      <StateMachine name="Motion">
+        <States>
+          <State name="Idle" />
+          <State name="Move" />
+        </States>
+        <Transitions>
+          <Transition to="Idle" from="Move">
+            <Condition type="or">
+              <IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+              <IsVariableBool name="onGround">false</IsVariableBool>
+            </Condition>
+          </Transition>
+          <Transition to="Move" from="Idle">
+            <Condition type="and">
+              <IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+              <IsVariableBool name="onGround">true</IsVariableBool>
+            </Condition>
+          </Transition>
+        </Transitions>
+      </StateMachine>
+    </StateMachines>
+
+        <Animations>
+			<SpriteCurveAnimation name="item_glow" isLoop="true" autoPlay="true" sprite="PantsGlow" animTime="15000">
+				<Curve name="alpha">
+					<KeyFrame>0.f, 0.f</KeyFrame>
+					<KeyFrame>0.0315f, 0.5.f </KeyFrame>
+					<KeyFrame>0.4286f, 1.f</KeyFrame>
+					<KeyFrame>0.7142f, 1.f</KeyFrame>
+					<KeyFrame>0.8542f, 1.f</KeyFrame>
+					<KeyFrame>0.9342f, 0.5.f</KeyFrame>
+					<KeyFrame>0.9542f, 0.15.f</KeyFrame>
+					<KeyFrame>1.f, 0.f</KeyFrame>
+				</Curve>
+			</SpriteCurveAnimation>
+
+            <SpriteAnimation name="Glitch_A" sprite="Glitch">
+        	    <Frame>3,11</Frame>
+		        <Frame>4,11</Frame>
+            </SpriteAnimation>
+            <SpriteAnimation name="Trail_A" sprite="Trail">
+        	    <Frame>5,11</Frame>
+		        <Frame>6,11</Frame>
+            </SpriteAnimation>
+        </Animations>
+
+	<ParticleSystems>
+      <ParticleSystem name="Ps_Trail" updateStage="AddClothingParticles" renderStage="RenderInFront" updateState="Motion.Move">
+        <Emitter>
+          <Set name="particlesPerEmission">2</Set>
+          <Set name="particlesToEmit">1</Set>
+          <Random name="emissionInterval" min="0.02" max="0.05"/>
+          <Set name="infParticles">true</Set>
+          <Set name="infLifeTime">true</Set>
+          <Set name="useCharacterPos">true</Set>
+          <Random name="offset" min="-13,10" max="-13,-2"/>
+        </Emitter>
+        <Particle randomSpriteFrame="true">
+          <Set name="sprite">Trail</Set>
+          <Set name="lifeTime">2</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="renderAlignment">DOWN_CENTER</Set>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+			<KeyFrame>0.1, 1</KeyFrame>
+            <KeyFrame>0.2, 0</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+			<KeyFrame>0.4, 0</KeyFrame>
+            <KeyFrame>0.5, 1</KeyFrame>
+            <KeyFrame>0.6, 0</KeyFrame>
+            <KeyFrame>0.7, 1</KeyFrame>
+            <KeyFrame>0.8, 0</KeyFrame>
+            <KeyFrame>0.9, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 1, 1</KeyFrame>
+            <KeyFrame>1, 0, 0</KeyFrame>
+          </Curve>
+        </Particle>
+      </ParticleSystem>
+
+      <ParticleSystem name="Ps_Glitch" updateStage="AddClothingParticles" renderStage="RenderInFront" updateState="Motion.Idle">
+        <Emitter>
+          <Set name="particlesPerEmission">2</Set>
+          <Set name="particlesToEmit">2</Set>
+          <Random name="emissionInterval" min="0.1" max="0.2"/>
+          <Set name="infParticles">true</Set>
+          <Set name="infLifeTime">true</Set>
+          <Set name="useCharacterPos">true</Set>
+          <Random name="offset" min="-8,15" max="8,5"/>
+          <Set name="delayTimer">5</Set>
+        </Emitter>
+        <Particle usePlayerFacing="true" randomSpriteFrame="true">
+          <Set name="sprite">Glitch</Set>
+          <Set name="lifeTime">0.2</Set>
+          <Set name="blendingMode">ADDITIVE</Set>
+          <Set name="renderAlignment">DOWN_CENTER</Set>
+          <Curve name="initialAlpha">
+            <KeyFrame>0, 0</KeyFrame>
+			<KeyFrame>0.1, 1</KeyFrame>
+            <KeyFrame>0.3, 1</KeyFrame>
+            <KeyFrame>0.7, 1</KeyFrame>
+			<KeyFrame>0.9, 1</KeyFrame>
+            <KeyFrame>1, 0</KeyFrame>
+          </Curve>
+          <Curve name="initialScale">
+            <KeyFrame>0, 1, 1</KeyFrame>
+            <KeyFrame>1, 1, 1</KeyFrame>
+          </Curve>
+        </Particle>
+      </ParticleSystem>
+    </ParticleSystems>
+  </Data>
+
+  <RenderRules>
+        <RenderPants>
+            <SpriteRender name="Pants" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+            <SpriteRender name="PantsGlow" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+        </RenderPants>
+  </RenderRules>
+</ItemRenderer>

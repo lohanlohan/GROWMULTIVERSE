@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>
+        <Sprite name="s_Halo" fileName="game/enigma_particles5.rttex" textureSize="64" frame="10,3"/>
+	
+		<Animations>
+            <SpriteAnimation name="A_Halo" sprite="s_Halo" animTime="1000" autoPlay="true" isLoop="true">
+		        <Frame>10,3</Frame>
+		        <Frame>11,3</Frame>
+		        <Frame>12,3</Frame>
+		        <Frame>13,3</Frame>
+                <Frame>14,3</Frame>
+            </SpriteAnimation>
+
+			<SpriteSinPulseAnimation name="A_Float" sprite="s_Halo" autoPlay="true">
+				<Parameter name="pos.y">
+					<Set name="period">3000</Set>
+					<Set name="scale">1.5</Set>
+				</Parameter>
+			</SpriteSinPulseAnimation>
+		</Animations>
+	</Data>
+
+	<RenderRules>
+        <RenderBehind>
+            <SpriteRender name="s_Halo" scale="0.8,0.8" offset="-4,-15" blend="PREMULTIPLIED_ALPHA"/>
+        </RenderBehind>
+	</RenderRules>
+</ItemRenderer>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+    <Data>
+        <Sprite name="HaloSprite" fileName="game//mk4_enigma_particles_small2.rttex" textureSize="32" frame="9,2"/>
+        <Sprite name="SmallHalo" fileName="game//mk4_particles_large7.rttex" textureSize="64" frame="0,1"/>
+        <Sprite name="MediumHalo" fileName="game//mk4_particles_large7.rttex" textureSize="64" frame="0,2"/>
+        <Sprite name="LargeHalo" fileName="game//mk4_particles_large7.rttex" textureSize="64" frame="0,3"/>
+        <Sprite name="SmallHalo2" fileName="game//mk4_particles_large7.rttex" textureSize="64" frame="0,1"/>
+        <Sprite name="MediumHalo2" fileName="game//mk4_particles_large7.rttex" textureSize="64" frame="0,2"/>
+        <Sprite name="LargeHalo2" fileName="game//mk4_particles_large7.rttex" textureSize="64" frame="0,3"/>
+        <Animations>
+            <SequenceAnimation name="LargeHaloAnim" autoPlay="True" isLoop="True">
+                <DelayAnimation delayTime="2500"/>
+                <SpriteCurveAnimation sprite="LargeHalo" animTime="1000" isLoop="False">
+                    <Curve name="rotation">
+                        <KeyFrame>0, 0</KeyFrame>
+                        <KeyFrame>1, 360</KeyFrame>
+                    </Curve>
+                </SpriteCurveAnimation>
+                <SpriteCurveAnimation sprite="MediumHalo" animTime="1000" isLoop="False">
+                    <Curve name="rotation">
+                        <KeyFrame>0, 0</KeyFrame>
+                        <KeyFrame>1, 360</KeyFrame>
+                    </Curve>
+                </SpriteCurveAnimation>
+                <SpriteCurveAnimation sprite="SmallHalo" animTime="1000" isLoop="False">
+                    <Curve name="rotation">
+                        <KeyFrame>0, 0</KeyFrame>
+                        <KeyFrame>1, 360</KeyFrame>
+                    </Curve>
+                </SpriteCurveAnimation>
+                <DelayAnimation delayTime="2500"/>
+            </SequenceAnimation>
+            <SpriteSinPulseAnimation name="HaloFloatAnim" sprite="HaloSprite" autoPlay="true">
+                <Parameter name="pos.y">
+                    <Set name="period">3000</Set>
+                    <Set name="scale">1</Set>
+                </Parameter>
+            </SpriteSinPulseAnimation>
+        </Animations>
+    </Data>
+    <RenderRules>
+        <RenderHat>
+            <SpriteRender name="HaloSprite" offset="0,-37" blend="PREMULTIPLIED_ALPHA"/>
+        </RenderHat>
+        <RenderBehind>
+            <SpriteRender name="SmallHalo" offset="0,-23" blend="ADDITIVE"/>
+            <SpriteRender name="MediumHalo" offset="0,-23" blend="ADDITIVE"/>
+            <SpriteRender name="LargeHalo" offset="0,-23" blend="ADDITIVE"/>
+        </RenderBehind>
+    </RenderRules>
+</ItemRenderer>

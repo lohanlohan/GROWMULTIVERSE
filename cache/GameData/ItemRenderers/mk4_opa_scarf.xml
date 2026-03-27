@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+    <Data>
+        <StateMachines>
+            <StateMachine name="playerState">
+                <States>
+                    <State name="Idle"/>
+                    <State name="Punch"/>
+                    <State name="ZombiePunch"/>
+                </States>
+                <Transitions>
+                    <Transition from="ZombiePunch|Punch" to="Idle">
+                        <Condition>
+                            <IsAction operatorType="NotEqual">PUNCH</IsAction>
+                        </Condition>
+                    </Transition>
+                    <Transition from="ZombiePunch|Idle" to="Punch">
+                        <Condition type="and">
+                            <IsAction>PUNCH</IsAction>
+                            <IsZombified>false</IsZombified>
+                        </Condition>
+                    </Transition>
+                    <Transition from="Idle|Punch" to="ZombiePunch">
+                        <Condition type="and">
+                            <IsAction>PUNCH</IsAction>
+                            <IsZombified>true</IsZombified>
+                        </Condition>
+                    </Transition>
+                </Transitions>
+            </StateMachine>
+        </StateMachines>
+        <Sprite name="item_Sprite_1" fileName="game//mk4_custom_tiles_page2.rttex" textureSize="32" frame="29,5"/>
+        <Sprite name="punch_effect" fileName="game//mk4_enigma_particles_small2.rttex" textureSize="32" frame="8,10"/>
+        <Animations>
+            <SpriteAnimation name="wingFlexJump2" playOnAction="FALL|WALK|JUMP|IDLE" sprite="item_Sprite_1" animTime="500" autoPlay="true" isLoop="true">
+                <Frame>29,5</Frame>
+                <Frame>30,5</Frame>
+            </SpriteAnimation>
+            <SpriteAnimation name="wingFlexJump3" playOnState="playerState.Punch" sprite="item_Sprite_1" animTime="100" autoPlay="true" isLoop="true">
+                <Frame>31,5</Frame>
+                <Frame>30,5</Frame>
+            </SpriteAnimation>
+            <SpriteCurveAnimation name="glowpunch" sprite="punch_effect" isLoop="true" autoPlay="true" animTime="150">
+                <Curve name="alpha">
+                    <KeyFrame>0.f, 1.f</KeyFrame>
+                    <KeyFrame>1.f, 0.f</KeyFrame>
+                </Curve>
+            </SpriteCurveAnimation>
+            <SpriteAnimation name="shadowPunch" autoPlay="true" sprite="punch_effect" isLoop="true" animTime="75">
+                <Frame>8,10</Frame>
+                <Frame>9,10</Frame>
+            </SpriteAnimation>
+        </Animations>
+        <RenderOptions>
+            <Default>
+                <Set name="PunchSoundOverride">FACE</Set>
+                <Set name="PlayDefaultPunchAudio">true</Set>
+                <Set name="IgnoreDefaultDamagedTileEffect">false</Set>
+            </Default>
+        </RenderOptions>
+    </Data>
+    <RenderRules>
+        <RenderFaceItem>
+            <SpriteRender name="item_Sprite_1" offset="0,-16" blend="PREMULTIPLIED_ALPHA"/>
+            <SpriteRender name="punch_effect" offset="8,-27" onState="playerState.Punch" blend="PREMULTIPLIED_ALPHA" stretchToTarget="true" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER" drawShadow="false" flip="1,0"/>
+        </RenderFaceItem>
+        <OnPunchUpdate>
+            <AvatarTransform class="Face">
+                <Set name="face">MAD</Set>
+            </AvatarTransform>
+            <AvatarTransform class="ArmAngle">
+                <Set name="armName">arm2Angle</Set>
+                <Set name="armAngle">215</Set>
+                <Set name="pointTowardsPunchTarget">false</Set>
+            </AvatarTransform>
+        </OnPunchUpdate>
+    </RenderRules>
+</ItemRenderer>

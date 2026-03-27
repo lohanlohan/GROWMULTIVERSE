@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+		<StateMachines>
+			<StateMachine name="state">
+				<States>
+					<State name="Equip"/>
+					<State name="Punch"/>
+				</States>
+				<Transitions>
+					<Transition from="Punch" to="Equip">
+						<Condition>
+							<IsAction operatorType="NotEqual">PUNCH</IsAction>
+						</Condition>
+					</Transition>
+					<Transition from="Equip" to="Punch">
+						<Condition>
+							<IsAction>PUNCH</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+	<Sprite name="S_Sword" fileName="game/enigma_particles5.rttex" textureSize="64" frame="8,2"/>
+	<Sprite name="S_SwordPunch" fileName="game/enigma_particles5.rttex" textureSize="64" frame="13,2"/>
+    <Sprite name="S_PunchProjectile" fileName="game/enigma_particles5.rttex" textureSize="64" frame="5,2"/>
+    <Sprite name="S_OnDamagedParticle" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+
+	<Animations>
+		<SpriteCurveAnimation name="A_CurveIdle" sprite="S_SwordPunch" playOnState="state.Equip"  isLoop="true" animTime="5000">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>0.25f, 0.f </KeyFrame>
+				<KeyFrame>0.5f, 0.f</KeyFrame>
+				<KeyFrame>0.75f, 0.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+		<SpriteCurveAnimation name="A_CurvePunch" sprite="S_SwordPunch" playOnState="state.Punch"  isLoop="false" animTime="250">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 0.f</KeyFrame>
+				<KeyFrame>0.25f, 0.25.f </KeyFrame>
+				<KeyFrame>0.5f, 0.5.f</KeyFrame>
+				<KeyFrame>0.75f, 0.75.f</KeyFrame>
+				<KeyFrame>1.f, 1.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+	    <SpriteAnimation name="A_Sword" sprite="S_Sword" autoPlay="true" isLoop="true" animTime="600">
+        	<Frame>8,2</Frame>
+            <Frame>9,2</Frame>
+            <Frame>10,2</Frame>
+            <Frame>11,2</Frame>
+            <Frame>12,2</Frame>
+	    </SpriteAnimation>
+
+		<SpriteAnimation name="Punch_Particles_A" sprite="S_OnDamagedParticle">
+			<Frame>9,9</Frame>
+			<Frame>10,9</Frame>
+		</SpriteAnimation>
+    </Animations>
+
+    <ParticleSystems>
+		<ParticleSystem name="Ps_PunchProjectile">
+			<Emitter>
+				<Set name="offset">15,-15</Set>
+				<Set name="emissionInterval">0.25</Set>
+				<Set name="lifeTime">0.25</Set>
+				<Set name="particlesPerEmission">1</Set>
+				<Set name="particlesToEmit">1</Set>
+			</Emitter>
+			<Particle>
+				<Set name="sprite">S_PunchProjectile</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="lifeTime">0.25</Set>
+				<Set name="rotateWithVelocity">true</Set>
+				<Set name="interpolateAlpha">false</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">1</Set>
+				<Set name="interpolateVelocity">true</Set>
+				<Curve name="initialScale">
+            		<KeyFrame>0, 0.5,0.5</KeyFrame>
+            		<KeyFrame>1, 2,1.5</KeyFrame>
+          		</Curve>
+				<VectorTo name="initialVelocity" source="targetPos" duration="lifeTime" x="1" angle="0"/>
+				<VectorTo name="finalVelocity" source="targetPos" duration="lifeTime" x="1" angle="0"/>
+			</Particle>
+		</ParticleSystem>
+    
+		<ParticleSystem name="Ps_OnDamagedParticle">
+			<Emitter>
+				<Set name="offset">0,0</Set>
+				<Set name="lifeTime">0.6</Set>
+				<Set name="particlesPerEmission">10</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Set name="sprite">S_OnDamagedParticle</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Set name="lifeTime">0.6</Set>
+				<Set name="rotateWithVelocity">true</Set>
+				<Curve name="initialAlpha">
+					<KeyFrame>0, 1</KeyFrame>
+					<KeyFrame>0.75, 0.75</KeyFrame>
+					<KeyFrame>1, 0</KeyFrame>
+				</Curve>
+			    <Curve name="initialScale">
+            	    <KeyFrame>0, 0.35,0.35</KeyFrame>
+            	    <KeyFrame>1, 1,1</KeyFrame>
+        		    </Curve>
+                    <Set name="useGravity">true</Set>
+                    <Set name="gravityVector">0, 60</Set>
+                    <RandomRadial name="initialVelocity" angleRange="45,315" radiusRange="50,75" />
+			</Particle>
+		</ParticleSystem>
+    </ParticleSystems>
+
+	<RenderOptions>
+		<Default>
+			<Set name="IgnoreDefaultDamagedTileEffect">true</Set>
+		</Default>
+	</RenderOptions>
+  </Data>
+
+  <RenderRules>
+    <RenderHandItem>
+	  <SpriteRender name="S_Sword" rotateOffset="true" offset="17,-4" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+	  <SpriteRender name="S_SwordPunch" rotateOffset="true" offset="17,-4" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+    </RenderHandItem>
+	
+	<OnPunchUpdate>
+		<AvatarTransform class="Face">
+			<Set name="face">MAD</Set>
+		</AvatarTransform>
+		<AvatarTransform class="ArmAngle">
+			<Set name="armName">arm2Angle</Set>
+			<Set name="armAngle">1650</Set>
+			<Set name="isAdditive">true</Set>
+		</AvatarTransform>
+	</OnPunchUpdate>
+
+	<OnPunchStart>
+		<ParticleSystemUpdate name="Ps_PunchProjectile"/>
+	</OnPunchStart>
+
+	<OnDamagedTile>
+		<ParticleSystemUpdate name="Ps_OnDamagedParticle"/>
+	</OnDamagedTile>
+
+	<SwitchOffClothingParticles>
+		<ParticleSystemOff name="Ps_PunchProjectile"/>
+        <ParticleSystemOff name="Ps_OnDamagedParticle"/>
+    </SwitchOffClothingParticles>
+
+  </RenderRules>
+</ItemRenderer>

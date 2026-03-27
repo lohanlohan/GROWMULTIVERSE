@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+<Data>
+    <Sprite name="s_AuraBlue" fileName="game/enigma_128_sprites1.rttex" textureSize="128x128" frame="15,4"/>
+    <Sprite name="s_AuraRed" fileName="game/enigma_128_sprites1.rttex" textureSize="128x128"/>
+    <Sprite name="s_PunchLightning" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+    <Sprite name="s_IdleSparkles" fileName="game/enigma_particles_small2.rttex" textureSize="32" frame="2,13"/>
+    <Sprite name="s_PunchSparkles" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+
+		<StateMachines>
+			<StateMachine name="Action">
+				<States>
+					<State name="None" />
+					<State name="Punch" />
+				</States>
+				<Transitions>
+					<Transition to="None" from="Punch">
+						<Condition>
+							<IsAction operatorType="NotEqual">PUNCH</IsAction>
+						</Condition>
+					</Transition>
+					<Transition to="Punch" from="None">
+						<Condition>
+							<IsAction>PUNCH</IsAction>
+						</Condition>
+					</Transition>
+				</Transitions>
+			</StateMachine>
+		</StateMachines>
+
+    <Animations>
+		<SpriteSinPulseAnimation name="foot4_Stretch" autoPlay="true" sprite="s_AuraBlue">
+			<Parameter name="scale.x">
+				<Set name="offset">1</Set>
+				<Set name="period">2000</Set>
+				<Set name="scale">0.1</Set>
+			</Parameter>
+		</SpriteSinPulseAnimation>
+		<SpriteSinPulseAnimation name="foot3_Stretch" autoPlay="true" sprite="s_AuraBlue">
+			<Parameter name="scale.y">
+				<Set name="offset">1</Set>
+				<Set name="period">2250</Set>
+				<Set name="scale">0.1</Set>
+			</Parameter>
+		</SpriteSinPulseAnimation>
+		<SpriteSinPulseAnimation name="foot1_Stretch" autoPlay="true" sprite="s_AuraRed">
+			<Parameter name="scale.x">
+				<Set name="offset">1</Set>
+				<Set name="period">2000</Set>
+				<Set name="scale">0.1</Set>
+			</Parameter>
+		</SpriteSinPulseAnimation>
+		<SpriteSinPulseAnimation name="foot2_Stretch" autoPlay="true" sprite="s_AuraRed">
+			<Parameter name="scale.y">
+				<Set name="offset">1</Set>
+				<Set name="period">2250</Set>
+				<Set name="scale">0.1</Set>
+			</Parameter>
+		</SpriteSinPulseAnimation>
+
+        <SpriteAnimation name="A_AuraIdleAnimation" autoPlay="true" isLoop="true" sprite="s_AuraBlue" animTime="1250">
+            <Frame>0,10</Frame>
+            <Frame>1,10</Frame>
+            <Frame>2,10</Frame>
+            <Frame>3,10</Frame>
+            <Frame>4,10</Frame>
+			<Frame>5,10</Frame>
+			<Frame>6,10</Frame>
+			<Frame>7,10</Frame>
+			<Frame>6,10</Frame>
+			<Frame>5,10</Frame>
+			<Frame>4,10</Frame>
+            <Frame>3,10</Frame>
+            <Frame>2,10</Frame>
+            <Frame>1,10</Frame>
+        </SpriteAnimation>
+        <SpriteAnimation name="A_AuraPunchAnimation" autoPlay="true" isLoop="true" sprite="s_AuraRed" animTime="1250">
+            <Frame>0,11</Frame>
+            <Frame>1,11</Frame>
+            <Frame>2,11</Frame>
+            <Frame>3,11</Frame>
+            <Frame>4,11</Frame>
+			<Frame>5,11</Frame>
+			<Frame>6,11</Frame>
+			<Frame>7,11</Frame>
+			<Frame>6,11</Frame>
+			<Frame>5,11</Frame>
+			<Frame>4,11</Frame>
+            <Frame>3,11</Frame>
+            <Frame>2,11</Frame>
+            <Frame>1,11</Frame>
+        </SpriteAnimation>
+		<SpriteAnimation name="A_PunchLightning" playOnState="Action.Punch" isLoop="true" sprite="s_PunchLightning" animTime="400">
+			<Frame>0, 13</Frame>
+			<Frame>1, 13</Frame>
+		</SpriteAnimation>
+
+        <SpriteAnimation name="A_PunchSparkles" sprite="s_PunchSparkles">
+            <Frame>3,13</Frame>
+            <Frame>4,13</Frame>
+        </SpriteAnimation>
+    </Animations>
+
+    <ParticleSystems>
+        <ParticleSystem name="ps_IdleSparkles" renderStage="RenderInFront">
+			<Emitter>
+				<Random name="emissionInterval" min="0.03" max="0.06" />
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Set name="particlesPerEmission">1</Set>
+                <Random name="offset" min="-32, -32" max="32, 10" />
+			</Emitter>
+			<Particle>
+				<Set name="sprite">s_IdleSparkles</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Curve name="initialAlpha">
+					<KeyFrame>0, 0</KeyFrame>
+					<KeyFrame>0.3, 1</KeyFrame>
+					<KeyFrame>0.8, 1</KeyFrame>
+					<KeyFrame>1, 0</KeyFrame>
+				</Curve>
+				<Curve name="initialScale">
+					<KeyFrame>0, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.05, 1,1</KeyFrame>
+					<KeyFrame>0.1, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.15, 1,1</KeyFrame>
+					<KeyFrame>0.2, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.25, 1,1</KeyFrame>
+					<KeyFrame>0.3, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.35, 1,1</KeyFrame>
+					<KeyFrame>0.4, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.45, 1,1</KeyFrame>
+					<KeyFrame>0.5, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.55, 1,1</KeyFrame>
+					<KeyFrame>0.6, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.65, 1,1</KeyFrame>
+					<KeyFrame>0.7, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.75, 0.75,0.75</KeyFrame>
+					<KeyFrame>0.8, 0.15,0.15</KeyFrame>
+					<KeyFrame>0.85, 0.5,0.5</KeyFrame>
+					<KeyFrame>0.9, 0.1,0.1</KeyFrame>
+					<KeyFrame>0.95, 0.25,0.25</KeyFrame>
+					<KeyFrame>1, 0.05,0.05</KeyFrame>
+				</Curve>
+				<Random name="lifeTime" min="0.75" max="1.75"/>
+                <Random name="initialVelocity" min="0, -25" max="0, -50"/>
+				<Random name="initialRotationRate" min="-60" max="60" />
+			</Particle>
+		</ParticleSystem>
+
+        <ParticleSystem name="ps_PunchSparkles" renderStage="RenderInFront">
+			<Emitter>
+				<Random name="emissionInterval" min="0.03" max="0.06" />
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Set name="particlesPerEmission">1</Set>
+                <Random name="offset" min="-32, -32" max="32, 10" />
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Set name="sprite">s_PunchSparkles</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Curve name="initialAlpha">
+					<KeyFrame>0, 0</KeyFrame>
+					<KeyFrame>0.3, 1</KeyFrame>
+					<KeyFrame>0.8, 1</KeyFrame>
+					<KeyFrame>1, 0</KeyFrame>
+				</Curve>
+				<Curve name="initialScale">
+					<KeyFrame>0, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.05, 1,1</KeyFrame>
+					<KeyFrame>0.1, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.15, 1,1</KeyFrame>
+					<KeyFrame>0.2, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.25, 1,1</KeyFrame>
+					<KeyFrame>0.3, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.35, 1,1</KeyFrame>
+					<KeyFrame>0.4, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.45, 1,1</KeyFrame>
+					<KeyFrame>0.5, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.55, 1,1</KeyFrame>
+					<KeyFrame>0.6, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.65, 1,1</KeyFrame>
+					<KeyFrame>0.7, 0.2,0.2</KeyFrame>
+					<KeyFrame>0.75, 0.75,0.75</KeyFrame>
+					<KeyFrame>0.8, 0.15,0.15</KeyFrame>
+					<KeyFrame>0.85, 0.5,0.5</KeyFrame>
+					<KeyFrame>0.9, 0.1,0.1</KeyFrame>
+					<KeyFrame>0.95, 0.25,0.25</KeyFrame>
+					<KeyFrame>1, 0.05,0.05</KeyFrame>
+				</Curve>
+				<Random name="lifeTime" min="0.75" max="1.75"/>
+                <Random name="initialVelocity" min="0, -25" max="0, -50"/>
+				<Random name="initialRotationRate" min="-60" max="60" />
+			</Particle>
+		</ParticleSystem>
+    </ParticleSystems>
+
+	<RenderOptions>
+		<Default>
+			<Set name="IncludeAllActions">true</Set>
+			<Set name="IgnorePunchTypeCheck">true</Set>
+			<Set name="IgnorePunchTypeDamagedTileCheck">true</Set>
+		</Default>
+	</RenderOptions>
+</Data>
+
+    <RenderRules>
+		<RenderInFront>
+            <SpriteRender name="s_AuraBlue" onState="Action.None" offset="0,-22" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+            <SpriteRender name="s_AuraRed" onState="Action.Punch" offset="0,-22" alignment="CENTER" blend="PREMULTIPLIED_ALPHA"/>
+
+			<ContextUpdate type="PositionTargetOffset" onState="Action.Punch">
+				<Set name="targetOffsetRange">10, -10</Set>
+			</ContextUpdate>
+
+			<SpriteRender name="s_PunchLightning" offset="0,-12" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER" 
+				drawShadow="false" blend="PREMULTIPLIED_ALPHA" stretchToTarget="true" tintOverride="255,255,255,255" onState="Action.Punch" />
+		</RenderInFront>
+
+        <Update>
+            <AvatarTransform class="Emotion">
+                <Set name="emotion">NEUTRAL</Set>
+            </AvatarTransform>
+        </Update>
+
+		<AddClothingParticles>
+			<ParticleSystemUpdate name="ps_IdleSparkles" onState="Action.None" drawShadow="false"/>
+            <ParticleSystemUpdate name="ps_PunchSparkles" onState="Action.Punch" drawShadow="false"/>
+		</AddClothingParticles>
+
+		<SwitchOffClothingParticles>
+			<ParticleSystemOff name="ps_IdleSparkles"/>
+            <ParticleSystemOff name="ps_PunchSparkles"/>
+		</SwitchOffClothingParticles>
+    </RenderRules>
+</ItemRenderer>

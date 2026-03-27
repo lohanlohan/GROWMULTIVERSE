@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+    <Data>
+        <Sprite name="item_Sprite" fileName="game/shini.rttex" textureSize="64" frame="0,0"/>
+        
+        <Animations>
+            <SpriteAnimation name="stan" sprite="item_Sprite" autoPlay="true" isLoop="true" animTime="750">
+                <Frame>0,0</Frame>
+                <Frame>1,0</Frame>
+                <Frame>2,0</Frame>
+                <Frame>3,0</Frame>
+            </SpriteAnimation>
+        </Animations>
+    </Data>
+
+    <RenderRules>
+        <RenderChestItem>
+            <SpriteRender name="item_Sprite" offset="0,15" alignment="DOWN_CENTER"/>
+        </RenderChestItem>
+    </RenderRules>
+</ItemRenderer>

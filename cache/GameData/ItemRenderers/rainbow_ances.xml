@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+    <Sprite name="ances" fileName="game/enigma_ances_texture.rttex" textureSize="32" frame="0,0"/>
+	<Sprite name="gems" fileName="game/tiles_page1.rttex" textureSize="32"/>
+	<Sprite name="s_Aura" fileName="game/enigma_dvw_1.rttex" textureSize="64" frame="14,2"/>
+	<Sprite name="s_Sparkle" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+
+	<Animations>
+    		<SpriteAnimation name="gems_left" sprite="gems">
+       			<Frame>22,1</Frame>
+                <Frame>23,1</Frame>
+       			<Frame>24,1</Frame>
+                <Frame>25,1</Frame>
+                <Frame>26,1</Frame>
+            </SpriteAnimation>
+
+    		<SpriteAnimation name="sparkles" sprite="s_Sparkle">
+       			<Frame>0,12</Frame>
+                <Frame>1,12</Frame>
+       			<Frame>2,12</Frame>
+                <Frame>3,12</Frame>
+                <Frame>4,12</Frame>
+            </SpriteAnimation>
+    </Animations>
+	
+    <ParticleSystems>
+   		<ParticleSystem name="ps_Aura" updateStage="AddClothingParticles">
+			<Emitter>
+				<Set name="offset">0, -15</Set>
+				<Set name="offsetFacing">true</Set>
+				<Set name="emissionInterval">1</Set>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle>
+				<Set name="sprite">s_Aura</Set>
+				<Set name="relativeToEmitter">true</Set>
+				<Set name="inSpecificOrder">true</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Set name="initalRGB">230, 160, 190</Set>
+                <Set name="rainbowShift">true</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Curve name="initialAlpha">
+					<KeyFrame>0, 0</KeyFrame>
+					<KeyFrame>0.5, 1</KeyFrame>
+					<KeyFrame>1, 0</KeyFrame>
+				</Curve>
+				<Curve name="initialScale">
+					<KeyFrame>0, 0.7, 0.7</KeyFrame>
+					<KeyFrame>1, 1.8, 1.8</KeyFrame>
+				</Curve>
+                <Random name="initialAngle" min="0" max="360"/>
+				<Set name="lifeTime">4</Set>
+			</Particle>
+		</ParticleSystem>
+	
+		<ParticleSystem name="extra_left">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="1.5" max="2"/>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Random name="offset" min="9, 0" max="16, 0"/>
+				<Set name="sprite">gems</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+				<Set name="lifeTime">1</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">0</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.15, 0.15</Set>
+				<Set name="finalScale">0.05, 0.05</Set>
+				<Random name="initialVelocity" min="-20,-42" max="20,-30"/>
+				<Random name="initialAngle" min="0" max="270"/>
+			</Particle>
+		</ParticleSystem>
+
+		<ParticleSystem name="extra_right">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="1.2" max="2"/>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Random name="offset" min="-16, 0" max="-9, 0"/>
+				<Set name="sprite">gems</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+				<Set name="lifeTime">1</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">0</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.15, 0.15</Set>
+				<Set name="finalScale">0.05, 0.05</Set>
+				<Random name="initialVelocity" min="-20,-42" max="20,-30"/>
+				<Random name="initialAngle" min="0" max="270"/>
+			</Particle>
+		</ParticleSystem>
+	
+    		<ParticleSystem name="extra_left2">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="2.15" max="3"/>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Random name="offset" min="9, 0" max="16, 0"/>
+				<Set name="sprite">gems</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+				<Set name="lifeTime">1</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">0</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.15, 0.15</Set>
+				<Set name="finalScale">0.05, 0.05</Set>
+				<Random name="initialVelocity" min="-20,-42" max="20,-30"/>
+				<Random name="initialAngle" min="0" max="270"/>
+			</Particle>
+		</ParticleSystem>
+
+		<ParticleSystem name="extra_right2">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="2.25" max="3"/>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Random name="offset" min="-16, 0" max="-9, 0"/>
+				<Set name="sprite">gems</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+				<Set name="lifeTime">1</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">0</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.15, 0.15</Set>
+				<Set name="finalScale">0.05, 0.05</Set>
+				<Random name="initialVelocity" min="-20,-42" max="20,-30"/>
+				<Random name="initialAngle" min="0" max="270"/>
+			</Particle>
+		</ParticleSystem>
+
+    		<ParticleSystem name="extra_left3">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="1" max="3"/>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Random name="offset" min="9, 0" max="16, 0"/>
+				<Set name="sprite">gems</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+				<Set name="lifeTime">1</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">0</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.15, 0.15</Set>
+				<Set name="finalScale">0.05, 0.05</Set>
+				<Random name="initialVelocity" min="-20,-42" max="20,-30"/>
+				<Random name="initialAngle" min="0" max="270"/>
+			</Particle>
+		</ParticleSystem>
+
+		<ParticleSystem name="extra_right3">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="1.4" max="4"/>
+				<Set name="particlesPerEmission">1</Set>
+			</Emitter>
+			<Particle randomSpriteFrame="true">
+				<Random name="offset" min="-16, 0" max="-9, 0"/>
+				<Set name="sprite">gems</Set>
+				<Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+				<Set name="initalRGB">1, 1, 1</Set>
+				<Set name="lifeTime">1</Set>
+				<Set name="initialAlpha">1</Set>
+				<Set name="finalAlpha">0</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.15, 0.15</Set>
+				<Set name="finalScale">0.05, 0.05</Set>
+				<Random name="initialVelocity" min="-20,-42" max="20,-30"/>
+				<Random name="initialAngle" min="0" max="270"/>
+			</Particle>
+		</ParticleSystem>
+
+
+		<ParticleSystem name="ances_left">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="0.15" max="0.22"/>
+				<Set name="particlesPerEmission">3</Set>
+			</Emitter>
+			<Particle>
+				<Random name="offset" min="8, 0" max="15, 0"/>
+				<Set name="sprite">ances</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Set name="initalRGB">190, 190, 190</Set>
+                <Set name="rainbowShift">true</Set>
+				<Set name="lifeTime">0.75</Set>
+				<Set name="initialAlpha">0.8</Set>
+				<Set name="finalAlpha">0.8</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.45, 0.10</Set>
+				<Set name="finalScale">0, 0.55</Set>
+				<Random name="initialVelocity" min="0,-16" max="0,-14"/>
+			</Particle>
+		</ParticleSystem>
+
+		<ParticleSystem name="ances_right">
+			<Emitter>
+				<Set name="infParticles">true</Set>
+				<Set name="infLifeTime">true</Set>
+				<Random name="emissionInterval" min="0.1" max="0.25"/>
+				<Set name="particlesPerEmission">3</Set>
+			</Emitter>
+			<Particle>
+				<Random name="offset" min="-15, 0" max="-8, 0"/>
+				<Set name="sprite">ances</Set>
+				<Set name="blendingMode">ADDITIVE</Set>
+				<Set name="initalRGB">190, 190, 190</Set>
+                <Set name="rainbowShift">true</Set>
+				<Set name="lifeTime">0.75</Set>
+				<Set name="initialAlpha">0.8</Set>
+				<Set name="finalAlpha">0.8</Set>
+				<Set name="interpolateAlpha">true</Set>
+				<Set name="interpolateScale">true</Set>
+				<Set name="initialScale">0.45, 0.10</Set>
+				<Set name="finalScale">0, 0.55</Set>
+				<Random name="initialVelocity" min="0,-16" max="0,-14"/>
+			</Particle>
+		</ParticleSystem>
+
+			<ParticleSystem name="Arc1" updateStage="AddClothingParticles">
+				<Emitter>
+					<Set name="offset">0, -16</Set>
+					<Set name="emissionInterval">0.3</Set>
+					<Set name="infParticles">true</Set>
+					<Set name="infLifeTime">true</Set>
+					<Set name="particlesPerEmission">1</Set>
+				</Emitter>
+				<Particle randomSpriteFrame="true">
+					<Set name="sprite">s_Sparkle</Set>
+					<Set name="blendingMode">ADDITIVE</Set>
+					<Set name="initalRGB">0.7, 0.4, 0.2</Set>
+               	 	<Set name="rainbowShift">true</Set>
+					<Set name="relativeToEmitter">true</Set>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+                        <KeyFrame>0.75, 1</KeyFrame>
+						<KeyFrame>1, 0</KeyFrame>
+					</Curve>
+<Curve name="initialScale">
+	<KeyFrame>0, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.025, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.05, 1,1</KeyFrame>
+	<KeyFrame>0.075, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.1, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.125, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.15, 1,1</KeyFrame>
+	<KeyFrame>0.175, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.2, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.225, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.25, 1,1</KeyFrame>
+	<KeyFrame>0.275, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.3, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.325, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.35, 1,1</KeyFrame>
+	<KeyFrame>0.375, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.4, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.425, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.45, 1,1</KeyFrame>
+	<KeyFrame>0.475, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.5, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.525, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.55, 1,1</KeyFrame>
+	<KeyFrame>0.575, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.6, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.625, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.65, 1,1</KeyFrame>
+	<KeyFrame>0.675, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.7, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.725, 0.475,0.475</KeyFrame>
+
+	<KeyFrame>0.75, 0.75,0.75</KeyFrame>
+	<KeyFrame>0.775, 0.45,0.45</KeyFrame>
+
+	<KeyFrame>0.8, 0.15,0.15</KeyFrame>
+	<KeyFrame>0.825, 0.325,0.325</KeyFrame>
+
+	<KeyFrame>0.85, 0.5,0.5</KeyFrame>
+	<KeyFrame>0.875, 0.3,0.3</KeyFrame>
+
+	<KeyFrame>0.9, 0.1,0.1</KeyFrame>
+	<KeyFrame>0.925, 0.175,0.175</KeyFrame>
+
+	<KeyFrame>0.95, 0.25,0.25</KeyFrame>
+	<KeyFrame>0.975, 0.15,0.15</KeyFrame>
+
+	<KeyFrame>1, 0.05,0.05</KeyFrame>
+</Curve>
+
+					<Select name="initialRotationRate" input="randomNumber">
+						<Item>-720</Item>
+						<Item>-360</Item>
+						<Item>360</Item>
+						<Item>720</Item>
+					</Select> 
+					<Set name="orbitStart">-0.2</Set>
+					<Set name="lifeTime">2.6</Set>
+					<Set name="orbitPeriod">2.5</Set>
+					<Set name="initialRotationRate">150</Set>
+					<Set name="applyOrbit">true</Set>
+					<Set name="orbit">-20, 3</Set>
+					<Set name="orbitScaleVariation">0.08</Set>
+					<Set name="orbitSkew">2</Set>
+				</Particle>
+			</ParticleSystem>
+
+			<ParticleSystem name="Arc2" updateStage="AddClothingParticles">
+				<Emitter>
+					<Set name="offset">0, -16</Set>
+					<Set name="emissionInterval">0.3</Set>
+					<Set name="infParticles">true</Set>
+					<Set name="infLifeTime">true</Set>
+					<Set name="particlesPerEmission">1</Set>
+				</Emitter>
+				<Particle randomSpriteFrame="true">
+					<Set name="sprite">s_Sparkle</Set>
+					<Set name="blendingMode">ADDITIVE</Set>
+					<Set name="initalRGB">1, 1, 1</Set>
+               	 	<Set name="rainbowShift">true</Set>
+					<Set name="relativeToEmitter">true</Set>
+					<Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+                        <KeyFrame>0.75, 1</KeyFrame>
+						<KeyFrame>1, 0</KeyFrame>
+					</Curve>
+<Curve name="initialScale">
+	<KeyFrame>0, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.025, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.05, 1,1</KeyFrame>
+	<KeyFrame>0.075, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.1, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.125, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.15, 1,1</KeyFrame>
+	<KeyFrame>0.175, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.2, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.225, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.25, 1,1</KeyFrame>
+	<KeyFrame>0.275, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.3, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.325, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.35, 1,1</KeyFrame>
+	<KeyFrame>0.375, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.4, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.425, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.45, 1,1</KeyFrame>
+	<KeyFrame>0.475, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.5, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.525, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.55, 1,1</KeyFrame>
+	<KeyFrame>0.575, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.6, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.625, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.65, 1,1</KeyFrame>
+	<KeyFrame>0.675, 0.6,0.6</KeyFrame>
+
+	<KeyFrame>0.7, 0.2,0.2</KeyFrame>
+	<KeyFrame>0.725, 0.475,0.475</KeyFrame>
+
+	<KeyFrame>0.75, 0.75,0.75</KeyFrame>
+	<KeyFrame>0.775, 0.45,0.45</KeyFrame>
+
+	<KeyFrame>0.8, 0.15,0.15</KeyFrame>
+	<KeyFrame>0.825, 0.325,0.325</KeyFrame>
+
+	<KeyFrame>0.85, 0.5,0.5</KeyFrame>
+	<KeyFrame>0.875, 0.3,0.3</KeyFrame>
+
+	<KeyFrame>0.9, 0.1,0.1</KeyFrame>
+	<KeyFrame>0.925, 0.175,0.175</KeyFrame>
+
+	<KeyFrame>0.95, 0.25,0.25</KeyFrame>
+	<KeyFrame>0.975, 0.15,0.15</KeyFrame>
+
+	<KeyFrame>1, 0.05,0.05</KeyFrame>
+</Curve>
+
+					<Select name="initialRotationRate" input="randomNumber">
+						<Item>-720</Item>
+						<Item>-360</Item>
+						<Item>360</Item>
+						<Item>720</Item>
+					</Select> 
+					<Set name="orbitStart">-0.2</Set>
+					<Set name="lifeTime">2.6</Set>
+					<Set name="orbitPeriod">2.5</Set>
+					<Set name="initialRotationRate">-150</Set>
+					<Set name="applyOrbit">true</Set>
+					<Set name="orbit">-20, 3</Set>
+					<Set name="orbitScaleVariation">-0.08</Set>
+					<Set name="orbitSkew">-2</Set>
+				</Particle>
+			</ParticleSystem>
+	</ParticleSystems>
+  </Data>
+
+  <RenderRules>
+        <RenderBackpack>
+			<ParticleSystemRender name="ps_Aura"/>
+        </RenderBackpack>
+
+	<AddClothingParticles>
+		<ParticleSystemUpdate name="ps_Aura"/>
+		<ParticleSystemUpdate name="ances_left"/>
+		<ParticleSystemUpdate name="ances_right"/>
+		<ParticleSystemUpdate name="extra_left"/>
+		<ParticleSystemUpdate name="extra_right"/>
+		<ParticleSystemUpdate name="extra_left2"/>
+		<ParticleSystemUpdate name="extra_right2"/>
+		<ParticleSystemUpdate name="extra_left3"/>
+		<ParticleSystemUpdate name="extra_right3"/>
+	</AddClothingParticles>
+
+    <SwitchOffClothingParticles>
+		<ParticleSystemOff name="ps_Aura"/>
+		<ParticleSystemOff name="ances_left"/>
+		<ParticleSystemOff name="ances_right"/>
+		<ParticleSystemOff name="extra_left"/>
+		<ParticleSystemOff name="extra_right"/>
+		<ParticleSystemOff name="extra_left2"/>
+		<ParticleSystemOff name="extra_right2"/>
+		<ParticleSystemOff name="extra_left3"/>
+		<ParticleSystemOff name="extra_right3"/>
+    </SwitchOffClothingParticles>
+  </RenderRules>
+</ItemRenderer>

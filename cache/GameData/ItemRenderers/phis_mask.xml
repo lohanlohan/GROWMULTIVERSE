@@ -1,0 +1,10 @@
+<ItemRenderer item="ITEM_ID_EPS_SPIKEY_BLACK_HAIR">
+    <Data>
+        <Sprite name="item_Sprite" fileName="game/custom_cosmetics1.rttex" textureSize="32" frame="6,19"/>
+    </Data>
+<RenderRules>
+    <RenderFaceItem>
+        <SpriteRender name="item_Sprite" offset="1,-6" alignment="DOWN_CENTER" blend="PREMULTIPLIED_ALPHA"/>
+    </RenderFaceItem>
+</RenderRules>
+</ItemRenderer>

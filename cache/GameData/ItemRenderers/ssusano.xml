@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+	<Data>
+		<Sprite name="raps_idle" fileName="game//susano_idle.rttex" textureSize="256"/>
+		<Sprite name="raps_walk" fileName="game//susanoo_walk.rttex" textureSize="256"/>
+		<Sprite name="raps_jump" fileName="game//susanoo_jump.rttex" textureSize="256"/>
+		<Sprite name="raps_punch" fileName="game//susanoo_punch.rttex" textureSize="256"/>
+		<Sprite name="s_punch" fileName="game//susno_p.rttex" textureSize="128" frame="0,0"/>
+		<Sprite name="char_eff" fileName="game//particles2.rttex" textureSize="32" frame="12,5"/>
+		<StateMachines>
+		<StateMachine name="Motion">
+			<States>
+				<State name="Idle" />
+				<State name="Move" />
+				<State name="Jump" />
+				<State name="Fall" />
+				<State name="Punch"/>
+				<State name="Respawn"/>
+			</States>
+			<Transitions>
+				<Transition to="Idle" from="Fall|Move|Jump|Punch" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">true</IsVariableBool>
+						<IsVariableFloat name="speed.length" operator="Less" abs="true">0.1</IsVariableFloat>
+						<IsVariableBool name="isAttacking">false</IsVariableBool>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Move" from="Jump|Fall|Idle|Punch" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">true</IsVariableBool>
+						<IsVariableFloat name="speed.length" operator="Greater" abs="true">0.1</IsVariableFloat>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Jump" from="Idle|Move|Fall|Punch" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">false</IsVariableBool>
+						<IsVariableFloat name="speed.y" operator="Less">-0.1</IsVariableFloat>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Fall" from="Jump|Idle|Move|Punch" >
+					<Condition type="and">
+						<IsVariableBool name="onGround">false</IsVariableBool>
+						<IsVariableFloat name="speed.y" operator="Greater">0.1</IsVariableFloat>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition to="Punch" from="Idle|Move|Jump|Fall">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+					</Condition>
+				</Transition>
+			</Transitions>
+		</StateMachine>
+		</StateMachines>
+		<Animations>
+			<SpriteAnimation name="ge_punch_eff" sprite="s_punch" animTime="600" isLoop="true">
+	     		<Frame>0,0</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="gigi_Idle_Animation" playOnState="Motion.Idle" sprite="raps_idle" animTime="1400" isLoop="true">
+   			<Frame>0,0</Frame>
+   			<Frame>1,0</Frame>
+   			<Frame>2,0</Frame>
+               <Frame>3,0</Frame>
+               <Frame>4,0</Frame>
+               <Frame>5,0</Frame>
+               <Frame>6,0</Frame>
+               <Frame>7,0</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="gigi_Punch_Animation" playOnState="Motion.Punch" sprite="raps_punch" animTime="400" isLoop="true">
+	   		<Frame>0,0</Frame>
+	   		<Frame>1,0</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="gigi_Jump_Animation" playOnState="Motion.Jump" sprite="raps_jump" animTime="600">
+				<Frame>0,0</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="gigi_Fall_Animation" playOnState="Motion.Fall" sprite="raps_jump" animTime="600">
+				<Frame>1,0</Frame>
+			</SpriteAnimation>
+			<SpriteAnimation name="gigi_Walk_Animation" playOnState="Motion.Move" sprite="raps_walk" animTime="800" isLoop="true">
+			   <Frame>0,0</Frame>
+   			<Frame>1,0</Frame>
+   			<Frame>2,0</Frame>
+               <Frame>3,0</Frame>
+               <Frame>4,0</Frame>
+
+			</SpriteAnimation>
+		</Animations>
+		<ParticleSystems>
+        <ParticleSystem name="punch_particle" updateStage="OnPunchStart">
+        <Emitter>
+            <Set name="offset">30,-10060</Set>
+            <Set name="emissionInterval">0.30</Set>
+            <Set name="lifeTime">0.30</Set>
+            <Set name="particlesPerEmission">1</Set>
+            <Set name="particlesToEmit">1</Set>
+        </Emitter>
+        <Particle>
+            <Set name="sprite">s_punch</Set>
+            <Set name="blendingMode">PREMULTIPLIED_ALPHA</Set>
+            <Set name="lifeTime">0.30</Set>
+            <Curve name="initialAlpha">
+						<KeyFrame>0, 1</KeyFrame>
+						<KeyFrame>0.5, 1</KeyFrame>
+						<KeyFrame>1, 0</KeyFrame>
+					</Curve>
+            <Set name="rotateWithVelocity">true</Set>
+            <Set name="interpolateAlpha">false</Set>
+            <Set name="initialAlpha">1</Set>
+            <Set name="finalAlpha">1</Set>
+            <Set name="interpolateVelocity">true</Set>
+            <Set name="initialScale">1,1</Set>
+            <VectorTo name="initialVelocity" source="targetPos" duration="lifeTime" x="1" angle="0"/>
+            <VectorTo name="finalVelocity" source="targetPos" duration="lifeTime" x="1" angle="0"/>
+        </Particle>
+        </ParticleSystem>
+        <ParticleSystem name="ps_flex" updateStachar="AddClothingParticles" renderStachar="RenderInFront">
+				<Emitter>
+				  <Random name="offset" min="-20, -10002" max="20, -10060" />
+				  <Random name="emissionInterval" min="0.05" max="0.07" />
+				  <Set name="infParticles">true</Set>
+				  <Set name="infLifeTime">true</Set>
+				  <Set name="particlesPerEmission">2</Set>
+				</Emitter>
+				<Particle>
+				  <Set name="sprite">char_eff</Set>
+				  <Set name="blendingMode">ADDITIVE</Set>
+				  <Set name="lifeTime">0.5</Set>
+				  <Set name="initialVelocity">0,-3</Set>
+				  <Set name="inSpecificOrder">true</Set>
+				  <Curve name="initialAlpha">
+					<KeyFrame>0, 0</KeyFrame>
+					<KeyFrame>0.5, 1</KeyFrame>
+					<KeyFrame>1, 0</KeyFrame>
+				  </Curve>
+				  <Random name="initialScale" min="0.4" max="0.6" />
+				</Particle>
+			  </ParticleSystem>
+		
+		</ParticleSystems>
+		<RenderOptions>
+			<Default>
+				<Set name="JumpEndStateRange">100</Set>
+				<Set name="ClothingOffsetFromShoes">10000</Set>
+				<Set name="IsRidingBird">true</Set>
+				<Set name="IsVehicle">true</Set>
+				<Set name="UserNameOffset">70</Set>
+				<Set name="RenderShoesWithMermaidTail">true</Set>
+				<Set name="ShoesHidesBodyLegs">true</Set>
+				<Set name="IsToRenderPants">false</Set>
+			</Default>
+		</RenderOptions>
+	</Data>
+	<RenderRules>
+		<RenderInFront>
+			<StopIf>
+				<IsVariableBool name="isMannequin">true</IsVariableBool>
+				<IsRenderMod>RENDER_MOD_MINI_YOU</IsRenderMod>
+			</StopIf>
+			<SpriteRender name="raps_idle" offset="0,-10098" drawShadow="true" scale="0.8,0.8" onState="Motion.Idle"/>
+			<SpriteRender name="raps_walk" offset="0,-10098" drawShadow="true" scale="0.8,0.8" onState="Motion.Move"/>
+			<SpriteRender name="raps_jump" offset="0,-10098" drawShadow="true" scale="0.8,0.8" onState="Motion.Jump|Motion.Fall"/>
+			<SpriteRender name="raps_punch" offset="0,-10098" drawShadow="true" scale="0.8,0.8" onState="Motion.Punch"/>
+		</RenderInFront>
+		<RenderShoes>
+			<StopIf>
+				<IsSitting>true</IsSitting>
+				<IsSleepingOnaBed>true</IsSleepingOnaBed>
+				<IsWearing slot="SHIRT">ITEM_ID_TACTICAL_STEALTH_DEVICE</IsWearing>
+			</StopIf>
+		</RenderShoes>
+		<OnPunchStart>
+		</OnPunchStart>
+	</RenderRules>
+</ItemRenderer>

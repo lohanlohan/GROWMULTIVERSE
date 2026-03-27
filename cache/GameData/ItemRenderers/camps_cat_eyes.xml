@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+  <StateMachines>
+		<StateMachine name="playerState">
+			<States>
+				<State name="Idle"/>
+				<State name="Punch"/>
+				<State name="ZombiePunch"/>
+			</States>
+			<Transitions>
+				<Transition from="ZombiePunch|Punch" to="Idle" >
+					<Condition>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition from="ZombiePunch|Idle" to="Punch">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+						<IsZombified>false</IsZombified>
+					</Condition>
+				</Transition>
+				<Transition from="Idle|Punch" to="ZombiePunch">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+						<IsZombified>true</IsZombified>
+					</Condition>
+				</Transition>
+			</Transitions>
+		</StateMachine>
+	</StateMachines>
+
+
+	<Sprite name="Eyes" fileName="game/custom_tiles_page2.rttex" textureSize="32" frame="29,8"/>
+	<Sprite name="punch_effect" fileName="game/particles.rttex" textureSize="32" frame="0,6"/>
+
+	<Animations>
+
+		<SequenceAnimation name="a_eyes" autoPlay="true" isLoop="true">
+                <DelayAnimation delayTime="2500" />
+                <SpriteAnimation sprite="Eyes" autoPlay="true" animTime="375" isLoop="false">
+					<Frame>29,8</Frame>
+					<Frame>30,8</Frame>
+					<Frame>31,8</Frame>
+					<Frame>30,8</Frame>
+                    <Frame>29,8</Frame>
+				</SpriteAnimation>
+                <DelayAnimation delayTime="6342" />
+                <SpriteAnimation sprite="Eyes" autoPlay="true" animTime="325" isLoop="false">
+					<Frame>29,8</Frame>
+					<Frame>31,8</Frame>
+                    <Frame>29,8</Frame>
+				</SpriteAnimation>
+                <DelayAnimation delayTime="4450" />
+                <SpriteAnimation sprite="Eyes" autoPlay="true" animTime="675" isLoop="false">
+					<Frame>29,8</Frame>
+					<Frame>30,8</Frame>
+					<Frame>31,8</Frame>
+                    <Frame>29,8</Frame>
+					<Frame>31,8</Frame>
+                    <Frame>29,8</Frame>
+				</SpriteAnimation>
+                <DelayAnimation delayTime="1234" />
+                <SpriteAnimation sprite="Eyes" autoPlay="true" animTime="875" isLoop="false">
+					<Frame>29,8</Frame>
+					<Frame>30,8</Frame>
+					<Frame>31,8</Frame>
+					<Frame>30,8</Frame>
+                    <Frame>29,8</Frame>
+                    <Frame>29,8</Frame>
+                    <Frame>29,8</Frame>
+                    <Frame>29,8</Frame>
+					<Frame>31,8</Frame>
+                    <Frame>30,8</Frame>
+                    <Frame>29,8</Frame>
+				</SpriteAnimation>
+			</SequenceAnimation>
+
+            <SpriteCurveAnimation name="slash_fade" isLoop="true" autoPlay="true" sprite="punch_effect" animTime="175">
+				<Curve name="alpha">
+					<KeyFrame>0.f, 0.f</KeyFrame>
+					<KeyFrame>0.5f, 0.9.f</KeyFrame>
+					<KeyFrame>1.f, 0.f</KeyFrame>
+				</Curve>
+			</SpriteCurveAnimation>
+	</Animations>
+  </Data>
+  
+	<RenderRules>
+    <RenderFaceItem>
+      <SpriteRender name="Eyes" offset="0,-16" blend="PREMULTIPLIED_ALPHA"/>
+      <SpriteRender name="punch_effect" offset="8,-17" onState="playerState.Punch" blend="PREMULTIPLIED_ALPHA" stretchToTarget="true" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER" drawShadow="false" flip="1,0"/>
+    </RenderFaceItem>
+	
+    <OnPunchUpdate>
+		<AvatarTransform class="Face">
+			<Set name="face">MAD</Set>
+		</AvatarTransform>
+		<AvatarTransform class="ArmAngle">
+			    <Set name="armName">arm2Angle</Set>
+			    <Set name="armAngle">1750</Set>
+			    <Set name="isAdditive">true</Set>
+			    <Set name="pointTowardsPunchTarget">false</Set>
+		</AvatarTransform>
+	</OnPunchUpdate>
+  </RenderRules>
+</ItemRenderer>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemRenderer>
+  <Data>
+  <StateMachines>
+		<StateMachine name="playerState">
+			<States>
+				<State name="Idle"/>
+				<State name="Punch"/>
+				<State name="ZombiePunch"/>
+			</States>
+			<Transitions>
+				<Transition from="ZombiePunch|Punch" to="Idle" >
+					<Condition>
+						<IsAction operatorType="NotEqual">PUNCH</IsAction>
+					</Condition>
+				</Transition>
+				<Transition from="ZombiePunch|Idle" to="Punch">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+						<IsZombified>false</IsZombified>
+					</Condition>
+				</Transition>
+				<Transition from="Idle|Punch" to="ZombiePunch">
+					<Condition type="and">
+						<IsAction>PUNCH</IsAction>
+						<IsZombified>true</IsZombified>
+					</Condition>
+				</Transition>
+			</Transitions>
+		</StateMachine>
+	</StateMachines>
+	<Sprite name="Eyes" fileName="game/custom_tiles_page2.rttex" textureSize="32" frame="28,4"/>
+    <Sprite name="Halo" fileName="game/enigma_particles4.rttex" textureSize="64" frame="4,13"/>
+	<Sprite name="punch_effect" fileName="game/enigma_particles_small2.rttex" textureSize="32"/>
+
+	<Animations>
+      <SpriteAnimation name="Eyes_Idle" playOnAction="FALL|WALK|JUMP|IDLE" sprite="Eyes" animTime="500" autoPlay="true" isLoop="true">
+		    <Frame>28,4</Frame>
+		    <Frame>29,4</Frame>
+      </SpriteAnimation>
+
+      <SpriteAnimation name="Eyes_Punch" playOnState="playerState.Punch" sprite="Eyes" animTime="100" autoPlay="true" isLoop="true">
+		    <Frame>29,4</Frame>
+		    <Frame>30,4</Frame>
+      </SpriteAnimation>
+
+      <SpriteAnimation name="Halo_A" sprite="Halo" animTime="1250" autoPlay="true" isLoop="true">
+            <Frame>4,13</Frame>
+            <Frame>5,13</Frame>
+            <Frame>6,13</Frame>
+            <Frame>7,13</Frame>
+            <Frame>8,13</Frame>
+            <Frame>9,13</Frame>
+            <Frame>10,13</Frame>
+            <Frame>11,13</Frame>
+            <Frame>12,13</Frame>
+      </SpriteAnimation>
+
+		<SpriteCurveAnimation name="PunchGlow_A" sprite="punch_effect" isLoop="true" autoPlay="true" animTime="150">
+			<Curve name="alpha">
+				<KeyFrame>0.f, 1.f</KeyFrame>
+				<KeyFrame>1.f, 0.f</KeyFrame>
+			</Curve>
+		</SpriteCurveAnimation>
+
+		<SpriteSinPulseAnimation name="HaloFloat_A" sprite="Halo" autoPlay="true">
+			<Parameter name="pos.y">
+				<Set name="period">4000</Set>
+				<Set name="scale">1.5</Set>
+			</Parameter>
+		</SpriteSinPulseAnimation>
+
+	  <SpriteAnimation name="PunchEffect_A" autoPlay="true" sprite="punch_effect" isLoop="true" animTime="75">
+            <Frame>6,10</Frame>
+            <Frame>7,10</Frame>
+      </SpriteAnimation>
+    </Animations>
+
+	<RenderOptions>
+		<Default>
+			<Set name="PunchSoundOverride">HAND</Set>
+			<Set name="PlayDefaultPunchAudio">true</Set>
+			<Set name="IgnoreDefaultDamagedTileEffect">false</Set>
+		</Default>
+	</RenderOptions>
+
+  </Data>
+  <RenderRules>
+    <RenderFaceItem>
+      <SpriteRender name="Eyes" offset="3,-26" blend="PREMULTIPLIED_ALPHA"/>
+      <SpriteRender name="punch_effect" offset="8,-27" onState="playerState.Punch" blend="PREMULTIPLIED_ALPHA" stretchToTarget="true" alignmentLeft="LEFT_CENTER" alignmentRight="RIGHT_CENTER" drawShadow="false" flip="1,0"/>
+    </RenderFaceItem>
+    
+	<RenderInFront>
+		<SpriteRender name="Halo" offset="1,-45" blend="PREMULTIPLIED_ALPHA"/>
+	</RenderInFront>
+	
+    <OnPunchUpdate>
+		<AvatarTransform class="Face">
+			<Set name="face">MAD</Set>
+		</AvatarTransform>
+		<AvatarTransform class="ArmAngle">
+			<Set name="armName">arm2Angle</Set>
+			<Set name="armAngle">215</Set>
+			<Set name="pointTowardsPunchTarget">false</Set>
+		</AvatarTransform>
+	</OnPunchUpdate>
+	<OnDamagedTile>
+		<ParticleSystemUpdate name="fire_punch_particle"/>
+	</OnDamagedTile>
+	<SwitchOffClothingParticles>
+		<ParticleSystemOff name="fire_punch_particle"/>
+	</SwitchOffClothingParticles>
+  </RenderRules>
+</ItemRenderer>
