@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(nested loader architecture\\)\" -type f -name \"*.lua\")",
+      "Bash(find \"lua scripts \\(nested loader architecture\\)\" -name \"*.lua\" -type f -exec grep -l \"_G\\\\.\" {})",
+      "Bash(find \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(nested loader architecture\\)\" -name \"*hospital*\" -o -name \"*malady*\")",
+      "Bash(\"/tmp/audit_analysis.txt\":*)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

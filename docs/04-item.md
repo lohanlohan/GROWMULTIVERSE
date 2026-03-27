@@ -100,3 +100,18 @@ item:getXP(world, player)     -- Return: number (XP yang didapat, consider playe
 ```
 
 > `getGems()` dan `getXP()` bisa memperhitungkan player buffs jika parameter world & player diberikan.
+
+---
+
+## Machine Capacity
+
+```lua
+item:getMachineCap()          -- Return: number (kapasitas mesin saat ini)
+item:setMachineCap(capacity)  -- Set kapasitas mesin (GLOBAL, affects semua instance)
+```
+
+> Digunakan untuk mesin seperti Grow-o-Matic. Contoh:
+> ```lua
+> local item = getItem(25006)
+> item:setMachineCap(5000)   -- set cap level 1
+> ```

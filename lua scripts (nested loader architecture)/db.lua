@@ -34,8 +34,8 @@ function M.loadFeature(featureName)
     if not file.exists(path) then return {} end
     local content = file.read(path)
     if not content or content == "" then return {} end
-    local ok, data = pcall(json.decode, content)
-    return ok and data or {}
+    local data = json.decode(content)
+    return data or {}
 end
 
 -- Simpan seluruh data sebuah feature ke JSON file

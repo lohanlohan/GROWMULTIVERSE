@@ -27,22 +27,16 @@ print("[main] ══════════════════════
 -- ═══════════════════════════════════════════
 -- FONDASI — utils, config, db (wajib pertama)
 -- ═══════════════════════════════════════════
-package.loaded["utils"]  = nil
-package.loaded["config"] = nil
-package.loaded["db"]     = nil
-
-local ok, err
-
-ok, err = pcall(function() _G.Utils  = require("utils")  end)
-if not ok then print("[main] ✗ utils — " .. tostring(err))  return end
-
-ok, err = pcall(function() _G.Config = require("config") end)
-if not ok then print("[main] ✗ config — " .. tostring(err)) return end
-
-ok, err = pcall(function() _G.DB     = require("db")     end)
-if not ok then print("[main] ✗ db — " .. tostring(err))     return end
+_G.Utils  = require("utils")
+_G.Config = require("config")
+_G.DB     = require("db")
 
 print("[main] ✓ fondasi loaded (utils / config / db)")
+
+-- ═══════════════════════════════════════════
+-- LOGGER (dimuat sebelum semua loader lain)
+-- ═══════════════════════════════════════════
+require("logger")
 
 -- ═══════════════════════════════════════════
 -- FEATURE LOADERS (urutan penting!)
@@ -51,7 +45,7 @@ local loaders = {
     "security_loader",   -- [1] anti-cheat aktif duluan
     "economy_loader",    -- [2] store, currency, daily reward
     "player_loader",     -- [3] backpack, profile, titles (sebelum world)
-    "world_loader",      -- [4] rent entrance, grow-o-matic (depend player)
+    "machine_loader",    -- [4] rent entrance, grow-o-matic
     "item_info_loader",  -- [5] item info, item effects
     "consumable_loader", -- [6] wands, consumable items
     "backpack_loader",   -- [7] backpack system (depend item_info)
@@ -62,17 +56,11 @@ local loaders = {
     "admin_loader",      -- [12] give, reload, fakewarn, online (terakhir)
 }
 
-local loaded, failed = 0, 0
+local loaded = 0
 for _, name in ipairs(loaders) do
-    package.loaded[name] = nil
-    local success, result = pcall(require, name)
-    if success then
-        loaded = loaded + 1
-        print("[main] ✓ " .. name)
-    else
-        failed = failed + 1
-        print("[main] ✗ " .. name .. " — " .. tostring(result))
-    end
+    require(name)
+    loaded = loaded + 1
+    print("[main] ✓ " .. name)
 end
 
 -- ═══════════════════════════════════════════
@@ -84,17 +72,11 @@ local standalones = {
 }
 
 for _, name in ipairs(standalones) do
-    package.loaded[name] = nil
-    local success, result = pcall(require, name)
-    if success then
-        loaded = loaded + 1
-        print("[main] ✓ " .. name)
-    else
-        failed = failed + 1
-        print("[main] ✗ " .. name .. " — " .. tostring(result))
-    end
+    require(name)
+    loaded = loaded + 1
+    print("[main] ✓ " .. name)
 end
 
 print("[main] ════════════════════════════════")
-print("[main] Done: " .. loaded .. " loaded, " .. failed .. " failed")
+print("[main] Done: " .. loaded .. " loaded")
 print("[main] ════════════════════════════════")

@@ -59,6 +59,19 @@ C.ITEMS = {
 }
 
 -- ═══════════════════════════════════════════
+-- STARTER PACK
+-- ═══════════════════════════════════════════
+C.STARTER_PACK = {
+    GEMS  = 100,
+    ITEMS = {
+        { itemID = 9640, itemCount = 1 },
+        { itemID = 954,  itemCount = 50 },
+        { itemID = 98,   itemCount = 1 },
+        { itemID = 818,  itemCount = 1 },
+    },
+}
+
+-- ═══════════════════════════════════════════
 -- SETTINGS
 -- ═══════════════════════════════════════════
 C.SETTINGS = {
@@ -66,6 +79,9 @@ C.SETTINGS = {
     DL_TO_WL          = 100,   -- 1 DL = 100 WL
     BGL_TO_DL         = 100,   -- 1 BGL = 100 DL
     GGL_TO_BGL        = 100,   -- 1 GGL = 100 BGL
+
+    -- Player
+    DEFAULT_AUTOFARM_SLOTS = 3,
 
     -- Backpack
     MAX_BP_DROP       = 200,   -- max item per drop dari backpack

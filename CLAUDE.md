@@ -117,17 +117,27 @@ main.lua → sys_[system].lua → [module].lua
 - **Feature** = topik utama / domain (contoh: hospital, carnival, player)
 - **System** = kumpulan module di dalam sebuah feature
 
+### Lua Sandbox GTPS Cloud — PENTING
+GTPS Cloud menggunakan Lua sandbox yang stripped. Fungsi-fungsi berikut **TIDAK TERSEDIA**:
+- ❌ `pcall` — tidak ada, jangan pernah pakai
+- ❌ `package` / `package.loaded` — tidak ada, jangan pernah pakai
+- ❌ Module/loader yang return `nil` (tidak ada `return`) — crash "attempt to index a nil value" di caller
+- ✅ `require()` — tersedia (versi custom GTPS Cloud)
+- ✅ Nested require didukung (loader require module, dari main yang require loader)
+- ✅ Stub loader (belum diimplementasi) WAJIB `return {}` — bukan hanya `print` lalu selesai
+
 ### Aturan Kunci
 1. **`main.lua`** = satu-satunya entry point, tanpa `-- MODULE`
-2. **`[feature]_loader.lua`** = loader per feature, pakai `pcall(require, name)` untuk error isolation
+2. **`[feature]_loader.lua`** = loader per feature, pakai loop pattern — **tanpa pcall, tanpa single require**
 3. **`[object].lua`** = module di dalam feature, nama = topik/objek utama (bukan `[feature]_[object]`)
 4. **Utils global**: `_G.Utils`, `_G.Config`, `_G.DB` — tersedia di semua module
-5. **`package.loaded[name] = nil`** wajib sebelum `require()` di setiap loader
+5. **JANGAN gunakan `package.loaded`** — `package` adalah nil di GTPS Cloud
 6. **Load order penting**: security → economy → player → world → items → carnival → hospital → events → social → admin
 7. **>500 baris → pecah** menjadi sub-module
 8. **Max 3 level nesting** — jangan bikin level 4
-9. **Cross-feature** via `_G.[FeatureName]` — cek nil karena feature bisa gagal load
+9. **Cross-feature** via `_G.[FeatureName]`
 10. **File naming**: lowercase underscore — loader: `hospital_loader.lua`, module: `reception_desk.lua`
+11. **logger.lua** di-require langsung dari `main.lua` (bukan lewat logger_loader) karena logger_loader menyebabkan crash
 
 ### Contoh Struktur Feature
 ```
