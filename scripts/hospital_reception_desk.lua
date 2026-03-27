@@ -174,6 +174,18 @@ local function countOperatingTables(world)
     return 0
 end
 
+local function getOperatingTableCapacityByLevel(level)
+    local fn = rawget(_G, "getOperatingTableCapacityByLevel")
+    if type(fn) == "function" then return tonumber(fn(level)) or 1 end
+    return 1
+end
+
+local function getOperatingPatientDurationByLevel(level)
+    local fn = rawget(_G, "getOperatingPatientDurationByLevel")
+    if type(fn) == "function" then return tonumber(fn(level)) or 0 end
+    return 0
+end
+
 local function getRequirementIconID(current, required)
     local fn = rawget(_G, "getRequirementIconID")
     if type(fn) == "function" then return fn(current, required) end
@@ -383,6 +395,9 @@ function ReceptionDesk.showHospitalStatsPanel(world, player)
     local level = tonumber(state.level) or 1
     local autoSurgeonCount = countAutoSurgeons(world)
     local operatingTableCount = countOperatingTables(world)
+    local operatingTableCapacity = getOperatingTableCapacityByLevel(level)
+    local operatingDurationSec = getOperatingPatientDurationByLevel(level)
+    local operatingDurationMin = math.floor(math.max(0, operatingDurationSec) / 60)
     local doctorCount = ReceptionDesk.countDoctors(worldName)
     local ratingData = getHospitalRatingCounter(worldName) or {}
     ratingData.rating = tonumber(ratingData.rating) or 0
@@ -401,7 +416,9 @@ function ReceptionDesk.showHospitalStatsPanel(world, player)
     d = d .. "add_custom_margin|x:0;y:8|\n"
     d = d .. "add_label_with_icon|small|Auto Surgeon Stations: `2" .. tostring(autoSurgeonCount) .. "/1``|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
     d = d .. "add_custom_margin|x:0;y:8|\n"
-    d = d .. "add_label_with_icon|small|Operating Tables: `2" .. tostring(operatingTableCount) .. "/1``|left|" .. tostring(OPERATING_TABLE_ID) .. "|\n"
+    d = d .. "add_label_with_icon|small|Operating Tables: `2" .. tostring(operatingTableCount) .. "/" .. tostring(operatingTableCapacity) .. "``|left|" .. tostring(OPERATING_TABLE_ID) .. "|\n"
+    d = d .. "add_custom_margin|x:0;y:8|\n"
+    d = d .. "add_label_with_icon|small|Surg-Bot patient duration: `2" .. tostring(operatingDurationMin) .. " minutes``|left|14662|\n"
     d = d .. "add_custom_margin|x:0;y:8|\n"
     d = d .. "add_label_with_icon|small|Rating: `2" .. tostring(ratingData.rating) .. "/" .. tostring(maxRating) .. "``|left|" .. tostring(getRequirementIconID(ratingData.rating, maxRating)) .. "|\n"
     d = d .. "add_custom_margin|x:0;y:8|\n"

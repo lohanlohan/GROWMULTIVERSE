@@ -23,9 +23,73 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 
 ## Status Server
 
-**Status:** Development — fokus core features
+**Status:** Development — fokus core features + arsitektur refactor planning
 **Platform:** GTPS Cloud by Sebia
 **Reload script:** `/rs` in-game
+
+---
+
+## ════════════════════════════════════
+## ARSITEKTUR: Module System Refactor
+## ════════════════════════════════════
+
+**Docs:** `docs/structure.md`
+**Status:** 📋 Planned — belum mulai migrasi
+**Last updated:** 2026-03-26
+
+### Arsitektur Target
+```
+main.lua → sys_[system].lua → [module].lua
+(entry)     (system loader)    (feature module)
+```
+
+### Inventory Script → System Map
+
+**Sudah terbentuk (ada dependensi/shared state):**
+```
+[Carnival]     carnival.lua (3767 baris!) + TicketBooth_Carnival.lua + bb_scan.lua
+[Hospital]     hospital_main.lua (loader) + hospital.lua + malady_rng.lua + vile_vial.lua
+[Backpack]     Backpack.lua + item_categorizer.lua (require dependency)
+[Item Info]    itemeffectlua.lua + ItemInfo.lua (shared variant callback)
+```
+
+**Groupable (pola sama, bisa dijadikan 1 system):**
+```
+[Economy]      store.lua, daily-reward.lua, buy.lua, cashbackCoupon.lua, TransferPWL.lua
+[Wands]        firewand.lua, freezewand.lua, cursewand.lua, banwand.lua
+[Admin Give]   GiveServerToken.lua, GiveSupporter.lua, Givelevel.lua, giveskin.lua
+[Consumables]  fireworks.lua, ducttape.lua, antidote.lua, coconutTart.lua, wolf_whistle_.lua, consumablecoin.lua
+[Player Setup] player-profile.lua, starter-pack.lua, login-message.lua, default-slots.lua, set-slots-command.lua
+[Social/Comms] news.lua, broadcast.lua, gsm.lua, Xqsb.lua, socialportal.lua
+[Events]       challenge_of_fenrir.lua, clash_finale_parkour.lua, lbeventscript.lua
+[Security]     anti-spam.lua, anti_consumable.lua
+[World]        Rent_Entrance.lua, GrowMatic.lua
+```
+
+**Standalone (belum masuk system):**
+```
+automation_menu.lua, autofarm_speed.lua, reload-command.lua, fakewarn.lua,
+custom-help.lua, onlinealbin.lua, cskin.lua, ball.lua, BALOON.lua,
+Ringmastered.lua, marvelous-missions.lua, item_browser.lua, tile-extra-example.lua
+```
+
+### Utils (global shared — belum dibuat)
+```
+utils.lua   ← formatNum, formatTime, parseArgs, isPrivileged, safeBubble, logger
+config.lua  ← WORLDS, ROLES, ITEM_IDS, SETTINGS
+db.lua      ← save/load wrapper: saveData, sqlite, file I/O
+```
+
+### Migration Phase (belum ditentukan final — tunggu keputusan user)
+```
+Phase 1:  TBD — fondasi (utils + main.lua) atau system tertentu duluan?
+```
+
+### Next Step
+```
+Tentukan Phase 1: mulai dari fondasi (utils+main) atau langsung pecah carnival?
+Tentukan grouping final: mana yang jadi 1 system, mana yang tetap standalone
+```
 
 ---
 

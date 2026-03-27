@@ -4,6 +4,7 @@ local MaladySystem = require("malady_rng")
 
 local ReceptionDesk = require("hospital_reception_desk")
 local AutoSurgeon = require("hospital_auto_surgeon")
+local OperatingTable = require("hospital_operating_table")
 
 local HospitalSystem = {}
 
@@ -28,6 +29,11 @@ local MAX_HOSPITAL_RATING = 5
 local RATING_STEP_CURES = 100
 
 local MAX_HOSPITAL_LEVEL = 52
+local SURGBOT_SPAWN_INTERVAL_SEC = 24 * 60 * 60
+local OPERATING_PROCESS_INTERVAL_SEC = 5
+local OPERATING_TABLE_DURATION_MIN_SEC = (24 * 60 + 5) * 60
+local OPERATING_TABLE_DURATION_MAX_SEC = (28 * 60 + 10) * 60
+local OPERATING_STATUS_BUBBLE_INTERVAL_SEC = 5
 
 local function getRequiredCuresForNextLevel(nextLevel)
     return math.max(0, (30 * nextLevel * nextLevel) - (30 * nextLevel) - 40)
@@ -639,6 +645,7 @@ local function normalizeHospitalState(state)
     if type(state.doctor_stats) ~= "table" then state.doctor_stats = {} end
     if type(state.treatment_stats) ~= "table" then state.treatment_stats = {} end
     if type(state.cured_by_malady) ~= "table" then state.cured_by_malady = {} end
+    if type(state.operating_tables) ~= "table" then state.operating_tables = {} end
     state.rating = tonumber(state.rating) or 0
     state.rating_counter = tonumber(state.rating_counter) or 0
 
@@ -654,6 +661,18 @@ local function normalizeHospitalState(state)
 
     for _, maladyType in pairs(MaladySystem.MALADY) do
         state.cured_by_malady[maladyType] = tonumber(state.cured_by_malady[maladyType]) or 0
+    end
+
+    for k, row in pairs(state.operating_tables) do
+        if type(k) ~= "string" or type(row) ~= "table" then
+            state.operating_tables[k] = nil
+        else
+            row.status = tostring(row.status or "idle")
+            row.spawned_at = tonumber(row.spawned_at) or 0
+            row.expire_at = tonumber(row.expire_at) or 0
+            row.next_spawn_at = tonumber(row.next_spawn_at) or 0
+            row.npc_name = tostring(row.npc_name or "")
+        end
     end
 
     return state
@@ -674,7 +693,8 @@ local function loadHospital(worldName)
         doctors = {},
         doctor_stats = {},
         treatment_stats = { total = 0, successful = 0, failed = 0 },
-        cured_by_malady = {}
+        cured_by_malady = {},
+        operating_tables = {}
     })
 end
 
@@ -690,6 +710,7 @@ local function saveHospital(worldName, data)
         doctor_stats   = normalized.doctor_stats,
         treatment_stats = normalized.treatment_stats,
         cured_by_malady = normalized.cured_by_malady,
+        operating_tables = normalized.operating_tables,
     }
     writeHospitalDB(db)
 end
@@ -902,6 +923,43 @@ local function countOperatingTables(world)
         if tile and tile:getTileID() == OPERATING_TABLE_ID then count = count + 1 end
     end
     return count
+end
+
+local function getOperatingTableCapacityByLevel(level)
+    return OperatingTable.getOperatingTableCapacityByLevel(level)
+end
+
+local function getOperatingPatientDurationByLevel(level)
+    return OperatingTable.getOperatingPatientDurationByLevel(level)
+end
+
+local function getOperatingRowKey(x, y)
+    return OperatingTable.getOperatingRowKey(x, y)
+end
+
+local function getSurgBotNameForTable(x, y)
+    return "Surg-Bot " .. tostring(math.floor(tonumber(x) or 0)) .. ":" .. tostring(math.floor(tonumber(y) or 0))
+end
+
+local function getOperatingStateRow(state, x, y, now)
+    return OperatingTable.getOperatingStateRow(state, x, y, now)
+end
+
+local function findOperatingTileByPlayer(world, target)
+    if type(world) ~= "userdata" or type(target) ~= "userdata" then return nil end
+    local tx = math.floor((tonumber(target:getPosX()) or 0) / 32)
+    local ty = math.floor((tonumber(target:getPosY()) or 0) / 32)
+    local tile = world:getTile(tx, ty)
+    if not tile or tile:getTileID() ~= OPERATING_TABLE_ID then return nil end
+    return tile
+end
+
+local function processOperatingTablesInWorld(world, now)
+    OperatingTable.processOperatingTablesInWorld(world, now)
+end
+
+local function resolveOperatingTableSurgery(world, surgeon, targetPlayer)
+    return OperatingTable.resolveOperatingTableSurgery(world, surgeon, targetPlayer)
 end
 
 local function hasHospitalInWorld(world)
@@ -1429,8 +1487,11 @@ _G.deductWLEquivalent = deductWLEquivalent
 _G.getUserID = getUserID
 _G.getWorldName = getWorldName
 _G.isWorldOwner = isWorldOwner
+_G.isEffectiveDoctor = isEffectiveDoctor
 _G.safeHasRole = safeHasRole
 _G.safeBubble = safeBubble
+_G.getAllWorldTiles = getAllWorldTiles
+_G.recordHospitalTreatment = recordHospitalTreatment
 _G.RECEPTION_DESK_ID = RECEPTION_DESK_ID
 _G.AUTO_SURGEON_ID = AUTO_SURGEON_ID
 _G.OPERATING_TABLE_ID = OPERATING_TABLE_ID
@@ -1449,6 +1510,12 @@ _G.getUnlockedAutoSurgeonMaladies = getUnlockedAutoSurgeonMaladies
 _G.HOSPITAL_STATS_MALADY_ROWS = HOSPITAL_STATS_MALADY_ROWS
 _G.HOSPITAL_LEVELS = HOSPITAL_LEVELS
 _G.LEVEL_UP_RULES = LEVEL_UP_RULES
+_G.REQUIRED_OPERATING_TABLES = REQUIRED_OPERATING_TABLES
+_G.SURGBOT_SPAWN_INTERVAL_SEC = SURGBOT_SPAWN_INTERVAL_SEC
+_G.OPERATING_PROCESS_INTERVAL_SEC = OPERATING_PROCESS_INTERVAL_SEC
+_G.OPERATING_TABLE_DURATION_MIN_SEC = OPERATING_TABLE_DURATION_MIN_SEC
+_G.OPERATING_TABLE_DURATION_MAX_SEC = OPERATING_TABLE_DURATION_MAX_SEC
+_G.OPERATING_STATUS_BUBBLE_INTERVAL_SEC = OPERATING_STATUS_BUBBLE_INTERVAL_SEC
 _G.ROLE_DEVELOPER = ROLE_DEVELOPER
 _G.WORLD_LOCK_ID = WORLD_LOCK_ID
 _G.DIAMOND_LOCK_ID = DIAMOND_LOCK_ID
@@ -1476,6 +1543,8 @@ _G.countOperatingTables = countOperatingTables
 _G.getLevelUpSnapshot = getLevelUpSnapshot
 _G.isLevelUpReadyForRule = isLevelUpReadyForRule
 _G.setHospitalState = setHospitalState
+_G.getOperatingTableCapacityByLevel = getOperatingTableCapacityByLevel
+_G.getOperatingPatientDurationByLevel = getOperatingPatientDurationByLevel
 
 -- =======================================================
 -- CALLBACKS
@@ -1620,6 +1689,20 @@ onTilePlaceCallback(function(world, player, tile, placingID)
         end
     end
 
+    if itemID == OPERATING_TABLE_ID then
+        if countReceptionDesks(world) < 1 then
+            safeBubble(player, "`4A Reception Desk must be placed first before adding Operating Tables.")
+            return true
+        end
+        local worldName = getWorldName(world, player)
+        local hospitalLevel = tonumber((getHospitalState(worldName) or {}).level) or 1
+        local capacity = getOperatingTableCapacityByLevel(hospitalLevel)
+        if countOperatingTables(world) >= capacity then
+            safeBubble(player, "`4Operating Table capacity reached: `o" .. tostring(capacity) .. "`4. Upgrade hospital level to unlock more.")
+            return true
+        end
+    end
+
     return false
 end)
 
@@ -1665,7 +1748,32 @@ onTileBreakCallback(function(world, player, tile)
     if tile:getTileID() == AUTO_SURGEON_ID then
         deleteStation(worldName, tile:getPosX(), tile:getPosY())
     end
+
+    if tile:getTileID() == OPERATING_TABLE_ID then
+        OperatingTable.clearOperatingTable(world, worldName, tile:getPosX(), tile:getPosY())
+    end
 end)
+
+if type(onWorldTick) == "function" then
+    onWorldTick(function(world)
+        if type(world) ~= "userdata" then return end
+        local worldName = getWorldName(world)
+        if worldName == "" then return end
+
+        local now = os.time()
+        local gate = rawget(_G, "__HOSPITAL_OPERATING_WORLD_TICK_GATE")
+        if type(gate) ~= "table" then
+            gate = {}
+            _G.__HOSPITAL_OPERATING_WORLD_TICK_GATE = gate
+        end
+
+        local nextAllowed = tonumber(gate[worldName]) or 0
+        if now < nextAllowed then return end
+        gate[worldName] = now + OPERATING_PROCESS_INTERVAL_SEC
+
+        processOperatingTablesInWorld(world, now)
+    end)
+end
 
 -- (Nperma only) Block trading World Lock out of a hospital world
 onPlayerTradeCallback(function(world, player1, player2, items1, items2)
@@ -1693,6 +1801,10 @@ onPlayerSurgeryCallback(function(world, surgeon, rewardID, rewardCount, targetPl
 
     local worldName = getWorldName(world, surgeon)
     local treatmentRecorded = false
+
+    if resolveOperatingTableSurgery(world, surgeon, targetPlayer) then
+        treatmentRecorded = true
+    end
 
     if targetPlayer and MaladySystem.hasActiveMalady(targetPlayer) then
         local targetMalady = MaladySystem.getActiveMalady(targetPlayer)
@@ -1739,6 +1851,19 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     end
     local cmd = string.lower(parts[1] or "")
 
+    if cmd == "sleep" or cmd == "/sleep" then
+        local px = math.floor((player:getPosX() or 0) / 32)
+        local py = math.floor((player:getPosY() or 0) / 32)
+        local tile = world:getTile(px, py)
+        if tile and tile:getTileID() == OPERATING_TABLE_ID then
+            if world.setPlayerPosition then
+                world:setPlayerPosition(player, tile:getPosX(), tile:getPosY())
+            end
+            safeBubble(player, "`2You lay on the Operating Table and wait for a doctor.")
+            return false
+        end
+    end
+
     if cmd ~= "hospitaltest" and cmd ~= "/hospitaltest" then
         return false
     end
@@ -1757,10 +1882,30 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         safeConsole(player, "`w/hospitaltest state")
         safeConsole(player, "`w/hospitaltest addprogress")
         safeConsole(player, "`w/hospitaltest stationstate")
+        safeConsole(player, "`w/hospitaltest operating `o= debug operating table status in this world")
         safeConsole(player, "`w/hospitaltest tileextra `o= debug Auto Surgeon tile extra values")
         safeConsole(player, "`w/hospitaltest tileextra id <0-255> `o= force selectedIllness visual ID")
         safeConsole(player, "`w/hospitaltest tileextra auto `o= clear forced selectedIllness ID")
         safeConsole(player, "`w/hospitaltest tileextra wl 0|1 `o= force wlCount visual flag")
+        return true
+    end
+
+    if sub == "operating" then
+        local worldName = getWorldName(world, player)
+        local state = getHospitalState(worldName)
+        local level = tonumber(state.level) or 1
+        safeConsole(player, "`wOperating Table Capacity: `o" .. tostring(getOperatingTableCapacityByLevel(level)))
+        safeConsole(player, "`wOperating Table Duration(s): `o" .. tostring(getOperatingPatientDurationByLevel(level)))
+
+        local loaded = loadHospital(worldName)
+        local opRows = loaded.operating_tables or {}
+        local total = 0
+        local active = 0
+        for _, row in pairs(opRows) do
+            total = total + 1
+            if tostring(row.status or "") == "active" then active = active + 1 end
+        end
+        safeConsole(player, "`wOperating Table rows tracked: `o" .. tostring(total) .. " `w(active: `o" .. tostring(active) .. "`w)")
         return true
     end
 

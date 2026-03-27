@@ -25,7 +25,7 @@ Jika ada perbedaan antara kedua sumber, prioritaskan **Skoobz Docs** sebagai ref
 
 ## File API Documentation (Deep Search di sini)
 
-Semua file ada di folder `api-docs/`:
+Semua file ada di folder `docs/`:
 
 | File | Isi |
 |------|-----|
@@ -64,6 +64,43 @@ Ketika user bertanya tentang coding:
 - Gunakan `sqlite` untuk persistent data yang complex, `saveDataToServer`/`loadDataFromServer` untuk data sederhana
 - Dialog string menggunakan `\n` sebagai separator antar command
 - Module files harus dimulai dengan `-- MODULE` di baris pertama
+
+## Arsitektur Module System
+
+> Dokumentasi lengkap: `docs/structure.md`
+
+Project menggunakan **nested loader architecture** dengan 3 level:
+```
+main.lua → sys_[system].lua → [module].lua
+(entry)     (system loader)    (feature module)
+```
+
+### Aturan Kunci
+1. **`main.lua`** = satu-satunya file tanpa `-- MODULE` (entry point)
+2. **`sys_*.lua`** = system loader, pakai `pcall(require, name)` untuk error isolation
+3. **`[system]_*.lua`** = feature module, `-- MODULE` + `return M`
+4. **Utils global**: `_G.Utils`, `_G.Config`, `_G.DB` — tersedia di semua module
+5. **`package.loaded[name] = nil`** wajib sebelum `require()` di setiap loader
+6. **Load order penting**: security → economy → player → world → items → carnival → hospital → events → social → admin
+7. **>500 baris → pecah** menjadi sub-module
+8. **Max 3 level nesting** — jangan bikin level 4
+9. **Cross-system** via `_G.[SystemName]` — cek nil karena system bisa gagal load
+10. **File naming**: `[system]_[feature].lua` lowercase underscore
+
+### Cara Bikin Module Baru
+```lua
+-- MODULE
+-- [system]_[feature].lua — Deskripsi singkat
+local M = {}
+local Utils  = _G.Utils
+local Config = _G.Config
+
+-- ... logic ...
+
+return M
+```
+
+Daftarkan di system loader yang sesuai (`sys_[system].lua`) + update migration map di `docs/structure.md`.
 
 ## Contoh Pola Umum
 
