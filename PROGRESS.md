@@ -27,6 +27,14 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 **Platform:** GTPS Cloud by Sebia
 **Reload script:** `/rs` in-game
 
+## Struktur Folder Aktif
+
+```
+lua scripts (old architecture)/    ← REFERENSI — semua script lama, jangan edit
+lua scripts (nested loader architecture)/  ← TARGET — tempat Phase 1+ ditulis
+```
+> Script di `scripts/` (root) = deprecated mirror, abaikan
+
 ---
 
 ## ════════════════════════════════════
@@ -35,60 +43,135 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 
 **Docs:** `docs/structure.md`
 **Status:** 📋 Planned — belum mulai migrasi
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-27
+
+### Terminologi
+- **Feature** = domain utama (contoh: hospital, carnival) — punya `[feature]_loader.lua`
+- **System** = kumpulan module di dalam feature — file bernama `[object].lua`
 
 ### Arsitektur Target
 ```
-main.lua → sys_[system].lua → [module].lua
-(entry)     (system loader)    (feature module)
+main.lua → [feature]_loader.lua → [object].lua
+(entry)     (loader per feature)   (module per topik/objek)
 ```
 
-### Inventory Script → System Map
+### Grouping Final ✅
 
-**Sudah terbentuk (ada dependensi/shared state):**
 ```
-[Carnival]     carnival.lua (3767 baris!) + TicketBooth_Carnival.lua + bb_scan.lua
-[Hospital]     hospital_main.lua (loader) + hospital.lua + malady_rng.lua + vile_vial.lua
-[Backpack]     Backpack.lua + item_categorizer.lua (require dependency)
-[Item Info]    itemeffectlua.lua + ItemInfo.lua (shared variant callback)
+[carnival]     carnival_loader.lua
+               carnival.lua, ticket_booth.lua, bb_scan.lua, ringmaster.lua
+
+[hospital]     hospital_loader.lua
+               hospital.lua, reception_desk.lua, operating_table.lua,
+               auto_surgeon.lua, malady_rng.lua
+               ⚠️ vile_vial.lua → pindah ke consumable (shared, fungsi utama = consumable)
+
+[backpack]     backpack_loader.lua
+               backpack.lua, item_categorizer.lua
+
+[item_info]    item_info_loader.lua
+               item_info.lua, item_effect.lua
+
+[economy]      economy_loader.lua
+               store.lua, daily_reward.lua, buy.lua, cashback_coupon.lua, transfer_pwl.lua
+
+[consumable]   consumable_loader.lua
+               firewand.lua, freezewand.lua, cursewand.lua, banwand.lua,
+               fireworks.lua, ducttape.lua, antidote.lua, coconut_tart.lua,
+               wolf_whistle.lua, consumable_coin.lua, vile_vial.lua
+
+[player]       player_loader.lua
+               profile.lua, starter_pack.lua, login_message.lua,
+               default_slots.lua, set_slots.lua, custom_titles.lua
+
+[social]       social_loader.lua
+               news.lua, broadcast.lua, gsm.lua, xqsb.lua, social_portal.lua
+
+[security]     security_loader.lua
+               anti_spam.lua, anti_consumable.lua
+
+[world]        world_loader.lua
+               rent_entrance.lua, grow_matic.lua
+
+[admin]        admin_loader.lua
+               give_token.lua, give_supporter.lua, give_level.lua, give_skin.lua,
+               fake_warn.lua
+
+[events]       events_loader.lua
+               fenrir.lua, clash_finale.lua, lb_event.lua
 ```
 
-**Groupable (pola sama, bisa dijadikan 1 system):**
+**Standalone feature (loader sendiri, tidak bergabung ke feature lain):**
 ```
-[Economy]      store.lua, daily-reward.lua, buy.lua, cashbackCoupon.lua, TransferPWL.lua
-[Wands]        firewand.lua, freezewand.lua, cursewand.lua, banwand.lua
-[Admin Give]   GiveServerToken.lua, GiveSupporter.lua, Givelevel.lua, giveskin.lua
-[Consumables]  fireworks.lua, ducttape.lua, antidote.lua, coconutTart.lua, wolf_whistle_.lua, consumablecoin.lua
-[Player Setup] player-profile.lua, starter-pack.lua, login-message.lua, default-slots.lua, set-slots-command.lua
-[Social/Comms] news.lua, broadcast.lua, gsm.lua, Xqsb.lua, socialportal.lua
-[Events]       challenge_of_fenrir.lua, clash_finale_parkour.lua, lbeventscript.lua
-[Security]     anti-spam.lua, anti_consumable.lua
-[World]        Rent_Entrance.lua, GrowMatic.lua
+marvelous_missions_loader.lua   ← standalone event feature
+automation_menu_loader.lua      ← standalone event, tapi bisa connect ke feature lain nanti
 ```
 
-**Standalone (belum masuk system):**
+**Dev/Debug (tidak diload ke server):**
 ```
-automation_menu.lua, autofarm_speed.lua, reload-command.lua, fakewarn.lua,
-custom-help.lua, onlinealbin.lua, cskin.lua, ball.lua, BALOON.lua,
-Ringmastered.lua, marvelous-missions.lua, item_browser.lua, tile-extra-example.lua
+tile_debug.lua           ← debug only
+tile-extra-example.lua   ← template
+tile-wrench-example.lua  ← template
+blocks-drops-example.lua
+experimental-blocks.lua
+pot-o-gold-example.lua
+roles-example.lua
+say-example.lua
+give-gems-command.lua
+green-beer-consumable.lua
 ```
 
-### Utils (global shared — belum dibuat)
+**🗑️ Dihapus:**
 ```
-utils.lua   ← formatNum, formatTime, parseArgs, isPrivileged, safeBubble, logger
-config.lua  ← WORLDS, ROLES, ITEM_IDS, SETTINGS
-db.lua      ← save/load wrapper: saveData, sqlite, file I/O
+ball.lua      ← rusak, tidak jelas
+BALOON.lua    ← rusak, tidak jelas
+cskin.lua     ← dihapus
 ```
 
-### Migration Phase (belum ditentukan final — tunggu keputusan user)
+### Grouping Final (LENGKAP) ✅
+
+| Feature | Loader | Module di dalamnya |
+|---------|--------|-------------------|
+| carnival | `carnival_loader.lua` | carnival.lua, ticket_booth.lua, bb_scan.lua, ringmaster.lua |
+| hospital | `hospital_loader.lua` | hospital.lua, reception_desk.lua, operating_table.lua, auto_surgeon.lua, malady_rng.lua |
+| backpack | `backpack_loader.lua` | backpack.lua, item_categorizer.lua |
+| item_info | `item_info_loader.lua` | item_info.lua, item_effect.lua |
+| economy | `economy_loader.lua` | store.lua, daily_reward.lua, buy.lua, cashback_coupon.lua, transfer_pwl.lua |
+| consumable | `consumable_loader.lua` | firewand.lua, freezewand.lua, cursewand.lua, banwand.lua, fireworks.lua, ducttape.lua, antidote.lua, coconut_tart.lua, wolf_whistle.lua, consumable_coin.lua, vile_vial.lua, autofarm_speed.lua |
+| player | `player_loader.lua` | profile.lua, starter_pack.lua, login_message.lua, default_slots.lua, set_slots.lua, custom_titles.lua, custom_help.lua |
+| social | `social_loader.lua` | news.lua, broadcast.lua, gsm.lua, xqsb.lua, social_portal.lua |
+| security | `security_loader.lua` | anti_spam.lua, anti_consumable.lua |
+| world | `world_loader.lua` | rent_entrance.lua, grow_matic.lua |
+| admin | `admin_loader.lua` | give_token.lua, give_supporter.lua, give_level.lua, give_skin.lua, fake_warn.lua, online.lua, item_browser.lua, reload.lua |
+| events | `events_loader.lua` | fenrir.lua, clash_finale.lua, lb_event.lua |
+
+### Fondasi (Phase 1 — PRIORITAS UTAMA)
 ```
-Phase 1:  TBD — fondasi (utils + main.lua) atau system tertentu duluan?
+⚠️  Banyak feature akan saling connect → fondasi HARUS kuat sebelum migrasi apapun
+
+main.lua     ← entry point, load semua [feature]_loader.lua secara berurutan
+utils.lua    ← formatNum, formatTime, parseArgs, isPrivileged, safeBubble, logger
+config.lua   ← WORLDS, ROLES, ITEM_IDS, SETTINGS (semua konstanta terpusat)
+db.lua       ← save/load wrapper: saveData, loadData, sqlite helper, file I/O
+```
+
+**Load order di main.lua:**
+```
+security → economy → player → world → items/backpack → item_info →
+consumable → carnival → hospital → events → social → admin → standalone
+```
+
+### Migration Phase
+```
+Phase 1:  Fondasi — main.lua + utils.lua + config.lua + db.lua  ← MULAI DI SINI
+Phase 2:  Security + Player (lightweight, fondasi stabil dulu)
+Phase 3:  Economy + World
+Phase 4+: Feature besar (carnival, hospital, consumable, dll.)
 ```
 
 ### Next Step
 ```
-Tentukan Phase 1: mulai dari fondasi (utils+main) atau langsung pecah carnival?
-Tentukan grouping final: mana yang jadi 1 system, mana yang tetap standalone
+Konfirmasi Phase 1: mulai tulis fondasi (main + utils + config + db)?
 ```
 
 ---
@@ -178,7 +261,7 @@ tile-wrench-example.lua
 ## FITUR: Carnival Minigames — carnival.lua
 ## ════════════════════════════════════
 
-**File:** `scripts/carnival.lua`
+**File:** `lua scripts (old architecture)/carnival.lua`
 **Storage Key:** `"CARNIVAL_PRIZE_V1"`
 **World:** `CARNIVAL_2`
 **Status:** ✅ Done (Concentration R1&2 + Shooting Gallery R1&2 + Death Race 5000 + Mirror Maze + Growganoth Gulch R1&2 + Spiky Survivor + Brutal Bounce)

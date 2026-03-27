@@ -111,8 +111,9 @@ Semua fitur Growtopia real ditargetkan aktif:
 - Fitur hardcore tidak boleh membuat player casual tidak bisa menikmati server
 
 ### Technical
-- Satu fitur = satu script file
-- Semua script ikut konvensi di docs/conventions.md
+- Script baru ditulis di `lua scripts (nested loader architecture)/` — bukan di `scripts/`
+- `lua scripts (old architecture)/` hanya referensi, jangan edit
+- Semua script ikut konvensi di `docs/structure.md`
 - Test di server dev dulu sebelum production
 - Backup script sebelum edit
 
@@ -130,10 +131,28 @@ Setiap kali diminta membuat atau mengevaluasi fitur:
 
 ---
 
+## Struktur Environment
+
+```
+GROWMULTIVERSE/ (menyerupai file manager panel dashboard GTPS Cloud by Sebia)
+├── audio/          ← File audio real Growtopia (.wav + .ogg)
+├── cache/          ← File tambahan GTPS (bukan file GT asli)
+├── game/           ← Asset real Growtopia
+├── GameData/       ← Data real Growtopia (ItemRenderers, UI, dll.)
+├── interface/      ← Interface real Growtopia
+├── lua scripts (old architecture)/          ← Referensi script lama (flat)
+└── lua scripts (nested loader architecture)/← Target migrasi Phase 1+
+```
+
+---
+
 ## Progress Log
 
 ### March 2026
 - Project dimulai
-- Setup dokumentasi (CLAUDE.md, docs/, PROJECT.md)
-- 5 script dasar sudah ada (missions, quest, starter pack, item effects, delete account)
-- Target: selesaikan semua core GT features
+- Setup dokumentasi (CLAUDE.md, docs/, PROJECT.md, PROGRESS.md)
+- Environment baru dibuat: folder audio/cache/game/GameData/interface + 2 lua folder
+- 70+ script lama dipindah ke `lua scripts (old architecture)/` sebagai referensi
+- Script aktif: carnival (3767 baris), hospital system (5 file), backpack, item info, dll.
+- Arsitektur nested loader direncanakan — migrasi Phase 1 belum dimulai
+- Target: tentukan grouping final → mulai Phase 1 migrasi ke nested loader

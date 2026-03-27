@@ -23,6 +23,32 @@ Dokumentasi dikompilasi dari dua sumber resmi:
 
 Jika ada perbedaan antara kedua sumber, prioritaskan **Skoobz Docs** sebagai referensi utama, dan gunakan **Nperma Docs** untuk fungsi tambahan yang tidak ada di Skoobz.
 
+## Struktur Folder Repository
+
+```
+GROWMULTIVERSE/
+├── audio/                              ← File audio real Growtopia (.wav + ogg/)
+├── cache/                              ← File tambahan GTPS (bukan file GT asli)
+├── game/                               ← Asset real Growtopia
+├── GameData/                           ← Data real Growtopia (ItemRenderers, UI, dll.)
+├── interface/                          ← Interface real Growtopia
+├── lua scripts (old architecture)/     ← REFERENSI — semua script lama (flat, tanpa module)
+│   ├── carnival.lua                    ← Contoh: semua script lama ada di sini
+│   └── ...
+├── lua scripts (nested loader architecture)/  ← TARGET — tempat kita mulai Phase 1
+│   └── (kosong, akan diisi saat migrasi)
+├── docs/                               ← API docs + struktur
+├── scripts/                            ← Mirror lama (deprecated, akan dihapus)
+├── CLAUDE.md                           ← Instruksi AI (file ini)
+├── PROGRESS.md                         ← Progress tracker per fitur
+└── PROJECT.md                          ← Visi & overview server
+```
+
+**Aturan folder:**
+- `lua scripts (old architecture)/` = **hanya referensi** — jangan edit, jangan hapus
+- `lua scripts (nested loader architecture)/` = **tempat kerja aktif** — semua file baru dibuat di sini
+- `audio/`, `game/`, `GameData/`, `interface/` = **jangan disentuh** — file asli Growtopia
+
 ## File API Documentation (Deep Search di sini)
 
 Semua file ada di folder `docs/`:
@@ -52,6 +78,14 @@ Ketika user bertanya tentang coding:
 4. **Review** — Pastikan tidak ada fungsi yang tidak exist, parameter yang salah, atau logic yang buruk
 5. **Berikan feedback** — Jika ada cara yang lebih baik, sarankan
 
+## Server ID Policy
+
+- **Admin server (4134)** = beta testing — semua feature baru mulai di sini
+- **Main server (4552)** = production Growtopia Multiverse
+- Guard ada di `main.lua` — server ID di luar 4134/4552 = script tidak load + print pesan
+- `Config.ACTIVE_SERVER` di `config.lua` = penanda status feature saat ini
+- **Saat feature siap production**: update `Config.ACTIVE_SERVER` dari `SERVER.ADMIN` ke `SERVER.MAIN`
+
 ## Aturan Coding
 
 - Gunakan colon operator (`:`) untuk method calls: `player:getGems()` bukan `player.getGems()`
@@ -61,7 +95,11 @@ Ketika user bertanya tentang coding:
 - Setelah `tile:setFlags()` selalu panggil `world:updateTile(tile)`
 - Setelah modify subscription offline player, panggil `savePlayer(player)`
 - Jangan gunakan `os.execute()` atau `os.exit()` — sangat berbahaya di production
-- Gunakan `sqlite` untuk persistent data yang complex, `saveDataToServer`/`loadDataFromServer` untuk data sederhana
+- Gunakan `saveDataToServer`/`loadDataFromServer` untuk data global server (flag, state, config aktif)
+- **1 feature = 1 file JSON** di `currentState/luaData/[feature].json`
+- Per-player data pakai `DB.getPlayer / DB.setPlayer / DB.updatePlayer("featureName", uid, ...)`
+- Feature-level data pakai `DB.loadFeature / DB.saveFeature("featureName", ...)`
+- SQLite belum dipakai — tunggu konfirmasi sebelum implementasi
 - Dialog string menggunakan `\n` sebagai separator antar command
 - Module files harus dimulai dengan `-- MODULE` di baris pertama
 
@@ -75,22 +113,35 @@ main.lua → sys_[system].lua → [module].lua
 (entry)     (system loader)    (feature module)
 ```
 
+### Terminologi
+- **Feature** = topik utama / domain (contoh: hospital, carnival, player)
+- **System** = kumpulan module di dalam sebuah feature
+
 ### Aturan Kunci
-1. **`main.lua`** = satu-satunya file tanpa `-- MODULE` (entry point)
-2. **`sys_*.lua`** = system loader, pakai `pcall(require, name)` untuk error isolation
-3. **`[system]_*.lua`** = feature module, `-- MODULE` + `return M`
+1. **`main.lua`** = satu-satunya entry point, tanpa `-- MODULE`
+2. **`[feature]_loader.lua`** = loader per feature, pakai `pcall(require, name)` untuk error isolation
+3. **`[object].lua`** = module di dalam feature, nama = topik/objek utama (bukan `[feature]_[object]`)
 4. **Utils global**: `_G.Utils`, `_G.Config`, `_G.DB` — tersedia di semua module
 5. **`package.loaded[name] = nil`** wajib sebelum `require()` di setiap loader
 6. **Load order penting**: security → economy → player → world → items → carnival → hospital → events → social → admin
 7. **>500 baris → pecah** menjadi sub-module
 8. **Max 3 level nesting** — jangan bikin level 4
-9. **Cross-system** via `_G.[SystemName]` — cek nil karena system bisa gagal load
-10. **File naming**: `[system]_[feature].lua` lowercase underscore
+9. **Cross-feature** via `_G.[FeatureName]` — cek nil karena feature bisa gagal load
+10. **File naming**: lowercase underscore — loader: `hospital_loader.lua`, module: `reception_desk.lua`
+
+### Contoh Struktur Feature
+```
+hospital_loader.lua       ← loader
+  reception_desk.lua      ← module: objek/topik utama
+  operating_table.lua     ← module
+  auto_surgeon.lua        ← module
+  malady_rng.lua          ← module
+```
 
 ### Cara Bikin Module Baru
 ```lua
 -- MODULE
--- [system]_[feature].lua — Deskripsi singkat
+-- reception_desk.lua — Deskripsi singkat
 local M = {}
 local Utils  = _G.Utils
 local Config = _G.Config
@@ -100,7 +151,7 @@ local Config = _G.Config
 return M
 ```
 
-Daftarkan di system loader yang sesuai (`sys_[system].lua`) + update migration map di `docs/structure.md`.
+Daftarkan di feature loader yang sesuai (`[feature]_loader.lua`) + update migration map di `docs/structure.md`.
 
 ## Contoh Pola Umum
 

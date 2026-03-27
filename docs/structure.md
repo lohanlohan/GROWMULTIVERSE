@@ -4,16 +4,21 @@
 
 ---
 
+## Terminologi
+
+- **Feature** = domain utama / topik (contoh: hospital, carnival, player)
+- **System** = kumpulan module di dalam sebuah feature
+
 ## Overview
 
 Semua Lua script menggunakan **nested loader architecture** dengan 3 level:
 
 ```
-main.lua → sys_[system].lua → [module].lua
-(entry)     (system loader)    (feature module)
+main.lua → [feature]_loader.lua → [object].lua
+(entry)     (loader per feature)   (module per topik/objek)
 ```
 
-Satu entry point (`main.lua`) yang memuat semua system loader, dan setiap system loader
+Satu entry point (`main.lua`) yang memuat semua feature loader, dan setiap feature loader
 memuat module-module nya sendiri. Utils di-load paling awal dan tersedia global.
 
 ---
@@ -30,16 +35,20 @@ Server Start / reloadScripts()
         ├── [2] config       ← konstanta & settings (global)
         ├── [3] db           ← database wrapper (global)
         │
-        ├── [4] sys_security ← PERTAMA — anti-cheat harus aktif sebelum yang lain
-        ├── [5] sys_economy
-        ├── [6] sys_player   ← sebelum sys_world (backpack integration)
-        ├── [7] sys_world    ← depend on player (BP_storeItem)
-        ├── [8] sys_items
-        ├── [9] sys_carnival
-        ├── [10] sys_hospital
-        ├── [11] sys_events
-        ├── [12] sys_social
-        └── [13] sys_admin   ← TERAKHIR — dev tools
+        ├── [4] security_loader   ← PERTAMA — anti-cheat harus aktif sebelum yang lain
+        ├── [5] economy_loader
+        ├── [6] player_loader     ← sebelum world (backpack integration)
+        ├── [7] world_loader      ← depend on player (BP_storeItem)
+        ├── [8] item_info_loader
+        ├── [9] consumable_loader
+        ├── [10] backpack_loader
+        ├── [11] carnival_loader
+        ├── [12] hospital_loader
+        ├── [13] events_loader
+        ├── [14] social_loader
+        ├── [15] admin_loader     ← TERAKHIR — dev tools
+        ├── [16] marvelous_missions_loader  ← standalone
+        └── [17] automation_menu_loader     ← standalone
 ```
 
 **Urutan load penting!** System yang di-depend harus diload duluan.
@@ -61,18 +70,20 @@ Server Start / reloadScripts()
 ## Naming Convention
 
 ### File Naming
-| Tipe | Prefix | Contoh |
+| Tipe | Format | Contoh |
 |---|---|---|
-| Entry point | (none) | `main.lua` |
-| Utils | (none) | `utils.lua`, `config.lua`, `db.lua` |
-| System loader | `sys_` | `sys_carnival.lua`, `sys_hospital.lua` |
-| Module | `[system]_` | `carnival_core.lua`, `economy_store.lua` |
-| Example | (in examples/) | `tile-extra-example.lua` |
+| Entry point | `main.lua` | `main.lua` |
+| Fondasi global | nama pendek | `utils.lua`, `config.lua`, `db.lua` |
+| Feature loader | `[feature]_loader.lua` | `carnival_loader.lua`, `hospital_loader.lua` |
+| Module dalam feature | `[object].lua` — nama topik/objek | `reception_desk.lua`, `operating_table.lua` |
+| Dev/debug | bebas | `tile_debug.lua` |
+| Example (tidak diupload) | bebas | `tile-extra-example.lua` |
 
 ### Aturan Penamaan
-- Semua lowercase, underscore separator: `carnival_core.lua`
-- System prefix konsisten: `carnival_`, `economy_`, `player_`, dll
-- JANGAN campur prefix: `hospital.lua` → `hospital_core.lua`
+- Semua lowercase, underscore separator
+- Loader: `[feature]_loader.lua` — nama feature dulu, diakhiri `_loader`
+- Module: nama topik/objek saja, tanpa prefix feature (`reception_desk.lua` bukan `hospital_reception_desk.lua`)
+- Fondasi (utils/config/db) = tidak pakai prefix apapun
 
 ---
 
