@@ -42,6 +42,7 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 "fenrir_rewards_v1"          → challenge_of_fenrir.lua
 "finale_claims_rewards_v1"   → clash_finale_parkour.lua  (string format)
 "rent_entrance_data.json"    → Rent_Entrance.lua  (file JSON)
+"CUSTOM_TITLE_PROFILE"       → custom-titles.lua (player profile: icon + prefix/suffix per UID)
 ```
 
 ### Commands yang Sudah Terdaftar
@@ -56,6 +57,7 @@ yang kita kerjakan tadi. Jangan ubah section lain.
 /auto           → automation_menu.lua   (role 0)
 /carnivalprize      → carnival.lua  (role 51) — prize manager semua minigame
 /carnivalreset [N]  → carnival.lua  (role 51) — reset room N atau semua
+/titles         → custom-titles.lua    (role 0) — unified white name + icon + title profile
 ```
 
 ### Scripts yang Sudah Ada

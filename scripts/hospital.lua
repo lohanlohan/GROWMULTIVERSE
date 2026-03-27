@@ -2,6 +2,9 @@
 
 local MaladySystem = require("malady_rng")
 
+local ReceptionDesk = require("hospital_reception_desk")
+local AutoSurgeon = require("hospital_auto_surgeon")
+
 local HospitalSystem = {}
 
 -- =======================================================
@@ -12,50 +15,440 @@ local ROLE_DEVELOPER = 51
 
 local RECEPTION_DESK_ID = 14668
 local AUTO_SURGEON_ID   = 14666
+local OPERATING_TABLE_ID = 14662
 local WORLD_LOCK_ID     = 242
+local DIAMOND_LOCK_ID   = 1796
+local BGL_ID            = 7188
 local WORLD_KEY_ID      = 1424
 
-local MIN_CURE_PRICE_WL = 3
-local CURE_TAX_WL       = 2
+local MIN_CURE_PRICE_WL = 2
+local CURE_TAX_RATE     = 0.30
 local MAX_TOOL_STORAGE  = 1000
+local MAX_HOSPITAL_RATING = 5
+local RATING_STEP_CURES = 100
 
-local HOSPITAL_LEVELS = {
-    [1] = { next_level = 2, required_surgeries = 25,  upgrade_gems = 1000000,  upgrade_wl = 1000  },
-    [2] = { next_level = 3, required_surgeries = 50,  upgrade_gems = 10000000, upgrade_wl = 10000 },
-    [3] = { next_level = nil, required_surgeries = 0, upgrade_gems = 0,        upgrade_wl = 0     }
+local MAX_HOSPITAL_LEVEL = 52
+
+local function getRequiredCuresForNextLevel(nextLevel)
+    return math.max(0, (30 * nextLevel * nextLevel) - (30 * nextLevel) - 40)
+end
+
+local function getUpgradeCostWLByLevel(level)
+    if level == 1 then return 10 end
+    if level <= 3 then return 20 end
+    if level <= 5 then return 30 end
+    if level <= 7 then return 40 end
+    if level <= 10 then return 50 end
+    if level <= 12 then return 60 end
+    if level <= 16 then return 70 end
+    if level <= 20 then return 80 end
+    if level <= 24 then return 90 end
+    if level <= 29 then return 100 end
+    if level <= 36 then return 110 end
+    if level <= 45 then return 120 end
+    return 130
+end
+
+local function getRequiredDoctorsByLevel(level)
+    if level <= 2 then return 1 end
+    if level <= 4 then return 2 end
+    if level <= 7 then return 3 end
+    if level <= 10 then return 4 end
+    if level <= 13 then return 5 end
+    if level <= 17 then return 6 end
+    if level <= 21 then return 7 end
+    if level <= 26 then return 8 end
+    if level <= 32 then return 9 end
+    if level <= 40 then return 10 end
+    if level <= 48 then return 11 end
+    return 12
+end
+
+local function getRequiredRatingByLevel(level)
+    if level <= 5 then return 1 end
+    if level <= 10 then return 2 end
+    if level <= 15 then return 3 end
+    return 4
+end
+
+local REQUIRED_AUTO_SURGEONS = {
+    [1]=0,[2]=1,[3]=1,[4]=2,[5]=2,[6]=3,[7]=3,[8]=3,[9]=4,[10]=4,
+    [11]=4,[12]=5,[13]=5,[14]=5,[15]=6,[16]=6,[17]=6,[18]=6,[19]=6,[20]=7,
+    [21]=7,[22]=7,[23]=7,[24]=8,[25]=8,[26]=8,[27]=8,[28]=8,[29]=8,[30]=9,
+    [31]=9,[32]=9,[33]=9,[34]=9,[35]=9,[36]=9,[37]=9,[38]=9,[39]=10,[40]=10,
+    [41]=10,[42]=10,[43]=10,[44]=10,[45]=10,[46]=10,[47]=11,[48]=11,[49]=11,[50]=11,[51]=11
 }
 
+local REQUIRED_OPERATING_TABLES = {
+    [1]=0,[2]=1,[3]=2,[4]=3,[5]=4,[6]=5,[7]=5,[8]=6,[9]=7,[10]=7,
+    [11]=8,[12]=9,[13]=9,[14]=10,[15]=10,[16]=10,[17]=11,[18]=11,[19]=12,[20]=12,
+    [21]=12,[22]=13,[23]=13,[24]=14,[25]=14,[26]=14,[27]=14,[28]=15,[29]=15,[30]=15,
+    [31]=15,[32]=16,[33]=16,[34]=16,[35]=16,[36]=17,[37]=17,[38]=17,[39]=17,[40]=17,
+    [41]=18,[42]=18,[43]=18,[44]=18,[45]=18,[46]=18,[47]=19,[48]=19,[49]=19,[50]=19,[51]=19
+}
+
+local function getRequiredMaladiesByLevel(level)
+    if level == 1 then
+        return {
+            { key = MaladySystem.MALADY.TORN_PUNCHING_MUSCLE, count = 5, label = "Torn Muscle cured" },
+            { key = MaladySystem.MALADY.GEMS_CUTS, count = 5, label = "Gem Cuts cured" }
+        }
+    end
+    if level == 3 then
+        return {
+            { key = MaladySystem.MALADY.GRUMBLETEETH, count = 5, label = "Grumbleteeth cured" },
+            { key = MaladySystem.MALADY.CHICKEN_FEET, count = 5, label = "Chicken Feet cured" }
+        }
+    end
+    if level == 5 then
+        return {
+            { key = MaladySystem.MALADY.BROKEN_HEARTS, count = 5, label = "Broken Hearts cured" },
+            { key = MaladySystem.MALADY.BRAINWORMS, count = 5, label = "Brainworms cured" }
+        }
+    end
+    if level == 7 then
+        return {
+            { key = MaladySystem.MALADY.FATTY_LIVER, count = 5, label = "Fatty Liver cured" },
+            { key = MaladySystem.MALADY.ECTO_BONES, count = 5, label = "Ecto-Bones cured" }
+        }
+    end
+    if level == 9 then
+        return {
+            { key = MaladySystem.MALADY.MOLDY_GUTS, count = 5, label = "Moldy Guts cured" },
+            { key = MaladySystem.MALADY.CHAOS_INFECTION, count = 5, label = "Chaos Infection cured" },
+            { key = MaladySystem.MALADY.LUPUS, count = 5, label = "Lupus cured" }
+        }
+    end
+    return {}
+end
+
+local LEVEL_UP_PERKS_BY_LEVEL = {
+    [1] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 5 mins`` and `26 hours``"
+    },
+    [2] = { "None" },
+    [3] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 55 mins`` and `21 day, 1 hour``",
+        "Surg-E Patient Duration: Between `24 hours, 10 mins`` and `26 hours, 10 mins``",
+        "All Auto Surgeon maladies require `21 less Surgical Scalpel``"
+    },
+    [4] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Auto Surgeon can now cure `2Chaos Infection`` & `2Broken Hearts``"
+    },
+    [5] = {
+        "Surg-E Patient Duration: Between `24 hours, 15 mins`` and `26 hours, 10 mins``"
+    },
+    [6] = {
+        "Operating Table Capacity: `2+1``",
+        "Auto Surgeon can now cure `2Brainworms`` & `2Moldy Guts``"
+    },
+    [7] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 50 mins`` and `21 day, 50 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 20 mins`` and `26 hours, 20 mins``",
+        "All Auto Surgeon maladies require `21 less Surgical Stitches``"
+    },
+    [8] = {
+        "Auto Surgeon can now cure `2Fatty Liver``, `2Ecto-Bones`` & `2Lupus``"
+    },
+    [9] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 25 mins`` and `26 hours, 20 mins``"
+    },
+    [10] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``"
+    },
+    [11] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 45 mins`` and `21 day, 50 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 30 mins`` and `26 hours, 30 mins``",
+        "Ecto-Bones Auto Surgeon treatment requires `21 less Surgical Splint``"
+    },
+    [12] = {
+        "Operating Table Capacity: `2+1``"
+    },
+    [13] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 35 mins`` and `26 hours, 30 mins``"
+    },
+    [14] = { "None" },
+    [15] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 40 mins`` and `21 day, 40 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 40 mins`` and `26 hours, 40 mins``"
+    },
+    [16] = { "None" },
+    [17] = {
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 45 mins`` and `26 hours, 40 mins``"
+    },
+    [18] = {
+        "Auto Surgeon Station Capacity: `2+1``"
+    },
+    [19] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 35 mins`` and `21 day, 40 mins``",
+        "Surg-E Patient Duration: Between `24 hours, 50 mins`` and `26 hours, 50 mins``"
+    },
+    [20] = { "Operating Table Capacity: `2+1``" },
+    [21] = {
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `24 hours, 55 mins`` and `26 hours, 50 mins``"
+    },
+    [22] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``"
+    },
+    [23] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 30 mins`` and `21 day, 30 mins``",
+        "Surg-E Patient Duration: Between `25 hours`` and `27 hours``"
+    },
+    [24] = { "None" },
+    [25] = {
+        "Surg-E Patient Duration: Between `25 hours, 5 mins`` and `27 hours``"
+    },
+    [26] = {
+        "Operating Table Capacity: `2+1``",
+        "Doctor Capacity: `2+1``"
+    },
+    [27] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 25 mins`` and `21 day, 30 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 10 mins`` and `27 hours, 10 mins``"
+    },
+    [28] = {
+        "Auto Surgeon Station Capacity: `2+1``"
+    },
+    [29] = {
+        "Surg-E Patient Duration: Between `25 hours, 15 mins`` and `27 hours, 10 mins``"
+    },
+    [30] = {
+        "Operating Table Capacity: `2+1``"
+    },
+    [31] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 20 mins`` and `21 day, 20 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 20 mins`` and `27 hours, 20 mins``"
+    },
+    [32] = {
+        "Doctor Capacity: `2+1``"
+    },
+    [33] = {
+        "Surg-E Patient Duration: Between `25 hours, 25 mins`` and `27 hours, 20 mins``"
+    },
+    [34] = {
+        "Operating Table Capacity: `2+1``"
+    },
+    [35] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 15 mins`` and `21 day, 20 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 30 mins`` and `27 hours, 30 mins``"
+    },
+    [36] = {
+        "Auto Surgeon Station Capacity: `2+1``"
+    },
+    [37] = {
+        "Surg-E Patient Duration: Between `25 hours, 35 mins`` and `27 hours, 30 mins``"
+    },
+    [38] = { "None" },
+    [39] = {
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Spawn Delay: Between `222 hours, 10 mins`` and `21 day, 10 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 40 mins`` and `27 hours, 40 mins``"
+    },
+    [40] = {
+        "Doctor Capacity: `2+1``"
+    },
+    [41] = {
+        "Doctor Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `25 hours, 45 mins`` and `27 hours, 40 mins``"
+    },
+    [42] = { "None" },
+    [43] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours, 5 mins`` and `21 day, 10 mins``",
+        "Surg-E Patient Duration: Between `25 hours, 50 mins`` and `27 hours, 50 mins``"
+    },
+    [44] = { "None" },
+    [45] = {
+        "Auto Surgeon Station Capacity: `2+1``",
+        "Operating Table Capacity: `2+1``",
+        "Surg-E Patient Duration: Between `25 hours, 55 mins`` and `27 hours, 50 mins``"
+    },
+    [46] = { "None" },
+    [47] = {
+        "Surg-E Patient Spawn Delay: Between `222 hours`` and `21 day``",
+        "Surg-E Patient Duration: Between `26 hours`` and `28 hours``"
+    },
+    [48] = {
+        "Doctor Capacity: `2+1``"
+    },
+    [49] = {
+        "Surg-E Patient Duration: Between `26 hours, 5 mins`` and `28 hours``"
+    },
+    [50] = { "None" },
+    [51] = {
+        "Surg-E Patient Spawn Delay: Between `221 hours, 55 mins`` and `21 day``",
+        "Surg-E Patient Duration: Between `26 hours, 10 mins`` and `28 hours, 10 mins``"
+    }
+}
+
+local LEVEL_UP_REWARDS_BY_LEVEL = {
+    [1] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [2] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [3] = { "OPERATING_TABLE" },
+    [4] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [5] = { "OPERATING_TABLE" },
+    [6] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [7] = { "NONE" },
+    [8] = { "OPERATING_TABLE" },
+    [9] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [10] = { "NONE" },
+    [11] = { "OPERATING_TABLE" },
+    [12] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [13] = { "NONE" },
+    [14] = { "OPERATING_TABLE" },
+    [15] = { "AUTO_SURGEON" },
+    [16] = { "NONE" },
+    [17] = { "OPERATING_TABLE" },
+    [18] = { "NONE" },
+    [19] = { "OPERATING_TABLE" },
+    [20] = { "AUTO_SURGEON" },
+    [21] = { "NONE" },
+    [22] = { "OPERATING_TABLE" },
+    [23] = { "NONE" },
+    [24] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [25] = { "NONE" },
+    [26] = { "NONE" },
+    [27] = { "NONE" },
+    [28] = { "OPERATING_TABLE" },
+    [29] = { "NONE" },
+    [30] = { "AUTO_SURGEON" },
+    [31] = { "NONE" },
+    [32] = { "OPERATING_TABLE" },
+    [33] = { "NONE" },
+    [34] = { "NONE" },
+    [35] = { "NONE" },
+    [36] = { "OPERATING_TABLE" },
+    [37] = { "NONE" },
+    [38] = { "AUTO_SURGEON" },
+    [39] = { "NONE" },
+    [40] = { "NONE" },
+    [41] = { "OPERATING_TABLE" },
+    [42] = { "NONE" },
+    [43] = { "NONE" },
+    [44] = { "NONE" },
+    [45] = { "NONE" },
+    [46] = { "NONE" },
+    [47] = { "OPERATING_TABLE", "AUTO_SURGEON" },
+    [48] = { "NONE" },
+    [49] = { "NONE" },
+    [50] = { "NONE" },
+    [51] = { "OPERATING_TABLE" }
+}
+
+local function cloneTextArray(arr)
+    local out = {}
+    if type(arr) ~= "table" then return out end
+    for i = 1, #arr do out[i] = tostring(arr[i]) end
+    return out
+end
+
+local function buildRewardsFromCodes(codes)
+    local rewards = {}
+    if type(codes) ~= "table" or #codes == 0 then
+        rewards[1] = { label = "None", icon = RECEPTION_DESK_ID }
+        return rewards
+    end
+
+    for i = 1, #codes do
+        local code = tostring(codes[i])
+        if code == "OPERATING_TABLE" then
+            rewards[#rewards + 1] = { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID }
+        elseif code == "AUTO_SURGEON" then
+            rewards[#rewards + 1] = { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
+        end
+    end
+
+    if #rewards == 0 then
+        rewards[1] = { label = "None", icon = RECEPTION_DESK_ID }
+    end
+    return rewards
+end
+
+local HOSPITAL_LEVELS = {}
+local LEVEL_UP_RULES = {}
+for level = 1, MAX_HOSPITAL_LEVEL do
+    local nextLevel = level < MAX_HOSPITAL_LEVEL and (level + 1) or nil
+    HOSPITAL_LEVELS[level] = {
+        next_level = nextLevel,
+        required_surgeries = nextLevel and getRequiredCuresForNextLevel(nextLevel) or 0,
+        upgrade_gems = 0,
+        upgrade_wl = nextLevel and getUpgradeCostWLByLevel(level) or 0
+    }
+
+    LEVEL_UP_RULES[level] = {
+        required_cures = nextLevel and getRequiredCuresForNextLevel(nextLevel) or 0,
+        required_doctors = nextLevel and getRequiredDoctorsByLevel(level) or 0,
+        required_rating = nextLevel and getRequiredRatingByLevel(level) or 0,
+        required_auto_surgeons = nextLevel and (REQUIRED_AUTO_SURGEONS[level] or 0) or 0,
+        required_operating_tables = nextLevel and (REQUIRED_OPERATING_TABLES[level] or 0) or 0,
+        required_maladies = getRequiredMaladiesByLevel(level),
+        perks = cloneTextArray(LEVEL_UP_PERKS_BY_LEVEL[level] or { "None" }),
+        rewards = buildRewardsFromCodes(LEVEL_UP_REWARDS_BY_LEVEL[level])
+    }
+end
+
 local MALADY_UNLOCK_LEVEL = {
-    CHICKEN_FEET         = 1,
-    GRUMBLETEETH         = 1,
-    TORN_PUNCHING_MUSCLE = 2,
-    GEMS_CUTS            = 2,
-    AUTOMATION_CURSE     = 3,
-    BROKEN_HEARTS        = 3,
+    TORN_PUNCHING_MUSCLE = 1,
+    GEMS_CUTS            = 1,
+    CHICKEN_FEET         = 3,
+    GRUMBLETEETH         = 3,
     CHAOS_INFECTION      = 4,
-    LUPUS                = 4,
-    BRAINWORMS           = 4,
-    MOLDY_GUTS           = 4,
-    ECTO_BONES           = 4,
-    FATTY_LIVER          = 4
+    BROKEN_HEARTS        = 4,
+    BRAINWORMS           = 6,
+    MOLDY_GUTS           = 6,
+    FATTY_LIVER          = 8,
+    ECTO_BONES           = 8,
+    LUPUS                = 8,
+    AUTOMATION_CURSE     = 999
 }
 
 -- Icon per malady di owner panel
 -- Vile Vial maladies pakai icon vial mereka sendiri
 -- RNG maladies pakai placeholder (ganti iconID sesuai kebutuhan)
 local MALADY_ICON = {
-    CHICKEN_FEET         = 14668, -- placeholder
-    GRUMBLETEETH         = 14668, -- placeholder
-    TORN_PUNCHING_MUSCLE = 14668, -- placeholder
-    GEMS_CUTS            = 14668, -- placeholder
+    CHICKEN_FEET         = 2,
+    GRUMBLETEETH         = 2,
+    TORN_PUNCHING_MUSCLE = 2,
+    GEMS_CUTS            = 2,
     AUTOMATION_CURSE     = 20704,
-    BROKEN_HEARTS        = 14668, -- placeholder
+    BROKEN_HEARTS        = 2,
     CHAOS_INFECTION      = 8538,
     LUPUS                = 8544,
     BRAINWORMS           = 8542,
     MOLDY_GUTS           = 8540,
     ECTO_BONES           = 8546,
     FATTY_LIVER          = 8548,
+}
+
+local MALADY_ICON_VISUAL = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;",
+    [MaladySystem.MALADY.GEMS_CUTS] = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;",
+    [MaladySystem.MALADY.CHICKEN_FEET] = "image:game/tiles_page2.rttex;frame:20,0;frameSize:32;",
+    [MaladySystem.MALADY.GRUMBLETEETH] = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;",
+    [MaladySystem.MALADY.BRAINWORMS] = "image:game/tiles_page14.rttex;frame:29,0;frameSize:32;",
+    [MaladySystem.MALADY.CHAOS_INFECTION] = "image:game/tiles_page14.rttex;frame:31,1;frameSize:32;",
+    [MaladySystem.MALADY.LUPUS] = "image:game/tiles_page14.rttex;frame:31,2;frameSize:32;",
+    [MaladySystem.MALADY.MOLDY_GUTS] = "image:game/tiles_page14.rttex;frame:31,3;frameSize:32;",
+    [MaladySystem.MALADY.ECTO_BONES] = "image:game/tiles_page14.rttex;frame:31,4;frameSize:32;",
+    [MaladySystem.MALADY.FATTY_LIVER] = "image:game/tiles_page14.rttex;frame:31,5;frameSize:32;",
+    [MaladySystem.MALADY.BROKEN_HEARTS] = "image:game/player_cosmetics1_icon.rttex;frame:31,31;frameSize:32;"
 }
 
 -- Urutan tampil di UI: vile vial dulu, RNG di bawahnya
@@ -77,6 +470,43 @@ local MALADY_UI_RNG = {
     MaladySystem.MALADY.AUTOMATION_CURSE,
 }
 
+-- Auto Surgeon tile-extra selectedIllness mapping (Growtopia client visual IDs).
+-- Note: On this runtime/client build, Torn and Gems visual IDs are reversed
+-- compared to some public examples.
+local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 21,
+    [MaladySystem.MALADY.GEMS_CUTS] = 20,
+    [MaladySystem.MALADY.GRUMBLETEETH] = 22,
+    [MaladySystem.MALADY.CHICKEN_FEET] = 23,
+    [MaladySystem.MALADY.BROKEN_HEARTS] = 24,
+    [MaladySystem.MALADY.AUTOMATION_CURSE] = 25,
+    -- Map Vile Vial maladies into the closest supported visual buckets
+    -- so selected illness no longer falls back to Gem Cuts visual.
+    [MaladySystem.MALADY.CHAOS_INFECTION] = 26,
+    [MaladySystem.MALADY.LUPUS] = 27,
+    [MaladySystem.MALADY.BRAINWORMS] = 28,
+    [MaladySystem.MALADY.MOLDY_GUTS] = 29,
+    [MaladySystem.MALADY.ECTO_BONES] = 30,
+    [MaladySystem.MALADY.FATTY_LIVER] = 31
+}
+
+local function resolveAutoSurgeonIllnessVisualID(maladyType)
+    local key = tostring(maladyType or "")
+    local mapped = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[key])
+    if mapped then return mapped end
+
+    -- Defensive fallback for any custom malady string variants.
+    local upper = string.upper(key)
+    if upper:find("AUTOMATION", 1, true) or upper:find("CHAOS", 1, true) then return 25 end
+    if upper:find("BROKEN", 1, true) or upper:find("LUPUS", 1, true) then return 24 end
+    if upper:find("CHICKEN", 1, true) or upper:find("FATTY", 1, true) then return 23 end
+    if upper:find("GRUMBLE", 1, true) or upper:find("BRAIN", 1, true) then return 22 end
+    if upper:find("GEMS", 1, true) or upper:find("MOLD", 1, true) then return 20 end
+    if upper:find("TORN", 1, true) or upper:find("ECTO", 1, true) then return 21 end
+
+    return 20
+end
+
 local ALL_SURGICAL_TOOLS = {
     1258, 1260, 1262, 1264, 1266, 1268, 1270,
     4308, 4310, 4312, 4314, 4316, 4318
@@ -91,19 +521,32 @@ for _, maladyType in pairs(MaladySystem.MALADY) do
 end
 
 local AUTO_SURGEON_MALADY_ORDER = {
-    MaladySystem.MALADY.CHICKEN_FEET,
-    MaladySystem.MALADY.GRUMBLETEETH,
     MaladySystem.MALADY.TORN_PUNCHING_MUSCLE,
     MaladySystem.MALADY.GEMS_CUTS,
-    MaladySystem.MALADY.AUTOMATION_CURSE,
+    MaladySystem.MALADY.CHICKEN_FEET,
+    MaladySystem.MALADY.GRUMBLETEETH,
     MaladySystem.MALADY.BROKEN_HEARTS,
     MaladySystem.MALADY.CHAOS_INFECTION,
-    MaladySystem.MALADY.LUPUS,
     MaladySystem.MALADY.BRAINWORMS,
     MaladySystem.MALADY.MOLDY_GUTS,
     MaladySystem.MALADY.ECTO_BONES,
-    MaladySystem.MALADY.FATTY_LIVER
+    MaladySystem.MALADY.FATTY_LIVER,
+    MaladySystem.MALADY.LUPUS,
+    MaladySystem.MALADY.AUTOMATION_CURSE
 }
+
+local function getUnlockedAutoSurgeonMaladies(level)
+    local hospitalLevel = math.max(1, math.floor(tonumber(level) or 1))
+    local result = {}
+    for i = 1, #AUTO_SURGEON_MALADY_ORDER do
+        local maladyType = AUTO_SURGEON_MALADY_ORDER[i]
+        local reqLevel = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
+        if hospitalLevel >= reqLevel then
+            result[#result + 1] = maladyType
+        end
+    end
+    return result
+end
 
 local DLG_RECEPTION      = "reception_desk_panel_v5m"
 local DLG_MANAGE_DOCTORS = "hosp_manage_doctors_v5m"
@@ -130,6 +573,45 @@ local BTN_WITHDRAW_WL   = "v5m_withdraw_station_wl"
 local BTN_CLOSE_OWNER   = "v5m_close_station_owner"
 local BTN_CURE_MALADY   = "v5m_cure_malady_station"
 
+local BTN_SHOW_STATS    = "receptionBtn_showHospitalStats"
+local BTN_LEVEL_UP      = "receptionBtn_levelUp"
+local BTN_BACK_STATS    = "statsBtn_back"
+local BTN_LEVEL_UP_NEW_CONFIRM = "levelUpBtn_confirm"
+local BTN_LEVEL_UP_BACK = "levelUpBtn_back"
+
+local HOSPITAL_STATS_MALADY_ROWS = {
+    { label = "Brainworms cured", key = MaladySystem.MALADY.BRAINWORMS, icon = "image:game/tiles_page14.rttex;frame:29,0;frameSize:32;" },
+    { label = "Grumbleteeth cured", key = MaladySystem.MALADY.GRUMBLETEETH, icon = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;" },
+    { label = "Chicken Feet cured", key = MaladySystem.MALADY.CHICKEN_FEET, icon = "image:game/tiles_page2.rttex;frame:20,0;frameSize:32;" },
+    { label = "Gem Cuts cured", key = MaladySystem.MALADY.GEMS_CUTS, icon = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;" },
+    { label = "Torn Muscle cured", key = MaladySystem.MALADY.TORN_PUNCHING_MUSCLE, icon = "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;" },
+    { label = "Shattered Bones cured", key = MaladySystem.MALADY.SHATTERED_BONES, icon = "image:game/tiles_page9.rttex;frame:12,2;frameSize:32;" },
+    { label = "Appendicitis cured", key = MaladySystem.MALADY.APPENDICITIS, icon = "image:game/tiles_page5.rttex;frame:0,2;frameSize:32;" },
+    { label = "Swallowed World Lock cured", key = MaladySystem.MALADY.SWALLOWED_WORLD_LOCK, icon = "image:game/player_cosmetics3_icon.rttex;frame:12,0;frameSize:32;" },
+    { label = "Head Injury cured", key = MaladySystem.MALADY.HEAD_INJURY, icon = "image:game/player_hair4_icon.rttex;frame:2,6;frameSize:32;" },
+    { label = "Liver Infection cured", key = MaladySystem.MALADY.LIVER_INFECTION, icon = "image:game/tiles_page13.rttex;frame:29,30;frameSize:32;" },
+    { label = "Nose Job cured", key = MaladySystem.MALADY.NOSE_JOB, icon = "image:game/player_cosmetics1_icon.rttex;frame:17,11;frameSize:32;" },
+    { label = "Massive Trauma cured", key = MaladySystem.MALADY.MASSIVE_TRAUMA, icon = "image:game/tiles_page7.rttex;frame:4,13;frameSize:32;" },
+    { label = "Serious Trauma cured", key = MaladySystem.MALADY.SERIOUS_TRAUMA, icon = "image:game/tiles_page13.rttex;frame:9,1;frameSize:32;" },
+    { label = "Brain Tumor cured", key = MaladySystem.MALADY.BRAIN_TUMOR, icon = "image:game/player_hair4_icon.rttex;frame:4,1;frameSize:32;" },
+    { label = "Lung Tumor cured", key = MaladySystem.MALADY.LUNG_TUMOR, icon = "image:game/player_cosmetics1_icon.rttex;frame:15,22;frameSize:32;" },
+    { label = "Kidney Failure cured", key = MaladySystem.MALADY.KIDNEY_FAILURE, icon = "image:game/tiles_page8.rttex;frame:10,5;frameSize:32;" },
+    { label = "Heart Attack cured", key = MaladySystem.MALADY.HEART_ATTACK, icon = "image:game/player_cosmetics1_icon.rttex;frame:31,31;frameSize:32;" },
+    { label = "Bad Disc cured", key = MaladySystem.MALADY.BAD_DISC, icon = "image:game/tiles_page6.rttex;frame:6,15;frameSize:32;" },
+    { label = "Broken Arm cured", key = MaladySystem.MALADY.BROKEN_ARM, icon = "image:game/tiles_page7.rttex;frame:12,4;frameSize:32;" },
+    { label = "Broken Leg cured", key = MaladySystem.MALADY.BROKEN_LEG, icon = "image:game/tiles_page1.rttex;frame:30,9;frameSize:32;" },
+    { label = "Turtle Flu cured", key = MaladySystem.MALADY.TURTLE_FLU, icon = "image:game/player_cosmetics1_icon.rttex;frame:20,9;frameSize:32;" },
+    { label = "Monkey Flu cured", key = MaladySystem.MALADY.MONKEY_FLU, icon = "image:game/player_cosmetics1_icon.rttex;frame:6,23;frameSize:32;" },
+    { label = "Bird Flu cured", key = MaladySystem.MALADY.BIRD_FLU, icon = "image:game/tiles_page5.rttex;frame:4,7;frameSize:32;" },
+}
+
+-- Optional mapping for non-MaladySystem surgery cases.
+-- Fill with real rewardID values if you want those maladies to be auto-counted.
+local SURGERY_REWARD_MALADY_KEY = {
+    -- [1234] = MaladySystem.MALADY.SHATTERED_BONES,
+    -- [1235] = MaladySystem.MALADY.APPENDICITIS,
+}
+
 -- =======================================================
 -- STORAGE LAYER  (JSON - hospital_data.json)
 -- =======================================================
@@ -152,25 +634,62 @@ local function stationKey(worldName, x, y)
     return tostring(worldName) .. ":" .. tostring(x) .. ":" .. tostring(y)
 end
 
+local function normalizeHospitalState(state)
+    if type(state.doctors) ~= "table" then state.doctors = {} end
+    if type(state.doctor_stats) ~= "table" then state.doctor_stats = {} end
+    if type(state.treatment_stats) ~= "table" then state.treatment_stats = {} end
+    if type(state.cured_by_malady) ~= "table" then state.cured_by_malady = {} end
+    state.rating = tonumber(state.rating) or 0
+    state.rating_counter = tonumber(state.rating_counter) or 0
+
+    state.treatment_stats.total = tonumber(state.treatment_stats.total) or 0
+    state.treatment_stats.successful = tonumber(state.treatment_stats.successful) or 0
+    state.treatment_stats.failed = tonumber(state.treatment_stats.failed) or 0
+    state.rating = math.max(0, math.min(MAX_HOSPITAL_RATING, math.floor(state.rating)))
+    state.rating_counter = math.max(0, math.min(RATING_STEP_CURES, math.floor(state.rating_counter)))
+
+    if state.rating >= MAX_HOSPITAL_RATING then
+        state.rating_counter = RATING_STEP_CURES
+    end
+
+    for _, maladyType in pairs(MaladySystem.MALADY) do
+        state.cured_by_malady[maladyType] = tonumber(state.cured_by_malady[maladyType]) or 0
+    end
+
+    return state
+end
+
 -- Hospital world state
 local function loadHospital(worldName)
     local db = readHospitalDB()
     local w = db.worlds[tostring(worldName)]
     if type(w) == "table" and w.level then
-        if type(w.doctors)      ~= "table" then w.doctors      = {} end
-        if type(w.doctor_stats) ~= "table" then w.doctor_stats = {} end
-        return w
+        return normalizeHospitalState(w)
     end
-    return { level = 1, progress = 0, doctors = {}, doctor_stats = {} }
+    return normalizeHospitalState({
+        level = 1,
+        progress = 0,
+        rating = 0,
+        rating_counter = 0,
+        doctors = {},
+        doctor_stats = {},
+        treatment_stats = { total = 0, successful = 0, failed = 0 },
+        cured_by_malady = {}
+    })
 end
 
 local function saveHospital(worldName, data)
     local db = readHospitalDB()
+    local normalized = normalizeHospitalState(data)
     db.worlds[tostring(worldName)] = {
-        level        = tonumber(data.level) or 1,
-        progress     = tonumber(data.progress) or 0,
-        doctors      = type(data.doctors)      == "table" and data.doctors      or {},
-        doctor_stats = type(data.doctor_stats) == "table" and data.doctor_stats or {},
+        level          = tonumber(normalized.level) or 1,
+        progress       = tonumber(normalized.progress) or 0,
+        rating         = tonumber(normalized.rating) or 0,
+        rating_counter = tonumber(normalized.rating_counter) or 0,
+        doctors        = normalized.doctors,
+        doctor_stats   = normalized.doctor_stats,
+        treatment_stats = normalized.treatment_stats,
+        cured_by_malady = normalized.cured_by_malady,
     }
     writeHospitalDB(db)
 end
@@ -264,6 +783,50 @@ local function getPlayerItemAmount(player, itemID)
     return 0
 end
 
+local function getTotalWLEquivalent(player)
+    local wl = getPlayerItemAmount(player, WORLD_LOCK_ID)
+    local dl = getPlayerItemAmount(player, DIAMOND_LOCK_ID)
+    local bgl = getPlayerItemAmount(player, BGL_ID)
+    return math.max(0, wl + (dl * 100) + (bgl * 10000))
+end
+
+local function rebalanceLocksByWLEquivalent(player, targetTotalWL)
+    local total = math.max(0, math.floor(tonumber(targetTotalWL) or 0))
+    local targetBGL = 0
+    local targetDL = 0
+    local targetWL = total
+
+    if BGL_ID > 0 then
+        targetBGL = math.floor(targetWL / 10000)
+        targetWL = targetWL - (targetBGL * 10000)
+    end
+    targetDL = math.floor(targetWL / 100)
+    targetWL = targetWL - (targetDL * 100)
+
+    local currentBGL = BGL_ID > 0 and getPlayerItemAmount(player, BGL_ID) or 0
+    local currentDL = getPlayerItemAmount(player, DIAMOND_LOCK_ID)
+    local currentWL = getPlayerItemAmount(player, WORLD_LOCK_ID)
+
+    local deltaBGL = targetBGL - currentBGL
+    local deltaDL = targetDL - currentDL
+    local deltaWL = targetWL - currentWL
+
+    if BGL_ID > 0 and deltaBGL ~= 0 then player:changeItem(BGL_ID, deltaBGL, 0) end
+    if deltaDL ~= 0 then player:changeItem(DIAMOND_LOCK_ID, deltaDL, 0) end
+    if deltaWL ~= 0 then player:changeItem(WORLD_LOCK_ID, deltaWL, 0) end
+end
+
+local function deductWLEquivalent(player, amountWL)
+    local need = math.max(0, math.floor(tonumber(amountWL) or 0))
+    if need <= 0 then return true end
+    local currentTotal = getTotalWLEquivalent(player)
+    if currentTotal < need then return false end
+
+    local remainingTotal = currentTotal - need
+    rebalanceLocksByWLEquivalent(player, remainingTotal)
+    return getTotalWLEquivalent(player) == remainingTotal
+end
+
 local function safeItemID(value)
     if type(value) == "number" then return math.floor(value) end
     if type(value) == "string" then
@@ -281,8 +844,14 @@ end
 
 local function getOwnerNetGain(priceWL)
     local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
-    local gain = safePrice - CURE_TAX_WL
+    local tax = math.max(1, math.ceil(safePrice * CURE_TAX_RATE))
+    local gain = safePrice - tax
     return gain < 0 and 0 or gain
+end
+
+local function getWorldTaxWL(priceWL)
+    local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
+    return math.max(1, math.ceil(safePrice * CURE_TAX_RATE))
 end
 
 -- =======================================================
@@ -327,6 +896,14 @@ local function countAutoSurgeons(world)
     return count
 end
 
+local function countOperatingTables(world)
+    local count = 0
+    for _, tile in pairs(getAllWorldTiles(world)) do
+        if tile and tile:getTileID() == OPERATING_TABLE_ID then count = count + 1 end
+    end
+    return count
+end
+
 local function hasHospitalInWorld(world)
     return countReceptionDesks(world) > 0 or countAutoSurgeons(world) > 0
 end
@@ -356,7 +933,7 @@ local function resetHospitalState(worldName)
     writeHospitalDB(db)
 end
 
--- isDoctor checks registered doctors only (not owner — owner is handled separately)
+-- isDoctor checks registered doctors only (not owner - owner is handled separately)
 local function isDoctor(worldName, userID)
     local state = loadHospital(worldName)
     local doctors = state.doctors or {}
@@ -366,7 +943,7 @@ end
 -- isEffectiveDoctor = owner OR registered doctor
 local function isEffectiveDoctor(world, worldName, userID, player)
     if player and isWorldOwner(world, player) then return true end
-    return isDoctor(worldName, userID)
+    return ReceptionDesk.isDoctor(worldName, userID)
 end
 
 -- doctors stored as ["u{uid}"] = displayName
@@ -401,6 +978,51 @@ local function addDoctorSurgery(worldName, userID)
     saveHospital(worldName, state)
 end
 
+local function recordHospitalTreatment(worldName, maladyType, isSuccess)
+    local state = loadHospital(worldName)
+    local stats = state.treatment_stats or { total = 0, successful = 0, failed = 0 }
+    local rating = tonumber(state.rating) or 0
+    local ratingCounter = tonumber(state.rating_counter) or 0
+
+    stats.total = (tonumber(stats.total) or 0) + 1
+    if isSuccess then
+        stats.successful = (tonumber(stats.successful) or 0) + 1
+        if maladyType then
+            state.cured_by_malady[maladyType] = (tonumber(state.cured_by_malady[maladyType]) or 0) + 1
+        end
+
+        if rating < MAX_HOSPITAL_RATING then
+            ratingCounter = ratingCounter + 1
+            if ratingCounter >= RATING_STEP_CURES then
+                rating = math.min(MAX_HOSPITAL_RATING, rating + 1)
+                ratingCounter = rating >= MAX_HOSPITAL_RATING and RATING_STEP_CURES or 0
+            end
+        else
+            ratingCounter = RATING_STEP_CURES
+        end
+    else
+        stats.failed = (tonumber(stats.failed) or 0) + 1
+        rating = math.max(0, rating - 1)
+        ratingCounter = 0
+    end
+
+    state.rating = rating
+    state.rating_counter = ratingCounter
+    state.treatment_stats = stats
+    saveHospital(worldName, state)
+end
+
+local function getHospitalTreatmentStats(worldName)
+    local state = loadHospital(worldName)
+    local stats = state.treatment_stats or {}
+    return {
+        total = tonumber(stats.total) or 0,
+        successful = tonumber(stats.successful) or 0,
+        failed = tonumber(stats.failed) or 0,
+        cured_by_malady = state.cured_by_malady or {}
+    }
+end
+
 local function getDoctorLeaderboard(worldName)
     local state = loadHospital(worldName)
     local doctors = state.doctors or {}
@@ -419,6 +1041,118 @@ local function getHospitalProgressText(level, progress)
     local levelData = HOSPITAL_LEVELS[level]
     if not levelData or not levelData.next_level then return "MAX LEVEL" end
     return tostring(progress) .. "/" .. tostring(levelData.required_surgeries)
+end
+
+local function getHospitalRating(worldName)
+    local state = getHospitalState(worldName)
+    return math.max(0, math.min(MAX_HOSPITAL_RATING, tonumber(state.rating) or 0))
+end
+
+local function getHospitalRatingCounter(worldName)
+    local state = getHospitalState(worldName)
+    local rating = math.max(0, math.min(MAX_HOSPITAL_RATING, tonumber(state.rating) or 0))
+    local counter = math.max(0, tonumber(state.rating_counter) or 0)
+    if rating >= MAX_HOSPITAL_RATING then
+        counter = RATING_STEP_CURES
+    else
+        counter = math.min(RATING_STEP_CURES, counter)
+    end
+    return {
+        rating = rating,
+        counter = counter,
+        need = rating >= MAX_HOSPITAL_RATING and 0 or (RATING_STEP_CURES - counter)
+    }
+end
+
+local function getRequirementColor(current, required)
+    local safeCurrent = math.max(0, math.floor(tonumber(current) or 0))
+    local safeRequired = math.max(0, math.floor(tonumber(required) or 0))
+    if safeRequired <= 0 then return "`2" end
+    if safeCurrent >= safeRequired then return "`2" end
+    if (safeCurrent * 2) >= safeRequired then return "`9" end
+    return "`4"
+end
+
+local function formatRequirementProgress(current, required)
+    local safeCurrent = math.max(0, math.floor(tonumber(current) or 0))
+    local safeRequired = math.max(0, math.floor(tonumber(required) or 0))
+    return getRequirementColor(safeCurrent, safeRequired) .. tostring(safeCurrent) .. "/" .. tostring(safeRequired) .. "``"
+end
+
+local function getRequirementIconID(current, required)
+    local safeCurrent = math.max(0, math.floor(tonumber(current) or 0))
+    local safeRequired = math.max(0, math.floor(tonumber(required) or 0))
+    if safeRequired <= 0 or safeCurrent >= safeRequired then
+        return 6292 -- completed/max requirement
+    end
+    return 2946 -- requirement in progress
+end
+
+local function isDialogBackAction(buttonClicked, explicitButtonID)
+    local btn = string.lower(tostring(buttonClicked or ""))
+    local explicit = string.lower(tostring(explicitButtonID or ""))
+
+    if explicit ~= "" and btn == explicit then return true end
+    if btn == "back" or btn == "close" or btn == "cancel" or btn == "backbtn" then return true end
+    if btn:find("back", 1, true) ~= nil then return true end
+    return false
+end
+
+local function isDialogButtonPressed(data, buttonID)
+    if type(data) ~= "table" then return false end
+    local target = tostring(buttonID or "")
+    if target == "" then return false end
+
+    local clicked = tostring(data["buttonClicked"] or "")
+    if clicked == target then return true end
+
+    local raw = data[target]
+    if raw == nil then return false end
+    local str = string.lower(tostring(raw))
+    if str == "" or str == "0" or str == "false" then return false end
+    return true
+end
+
+local function resolveDialogContext(cbWorld, cbPlayer, fallbackWorld, fallbackPlayer)
+    local w = cbWorld
+    local p = cbPlayer
+    if type(w) ~= "userdata" then w = fallbackWorld end
+    if type(p) ~= "userdata" then p = fallbackPlayer end
+    return w, p
+end
+
+local function getLevelUpSnapshot(world, worldName, state, playerWL)
+    local treatmentStats = getHospitalTreatmentStats(worldName)
+    return {
+        cures = tonumber(state.progress) or 0,
+        doctors = ReceptionDesk.countDoctors(worldName),
+        rating = getHospitalRating(worldName),
+        autoSurgeons = countAutoSurgeons(world),
+        operatingTables = countOperatingTables(world),
+        playerWL = math.max(0, math.floor(tonumber(playerWL) or 0)),
+        curedByMalady = treatmentStats.cured_by_malady or {}
+    }
+end
+
+local function isLevelUpReadyForRule(levelRule, snapshot, upgradeCost)
+    if not levelRule or not snapshot then return false end
+    if snapshot.playerWL < (tonumber(upgradeCost) or 0) then return false end
+    if snapshot.cures < (tonumber(levelRule.required_cures) or 0) then return false end
+    if snapshot.doctors < (tonumber(levelRule.required_doctors) or 0) then return false end
+    if snapshot.rating < (tonumber(levelRule.required_rating) or 0) then return false end
+    if snapshot.autoSurgeons < (tonumber(levelRule.required_auto_surgeons) or 0) then return false end
+    if snapshot.operatingTables < (tonumber(levelRule.required_operating_tables) or 0) then return false end
+
+    local reqMaladies = levelRule.required_maladies or {}
+    for i = 1, #reqMaladies do
+        local row = reqMaladies[i]
+        local current = tonumber(snapshot.curedByMalady[row.key]) or 0
+        if current < (tonumber(row.count) or 0) then
+            return false
+        end
+    end
+
+    return true
 end
 
 local function addHospitalProgressIfPossible(worldName, amount)
@@ -463,20 +1197,20 @@ local function ensureStation(worldName, x, y)
 end
 
 local function setStationMalady(worldName, x, y, maladyType)
-    local station = ensureStation(worldName, x, y)
+    local station = AutoSurgeon.ensureStation(worldName, x, y)
     station.malady_type = tostring(maladyType)
     saveStation(worldName, x, y, station)
 end
 
 local function setStationEnabled(worldName, x, y, enabled)
-    local station = ensureStation(worldName, x, y)
+    local station = AutoSurgeon.ensureStation(worldName, x, y)
     station.enabled = enabled and 1 or 0
     saveStation(worldName, x, y, station)
 end
 
 local function setStationPrice(worldName, x, y, priceWL)
     local safePrice = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(priceWL) or MIN_CURE_PRICE_WL))
-    local station = ensureStation(worldName, x, y)
+    local station = AutoSurgeon.ensureStation(worldName, x, y)
     station.price_wl = safePrice
     saveStation(worldName, x, y, station)
 end
@@ -489,7 +1223,7 @@ local function getStationToolAmount(worldName, x, y, toolID)
 end
 
 local function addStationTool(worldName, x, y, toolID, amount)
-    local station = ensureStation(worldName, x, y)
+    local station = AutoSurgeon.ensureStation(worldName, x, y)
     local storage = station.storage or {}
     local current = tonumber(storage["t" .. tostring(toolID)]) or 0
     storage["t" .. tostring(toolID)] = math.min(MAX_TOOL_STORAGE, current + math.max(0, math.floor(tonumber(amount) or 0)))
@@ -498,7 +1232,7 @@ local function addStationTool(worldName, x, y, toolID, amount)
 end
 
 local function removeStationTool(worldName, x, y, toolID, amount)
-    local station = ensureStation(worldName, x, y)
+    local station = AutoSurgeon.ensureStation(worldName, x, y)
     local storage = station.storage or {}
     local current = tonumber(storage["t" .. tostring(toolID)]) or 0
     storage["t" .. tostring(toolID)] = math.max(0, current - math.max(0, math.floor(tonumber(amount) or 0)))
@@ -538,7 +1272,7 @@ end
 local function consumeStationTools(worldName, x, y, maladyType)
     local req = TOOL_REQUIREMENT[maladyType]
     if not req then return end
-    local station = ensureStation(worldName, x, y)
+    local station = AutoSurgeon.ensureStation(worldName, x, y)
     local storage = station.storage or {}
     for toolID, need in pairs(req) do
         local current = tonumber(storage["t" .. tostring(toolID)]) or 0
@@ -581,13 +1315,13 @@ local function refreshStationOperationalState(worldName, x, y)
     if not station then return end
     local maladyType = tostring(station.malady_type or "")
     if maladyType == "" then return end
-    if not stationHasEnoughTools(worldName, x, y, maladyType) then
-        setStationEnabled(worldName, x, y, false)
+    if not AutoSurgeon.stationHasEnoughTools(worldName, x, y, maladyType) then
+        AutoSurgeon.setStationEnabled(worldName, x, y, false)
     end
 end
 
 local function getToolStorageLabel(worldName, x, y, toolID)
-    return tostring(getStationToolAmount(worldName, x, y, toolID)) .. "/1k"
+    return tostring(AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)) .. "/1k"
 end
 
 local function hasAnyStationStock(worldName, x, y)
@@ -606,12 +1340,12 @@ local function canBreakAutoSurgeon(worldName, x, y)
     local station = getStation(worldName, x, y)
     if not station then return true end
     if (tonumber(station.earned_wl) or 0) > 0 then return false end
-    if hasAnyStationStock(worldName, x, y) then return false end
+    if AutoSurgeon.hasAnyStationStock(worldName, x, y) then return false end
     return true
 end
 
 local function tryDepositToolToStation(player, worldName, x, y, toolID)
-    local current = getStationToolAmount(worldName, x, y, toolID)
+    local current = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
     if current >= MAX_TOOL_STORAGE then
         safeBubble(player, "`4This tool storage is already full.")
         return false
@@ -628,19 +1362,19 @@ local function tryDepositToolToStation(player, worldName, x, y, toolID)
         return false
     end
     player:changeItem(toolID, -depositAmount, 0)
-    addStationTool(worldName, x, y, toolID, depositAmount)
+    AutoSurgeon.addStationTool(worldName, x, y, toolID, depositAmount)
     safeBubble(player, "`2Deposited " .. tostring(depositAmount) .. "x tool ID " .. tostring(toolID) .. ".")
     return true
 end
 
 local function tryWithdrawToolFromStation(player, worldName, x, y, toolID)
-    local current = getStationToolAmount(worldName, x, y, toolID)
+    local current = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
     if current <= 0 then
         safeBubble(player, "`4There is no stock for this tool.")
         return false
     end
     player:changeItem(toolID, current, 0)
-    removeStationTool(worldName, x, y, toolID, current)
+    AutoSurgeon.removeStationTool(worldName, x, y, toolID, current)
     safeBubble(player, "`2Withdrew " .. tostring(current) .. "x tool ID " .. tostring(toolID) .. ".")
     return true
 end
@@ -648,11 +1382,6 @@ end
 -- =======================================================
 -- PANELS
 -- =======================================================
-
-local showAutoSurgeonOwnerPanel
-local showAutoSurgeonStoragePanel
-local showManageDoctorsPanel
-local showDoctorReceptionPanel
 
 local function tryUpgradeHospital(player, world)
     local worldName = getWorldName(world, player)
@@ -681,523 +1410,164 @@ local function tryUpgradeHospital(player, world)
     safeBubble(player, "`2Hospital upgraded to level " .. tostring(levelData.next_level) .. "!")
 end
 
-local function showReceptionDeskPanel(world, player)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    MaladySystem.refreshPlayerState(player)
-    local worldName    = getWorldName(world, player)
-    local state        = getHospitalState(worldName)
-    local level        = tonumber(state.level) or 1
-    local progress     = tonumber(state.progress) or 0
-    local progressText = getHospitalProgressText(level, progress)
-    local doctorCount  = countDoctors(worldName)
-    local levelData    = HOSPITAL_LEVELS[level]
-    local ownerAccess  = isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER)
-    local statusText   = MaladySystem.getStatusText(player)
-
-    local dialog = {
-        "set_default_color|`o",
-        "set_bg_color|0,0,0,180|",
-        "add_label_with_icon|big|Reception Desk|left|" .. tostring(RECEPTION_DESK_ID) .. "|",
-        "add_smalltext|`wWorld: `o" .. worldName .. "|",
-        "add_smalltext|`wHospital Level: `o" .. tostring(level) .. "|",
-        "add_smalltext|`wProgress: `o" .. progressText .. "|",
-        "add_smalltext|`wRegistered Doctors: `o" .. tostring(doctorCount) .. "|",
-        "add_smalltext|`wYour Status: " .. statusText .. "|",
-        "add_spacer|small|"
-    }
-
-    if levelData and levelData.next_level then
-        dialog[#dialog + 1] = "add_smalltext|`wNext Upgrade: `oLevel " .. tostring(levelData.next_level) .. "|"
-        dialog[#dialog + 1] = "add_smalltext|`wUpgrade Cost: `o" .. tostring(levelData.upgrade_gems) .. " Gems + " .. tostring(levelData.upgrade_wl) .. " WL|"
-    else
-        dialog[#dialog + 1] = "add_smalltext|`2Hospital is at max level.|"
-    end
-
-    dialog[#dialog + 1] = "add_spacer|small|"
-
-    if ownerAccess then
-        dialog[#dialog + 1] = "add_button|" .. BTN_MANAGE_DOCTORS   .. "|Manage Doctors|noflags|0|0|"
-        dialog[#dialog + 1] = "add_button|" .. BTN_UPGRADE_HOSPITAL .. "|Upgrade Hospital|noflags|0|0|"
-        dialog[#dialog + 1] = "add_button|" .. BTN_LEADERBOARD      .. "|Leaderboard|noflags|0|0|"
-        dialog[#dialog + 1] = "add_button|" .. BTN_CLOSE_RECEPTION  .. "|Close|noflags|0|0|"
-        if safeHasRole(player, ROLE_DEVELOPER) then
-            dialog[#dialog + 1] = "add_spacer|small|"
-            dialog[#dialog + 1] = "add_button|" .. BTN_DEV_RESET_HOSPITAL .. "|`4DEV: Reset Hospital|noflags|0|0|"
-        end
-    else
-        dialog[#dialog + 1] = "add_button|" .. BTN_CLOSE_RECEPTION .. "|Close|noflags|0|0|"
-    end
-
-    dialog[#dialog + 1] = "add_quick_exit|"
-    dialog[#dialog + 1] = "end_dialog|" .. DLG_RECEPTION .. "|||"
-
-    player:onDialogRequest(table.concat(dialog, "\n"), 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= DLG_RECEPTION then return end
-        local btn = data["buttonClicked"]
-
-        if btn == BTN_MANAGE_DOCTORS and (isWorldOwner(cbWorld, cbPlayer) or safeHasRole(cbPlayer, ROLE_DEVELOPER)) then
-            showManageDoctorsPanel(cbWorld, cbPlayer, worldName)
-            return true
-        end
-        if btn == BTN_UPGRADE_HOSPITAL and (isWorldOwner(cbWorld, cbPlayer) or safeHasRole(cbPlayer, ROLE_DEVELOPER)) then
-            tryUpgradeHospital(cbPlayer, cbWorld)
-            showReceptionDeskPanel(cbWorld, cbPlayer)
-            return true
-        end
-        if btn == BTN_LEADERBOARD and (isWorldOwner(cbWorld, cbPlayer) or safeHasRole(cbPlayer, ROLE_DEVELOPER)) then
-            showDoctorReceptionPanel(cbWorld, cbPlayer, worldName)
-            return true
-        end
-        if btn == BTN_CLOSE_RECEPTION then
-            return true
-        end
-        if btn == BTN_DEV_RESET_HOSPITAL and safeHasRole(cbPlayer, ROLE_DEVELOPER) then
-            resetHospitalState(worldName)
-            safeBubble(cbPlayer, "`4Hospital reset to level 1.")
-            showReceptionDeskPanel(cbWorld, cbPlayer)
-            return true
-        end
-
-        return true
-    end)
-end
-
-showManageDoctorsPanel = function(world, player, worldName)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local state   = getHospitalState(worldName)
-    local doctors = state.doctors or {}
-
-    local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
-    d = d .. "add_label_with_icon|big|Manage Doctors|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
-    d = d .. "add_smalltext|`wWorld Owner is always a doctor.|\n"
-    d = d .. "add_spacer|small|\n"
-
-    -- Section: current registered doctors
-    d = d .. "add_label|small|`wRegistered Doctors:|left|\n"
-    local hasDoctors = false
-    for key, name in pairs(doctors) do
-        hasDoctors = true
-        local uid = key:gsub("^u", "")
-        d = d .. "add_button|" .. BTN_REMOVE_DOCTOR_PREFIX .. uid .. "|`4Remove: " .. tostring(name) .. "|noflags|0|0|\n"
-    end
-    if not hasDoctors then
-        d = d .. "add_smalltext|`7No registered doctors yet.|\n"
-    end
-
-    d = d .. "add_spacer|small|\n"
-
-    -- Section: players in world that can be added as doctor
-    d = d .. "add_label|small|`wPlayers In World (click to add as doctor):|left|\n"
-    local players = world:getPlayers()
-    local anyAddable = false
-    if type(players) == "table" then
-        for _, p in pairs(players) do
-            local pid  = getUserID(p)
-            local pkey = "u" .. tostring(pid)
-            -- Skip owner and already-doctors
-            if not isWorldOwner(world, p) and not doctors[pkey] then
-                anyAddable = true
-                local pname = tostring(p.getName and p:getName() or pid)
-                d = d .. "add_button|" .. BTN_ADD_DOCTOR_PREFIX .. pid .. "|`2Add: " .. pname .. "|noflags|0|0|\n"
-            end
-        end
-    end
-    if not anyAddable then
-        d = d .. "add_smalltext|`7No eligible players in this world.|\n"
-    end
-
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_button|" .. BTN_DOCTORS_BACK .. "|Back|noflags|0|0|\n"
-    d = d .. "add_quick_exit|\n"
-    d = d .. "end_dialog|" .. DLG_MANAGE_DOCTORS .. "|||\n"
-
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= DLG_MANAGE_DOCTORS then return end
-        local btn = data["buttonClicked"]
-
-        if btn and btn:match("^" .. BTN_ADD_DOCTOR_PREFIX) then
-            local uid = tonumber(extractButtonSuffix(btn, BTN_ADD_DOCTOR_PREFIX)) or 0
-            if uid > 0 then
-                local targetName = tostring(uid)
-                local targetPlayer = nil
-                local wPlayers = cbWorld:getPlayers()
-                if type(wPlayers) == "table" then
-                    for _, p in pairs(wPlayers) do
-                        if getUserID(p) == uid then
-                            targetName = tostring(p.getName and p:getName() or uid)
-                            targetPlayer = p
-                            break
-                        end
-                    end
-                end
-                addDoctor(worldName, uid, targetName)
-                safeBubble(cbPlayer, "`2" .. targetName .. " is now a registered doctor.")
-                if targetPlayer then
-                    safeBubble(targetPlayer, "`2You have been registered as a doctor at this hospital!")
-                end
-            end
-            showManageDoctorsPanel(cbWorld, cbPlayer, worldName)
-            return true
-        end
-
-        if btn and btn:match("^" .. BTN_REMOVE_DOCTOR_PREFIX) then
-            local uid = tonumber(extractButtonSuffix(btn, BTN_REMOVE_DOCTOR_PREFIX)) or 0
-            if uid > 0 then
-                removeDoctor(worldName, uid)
-                safeBubble(cbPlayer, "`4Doctor removed.")
-                local wPlayers = cbWorld:getPlayers()
-                if type(wPlayers) == "table" then
-                    for _, p in pairs(wPlayers) do
-                        if getUserID(p) == uid then
-                            safeConsole(p, "`4You have been removed as a doctor from this hospital.")
-                            break
-                        end
-                    end
-                end
-            end
-            showManageDoctorsPanel(cbWorld, cbPlayer, worldName)
-            return true
-        end
-
-        if btn == BTN_DOCTORS_BACK then
-            showReceptionDeskPanel(cbWorld, cbPlayer)
-            return true
-        end
-
-        return true
-    end)
-end
-
-showDoctorReceptionPanel = function(world, player, worldName)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local dlgName = "hosp_doctor_panel_v5m"
-    local uid = getUserID(player)
-    local leaderboard = getDoctorLeaderboard(worldName)
-
-    local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
-    d = d .. "add_label_with_icon|big|Doctor Panel|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
-    d = d .. "add_smalltext|`wWorld: `o" .. worldName .. "|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_label|small|`wTop Doctors:|left|\n"
-
-    if #leaderboard == 0 then
-        d = d .. "add_smalltext|`7No surgery records yet.|\n"
-    else
-        for rank, entry in ipairs(leaderboard) do
-            local youTag = (entry.uid == uid) and " `e(You)" or ""
-            d = d .. "add_smalltext|`w#" .. rank .. " `o" .. entry.name .. " `7- `2" .. tostring(entry.surgeries) .. " surgeries" .. youTag .. "|\n"
-        end
-    end
-
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_button|btn_doctor_close|Close|noflags|0|0|\n"
-    d = d .. "add_quick_exit|\n"
-    d = d .. "end_dialog|" .. dlgName .. "|||\n"
-
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-        return true
-    end)
-end
-
-showAutoSurgeonStoragePanel = function(world, player, worldName, x, y)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local dlgName = "autosurgeon_storage_v5m_" .. tostring(x) .. "_" .. tostring(y)
-    ensureStation(worldName, x, y)
-
-    local d = "set_default_color|`o\n"
-    d = d .. "text_scaling_string|aaaaaaaaaa|\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
-    d = d .. "add_label_with_icon|big|Auto Surgeon Storage|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
-    d = d .. "add_smalltext|`wClick a tool to withdraw all stock for that tool.|\n"
-    d = d .. "add_spacer|small|\n"
-
-    for rowStart = 1, #ALL_SURGICAL_TOOLS, 5 do
-        local rowEnd = math.min(rowStart + 4, #ALL_SURGICAL_TOOLS)
-        for i = rowStart, rowEnd do
-            local toolID = ALL_SURGICAL_TOOLS[i]
-            d = d .. string.format(
-                "add_button_with_icon|%s%d|%s|staticBlueFrame|%d|0|left|\n",
-                BTN_WITHDRAW_TOOL_PREFIX, toolID,
-                getToolStorageLabel(worldName, x, y, toolID), toolID
-            )
-        end
-        d = d .. "add_custom_break|\n"
-        d = d .. "add_spacer|small|\n"
-    end
-
-    d = d .. "add_button|" .. BTN_STORAGE_BACK .. "|Back|noflags|0|0|\n"
-    d = d .. "add_quick_exit|\n"
-    d = d .. "end_dialog|" .. dlgName .. "|||\n"
-
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-        local btn = data["buttonClicked"]
-
-        if btn and btn:match("^" .. BTN_WITHDRAW_TOOL_PREFIX) then
-            local toolID = tonumber(extractButtonSuffix(btn, BTN_WITHDRAW_TOOL_PREFIX)) or 0
-            if toolID > 0 then
-                tryWithdrawToolFromStation(cbPlayer, worldName, x, y, toolID)
-                refreshStationOperationalState(worldName, x, y)
-            end
-            showAutoSurgeonStoragePanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-        if btn == BTN_STORAGE_BACK then
-            showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        return true
-    end)
-end
-
-showAutoSurgeonOwnerPanel = function(world, player, worldName, x, y)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local dlgName = "autosurgeon_owner_v5m_" .. tostring(x) .. "_" .. tostring(y)
-    ensureStation(worldName, x, y)
-    refreshStationOperationalState(worldName, x, y)
-    local station = getStation(worldName, x, y)
-
-    local maladyType = tostring(station.malady_type or "")
-    local enabled    = tonumber(station.enabled) == 1
-    local priceWL    = tonumber(station.price_wl) or MIN_CURE_PRICE_WL
-    local earnedWL   = tonumber(station.earned_wl) or 0
-    local cureCount  = maladyType ~= "" and getStationPossibleCures(worldName, x, y, maladyType) or 0
-
-    local d = "set_default_color|`o\n"
-    d = d .. "text_scaling_string|aaaaaaaaaa|\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
-    d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
-    d = d .. "add_smalltext|`wStation World: `o" .. worldName .. "|\n"
-    d = d .. "add_smalltext|`wBound Malady: `o" .. (maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not set") .. "|\n"
-    d = d .. "add_smalltext|`wPossible Cures: `o" .. tostring(cureCount) .. "|\n"
-    d = d .. "add_smalltext|`wPrice of One Cure: `o" .. tostring(priceWL) .. " WL|\n"
-    d = d .. "add_smalltext|`wWorld Tax: `o" .. tostring(CURE_TAX_WL) .. " WL|\n"
-    d = d .. "add_smalltext|`wOwner Net Gain: `o" .. tostring(getOwnerNetGain(priceWL)) .. " WL|\n"
-    d = d .. "add_smalltext|`wEarned WL Ready To Withdraw: `o" .. tostring(earnedWL) .. "|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_text_input|station_price_wl|Price WL|" .. tostring(priceWL) .. "|4|\n"
-    d = d .. "add_checkbox|station_enabled|Enable Auto Surgeon Station|" .. (enabled and "1" or "0") .. "|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_smalltext|`wChoose Illness|\n"
-    d = d .. "add_smalltext|`oVile Vial Maladies:|\n"
-
-    for i = 1, #MALADY_UI_VIAL do
-        local m = MALADY_UI_VIAL[i]
-        local icon = MALADY_ICON[m] or 2
-        local label = (maladyType == m and "`2" or "`w") .. (MaladySystem.MALADY_DISPLAY[m] or m)
-        d = d .. "add_button_with_icon|" .. BTN_BIND_PREFIX .. m .. "|" .. label .. "|staticBlueFrame|" .. icon .. "|0|left|\n"
-    end
-    d = d .. "add_custom_break|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_smalltext|`oActivity Maladies:|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "set_custom_spacing|x:20;y:0|\n"
-
-    local function rngLabel(m)
-        local color = maladyType == m and "`2" or "`w"
-        local name  = MaladySystem.MALADY_DISPLAY[m] or m
-        if #name > 8 then name = name:sub(1, 8):gsub("%s+$", "") .. "..." end
-        return color .. name
-    end
-
-    for i = 1, 3 do
-        local m = MALADY_UI_RNG[i]
-        local icon = MALADY_ICON[m] or 2
-        d = d .. "add_button_with_icon|" .. BTN_BIND_PREFIX .. m .. "|" .. rngLabel(m) .. "|staticBlueFrame|" .. icon .. "|0|left|\n"
-    end
-    d = d .. "add_custom_break|\n"
-    d = d .. "add_spacer|small|\n"
-    for i = 4, #MALADY_UI_RNG do
-        local m = MALADY_UI_RNG[i]
-        local icon = MALADY_ICON[m] or 2
-        d = d .. "add_button_with_icon|" .. BTN_BIND_PREFIX .. m .. "|" .. rngLabel(m) .. "|staticBlueFrame|" .. icon .. "|0|left|\n"
-    end
-    d = d .. "add_custom_break|\n"
-    d = d .. "set_custom_spacing|x:0;y:0|\n"
-
-    d = d .. "add_custom_break|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_label_with_icon|medium|`wSurgical Tools Storage|left|1260|\n"
-    d = d .. "add_spacer|small|\n"
-
-    for rowStart = 1, #ALL_SURGICAL_TOOLS, 5 do
-        local rowEnd = math.min(rowStart + 4, #ALL_SURGICAL_TOOLS)
-        for i = rowStart, rowEnd do
-            local toolID = ALL_SURGICAL_TOOLS[i]
-            d = d .. string.format(
-                "add_button_with_icon|%s%d|%s|staticBlueFrame|%d|0|left|\n",
-                BTN_TOOL_PREFIX, toolID,
-                getToolStorageLabel(worldName, x, y, toolID), toolID
-            )
-        end
-        d = d .. "add_custom_break|\n"
-        d = d .. "add_spacer|small|\n"
-    end
-
-    d = d .. "add_button|" .. BTN_OPEN_STORAGE .. "|Storage|noflags|0|0|\n"
-    d = d .. "add_button|" .. BTN_WITHDRAW_WL  .. "|Withdraw World Locks|noflags|0|0|\n"
-    d = d .. "add_button|" .. BTN_CLOSE_OWNER  .. "|Close|noflags|0|0|\n"
-    d = d .. "add_quick_exit|\n"
-    d = d .. "end_dialog|" .. dlgName .. "|||\n"
-
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-        local btn      = data["buttonClicked"]
-        local newEnabled = data["station_enabled"] == "1"
-        local newPrice   = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(data["station_price_wl"]) or MIN_CURE_PRICE_WL))
-
-        setStationEnabled(worldName, x, y, newEnabled)
-        setStationPrice(worldName, x, y, newPrice)
-
-        if btn and btn:match("^" .. BTN_BIND_PREFIX) then
-            local newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
-            setStationMalady(worldName, x, y, newMalady)
-            refreshStationOperationalState(worldName, x, y)
-            safeBubble(cbPlayer, "`2Station bound to " .. (MaladySystem.MALADY_DISPLAY[newMalady] or newMalady) .. ".")
-            showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-        if btn and btn:match("^" .. BTN_TOOL_PREFIX) then
-            local toolID = tonumber(extractButtonSuffix(btn, BTN_TOOL_PREFIX)) or 0
-            if toolID > 0 then
-                tryDepositToolToStation(cbPlayer, worldName, x, y, toolID)
-                refreshStationOperationalState(worldName, x, y)
-            end
-            showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-        if btn == BTN_OPEN_STORAGE then
-            showAutoSurgeonStoragePanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-        if btn == BTN_WITHDRAW_WL then
-            local stationNow   = getStation(worldName, x, y)
-            local wlToWithdraw = tonumber(stationNow and stationNow.earned_wl) or 0
-            if wlToWithdraw <= 0 then
-                safeBubble(cbPlayer, "`4No World Locks to withdraw.")
-            else
-                cbPlayer:changeItem(WORLD_LOCK_ID, wlToWithdraw, 0)
-                clearStationEarnedWL(worldName, x, y)
-                safeBubble(cbPlayer, "`2Withdrew " .. tostring(wlToWithdraw) .. " WL from station earnings.")
-            end
-            showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-        -- BTN_CLOSE_OWNER atau quick_exit: simpan settings lalu tutup
-        return true
-    end)
-end
-
-local function showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
-    if type(world) ~= "userdata" or type(player) ~= "userdata" then return end
-    local dlgName = "autosurgeon_player_v5m_" .. tostring(x) .. "_" .. tostring(y)
-    MaladySystem.refreshPlayerState(player)
-    ensureStation(worldName, x, y)
-    refreshStationOperationalState(worldName, x, y)
-    local station    = getStation(worldName, x, y)
-    local maladyType = tostring(station.malady_type or "")
-    local enabled    = tonumber(station.enabled) == 1
-    local priceWL    = tonumber(station.price_wl) or MIN_CURE_PRICE_WL
-
-    local dialog = {
-        "set_default_color|`o",
-        "set_bg_color|0,0,0,180|",
-        "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|",
-        "add_smalltext|`wThis station cures: `o" .. (maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not configured") .. "|",
-        "add_smalltext|`wPrice of One Cure: `o" .. tostring(priceWL) .. " WL|",
-        "add_smalltext|`wYour Status: " .. MaladySystem.getStatusText(player) .. "|",
-        "add_spacer|small|",
-        "add_button|" .. BTN_CURE_MALADY .. "|Cure Malady|noflags|0|0|",
-        "add_quick_exit|",
-        "end_dialog|" .. dlgName .. "|||"
-    }
-
-    player:onDialogRequest(table.concat(dialog, "\n"), 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-        if data["buttonClicked"] ~= BTN_CURE_MALADY then return true end
-
-        MaladySystem.refreshPlayerState(cbPlayer)
-        local activeMalady = MaladySystem.getActiveMalady(cbPlayer)
-
-        if not activeMalady then
-            safeBubble(cbPlayer, "`4You do not have any malady that requires treatment.")
-            return true
-        end
-        if MaladySystem.isRecovering(cbPlayer) then
-            safeBubble(cbPlayer, "`4You are recovering and cannot use Auto Surgeon right now.")
-            return true
-        end
-        if maladyType == "" then
-            safeBubble(cbPlayer, "`4This Auto Surgeon Station is not configured yet.")
-            return true
-        end
-        if tostring(activeMalady) ~= maladyType then
-            safeBubble(cbPlayer, "`4This station does not treat your malady.")
-            return true
-        end
-
-        local hospitalState = getHospitalState(worldName)
-        local hospitalLevel = tonumber(hospitalState.level) or 1
-        local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
-        if hospitalLevel < requiredLevel then
-            safeBubble(cbPlayer, "`4This malady treatment has not been unlocked for this hospital yet.")
-            return true
-        end
-        if not enabled then
-            safeBubble(cbPlayer, "`4This Auto Surgeon Station is currently disabled.")
-            return true
-        end
-        if not stationHasEnoughTools(worldName, x, y, maladyType) then
-            setStationEnabled(worldName, x, y, false)
-            safeBubble(cbPlayer, "`4This Auto Surgeon Station does not have enough surgical tools to operate.")
-            return true
-        end
-        if getPlayerItemAmount(cbPlayer, WORLD_LOCK_ID) < priceWL then
-            safeBubble(cbPlayer, "`4You do not have enough World Locks to pay for this treatment.")
-            return true
-        end
-
-        local ok, reason = MaladySystem.cureFromAutoSurgeon(cbPlayer)
-        if not ok then
-            safeBubble(cbPlayer, "`4Auto Surgeon cure failed: " .. tostring(reason))
-            return true
-        end
-
-        cbPlayer:changeItem(WORLD_LOCK_ID, -priceWL, 0)
-        consumeStationTools(worldName, x, y, maladyType)
-        addStationEarnedWL(worldName, x, y, getOwnerNetGain(priceWL))
-        refreshStationOperationalState(worldName, x, y)
-        safeBubble(cbPlayer, "`2Your malady has been cured.")
-        return true
-    end)
-end
+-- Bridge shared locals so separated modules can execute safely in this runtime.
+_G.getStation = getStation
+_G.saveStation = saveStation
+_G.deleteStationData = deleteStationData
+_G.loadHospital = loadHospital
+_G.saveHospital = saveHospital
+_G.getHospitalState = getHospitalState
+_G.getHospitalRatingCounter = getHospitalRatingCounter
+_G.getHospitalTreatmentStats = getHospitalTreatmentStats
+_G.formatRequirementProgress = formatRequirementProgress
+_G.getRequirementIconID = getRequirementIconID
+_G.getOwnerNetGain = getOwnerNetGain
+_G.getWorldTaxWL = getWorldTaxWL
+_G.getPlayerItemAmount = getPlayerItemAmount
+_G.getTotalWLEquivalent = getTotalWLEquivalent
+_G.deductWLEquivalent = deductWLEquivalent
+_G.getUserID = getUserID
+_G.getWorldName = getWorldName
+_G.isWorldOwner = isWorldOwner
+_G.safeHasRole = safeHasRole
+_G.safeBubble = safeBubble
+_G.RECEPTION_DESK_ID = RECEPTION_DESK_ID
+_G.AUTO_SURGEON_ID = AUTO_SURGEON_ID
+_G.OPERATING_TABLE_ID = OPERATING_TABLE_ID
+_G.MIN_CURE_PRICE_WL = MIN_CURE_PRICE_WL
+_G.MAX_TOOL_STORAGE = MAX_TOOL_STORAGE
+_G.MAX_HOSPITAL_RATING = MAX_HOSPITAL_RATING
+_G.RATING_STEP_CURES = RATING_STEP_CURES
+_G.ALL_SURGICAL_TOOLS = ALL_SURGICAL_TOOLS
+_G.TOOL_REQUIREMENT = TOOL_REQUIREMENT
+_G.MALADY_UI_VIAL = MALADY_UI_VIAL
+_G.MALADY_UI_RNG = MALADY_UI_RNG
+_G.MALADY_ICON = MALADY_ICON
+_G.MALADY_ICON_VISUAL = MALADY_ICON_VISUAL
+_G.MALADY_UNLOCK_LEVEL = MALADY_UNLOCK_LEVEL
+_G.getUnlockedAutoSurgeonMaladies = getUnlockedAutoSurgeonMaladies
+_G.HOSPITAL_STATS_MALADY_ROWS = HOSPITAL_STATS_MALADY_ROWS
+_G.HOSPITAL_LEVELS = HOSPITAL_LEVELS
+_G.LEVEL_UP_RULES = LEVEL_UP_RULES
+_G.ROLE_DEVELOPER = ROLE_DEVELOPER
+_G.WORLD_LOCK_ID = WORLD_LOCK_ID
+_G.DIAMOND_LOCK_ID = DIAMOND_LOCK_ID
+_G.BGL_ID = BGL_ID
+_G.BTN_BIND_PREFIX = BTN_BIND_PREFIX
+_G.BTN_TOOL_PREFIX = BTN_TOOL_PREFIX
+_G.BTN_WITHDRAW_TOOL_PREFIX = BTN_WITHDRAW_TOOL_PREFIX
+_G.BTN_ADD_DOCTOR_PREFIX = BTN_ADD_DOCTOR_PREFIX
+_G.BTN_REMOVE_DOCTOR_PREFIX = BTN_REMOVE_DOCTOR_PREFIX
+_G.BTN_DOCTORS_BACK = BTN_DOCTORS_BACK
+_G.BTN_OPEN_STORAGE = BTN_OPEN_STORAGE
+_G.BTN_STORAGE_BACK = BTN_STORAGE_BACK
+_G.BTN_WITHDRAW_WL = BTN_WITHDRAW_WL
+_G.BTN_CLOSE_OWNER = BTN_CLOSE_OWNER
+_G.BTN_CURE_MALADY = BTN_CURE_MALADY
+_G.BTN_SHOW_STATS = BTN_SHOW_STATS
+_G.BTN_LEVEL_UP = BTN_LEVEL_UP
+_G.BTN_BACK_STATS = BTN_BACK_STATS
+_G.BTN_LEVEL_UP_BACK = BTN_LEVEL_UP_BACK
+_G.BTN_LEVEL_UP_NEW_CONFIRM = BTN_LEVEL_UP_NEW_CONFIRM
+_G.DLG_MANAGE_DOCTORS = DLG_MANAGE_DOCTORS
+_G.extractButtonSuffix = extractButtonSuffix
+_G.countAutoSurgeons = countAutoSurgeons
+_G.countOperatingTables = countOperatingTables
+_G.getLevelUpSnapshot = getLevelUpSnapshot
+_G.isLevelUpReadyForRule = isLevelUpReadyForRule
+_G.setHospitalState = setHospitalState
 
 -- =======================================================
 -- CALLBACKS
 -- =======================================================
+
+local function buildAutoSurgeonTileExtraData(world, tile, game_version)
+    if type(tile) ~= "userdata" then return false end
+
+    local fg = 0
+    if tile.getTileForeground then
+        fg = tonumber(tile:getTileForeground()) or 0
+    elseif tile.getTileID then
+        fg = tonumber(tile:getTileID()) or 0
+    end
+    if fg ~= AUTO_SURGEON_ID then return false end
+
+    if tonumber(game_version) and tonumber(game_version) < 4.65 then
+        return false
+    end
+    if type(BinaryWriter) ~= "function" then
+        return false
+    end
+
+    local worldName = getWorldName(world)
+    local x = tile:getPosX()
+    local y = tile:getPosY()
+    local station = getStation(worldName, x, y)
+
+    local maladyType = tostring(station and station.malady_type or "")
+    local illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
+    local forcedIllnessID = tonumber(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID"))
+    if forcedIllnessID then
+        illnessID = math.max(0, math.min(255, math.floor(forcedIllnessID)))
+    end
+
+    local wlCount = tonumber(station and station.earned_wl) or 0
+    local wlCountVisual = wlCount > 0 and 1 or 0
+    local forcedWLVisual = tonumber(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL"))
+    if forcedWLVisual then
+        wlCountVisual = forcedWLVisual > 0 and 1 or 0
+    end
+
+    local outOfOrder = 0
+    if not station or maladyType == "" or tonumber(station.enabled) ~= 1 then
+        outOfOrder = 1
+    end
+
+    local wr = BinaryWriter("")
+    wr:WriteUInt32(39)
+    wr:WriteUInt8(163)
+
+    wr:WriteUInt8(106)
+    wr:WriteString("outOfOrder")
+    wr:WriteUInt8(outOfOrder)
+
+    wr:WriteUInt8(111)
+    wr:WriteString("selectedIllness")
+    wr:WriteUInt8(illnessID)
+
+    wr:WriteUInt8(103)
+    wr:WriteString("wlCount")
+    wr:WriteUInt8(wlCountVisual)
+
+    return wr:GetCurrentString()
+end
+
+-- Avoid duplicate callback stacking on reloadScripts().
+-- Register once, then always route to latest handler through _G.
+_G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER = buildAutoSurgeonTileExtraData
+if type(onGetTileExtraDataCallback) == "function" and not _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_REGISTERED then
+    _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_REGISTERED = true
+    onGetTileExtraDataCallback(function(world, tile, game_version)
+        local fn = rawget(_G, "__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER")
+        if type(fn) == "function" then
+            return fn(world, tile, game_version)
+        end
+        return false
+    end)
+end
 
 onTileWrenchCallback(function(world, player, tile)
     if tile:getTileID() == RECEPTION_DESK_ID then
         local worldName = getWorldName(world, player)
         local uid = getUserID(player)
         if isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER) then
-            showReceptionDeskPanel(world, player)
-        elseif isDoctor(worldName, uid) then
-            showDoctorReceptionPanel(world, player, worldName)
+            ReceptionDesk.showReceptionDeskPanel(world, player)
+        elseif ReceptionDesk.isDoctor(worldName, uid) then
+            ReceptionDesk.showDoctorReceptionPanel(world, player, worldName)
         elseif world:hasAccess(player) then
             safeBubble(player, "`4You are not registered as a doctor at this hospital!")
         else
-            showReceptionDeskPanel(world, player)
+            ReceptionDesk.showReceptionDeskPanel(world, player)
         end
         return true
     end
@@ -1206,7 +1576,7 @@ onTileWrenchCallback(function(world, player, tile)
         local x = tile:getPosX()
         local y = tile:getPosY()
         -- Cek jarak: player harus dekat station
-        -- getPosX() mungkin pixel (÷32) atau tile coords langsung — dual-check keduanya
+        -- getPosX() mungkin pixel (/32) atau tile coords langsung - dual-check keduanya
         -- Offset kanan lebih besar (+4) karena getPosX() = ujung kiri player, bukan center
         local pxRaw = math.floor(player:getPosX() or 0)
         local pyRaw = math.floor(player:getPosY() or 0)
@@ -1215,14 +1585,14 @@ onTileWrenchCallback(function(world, player, tile)
         local closeAsPixels = (pxTile - x) >= -8 and (pxTile - x) <= 17 and math.abs(pyTile - y) <= 6
         local closeAsTiles  = (pxRaw - x) >= -8 and (pxRaw - x) <= 17 and math.abs(pyRaw - y) <= 6
         if not closeAsPixels and not closeAsTiles then
-            safeBubble(player, "`4You need to stand next to the Auto Surgeon Station.")
+            safeBubble(player, "Get closer!")
             return true
         end
-        ensureStation(worldName, x, y)
+        AutoSurgeon.ensureStation(worldName, x, y)
         if isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER) then
-            showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
         else
-            showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
+            AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
         end
         return true
     end
@@ -1268,7 +1638,7 @@ onTilePunchCallback(function(world, player, tile)
     end
 
     if tile:getTileID() == AUTO_SURGEON_ID then
-        if not canBreakAutoSurgeon(worldName, x, y) then
+        if not AutoSurgeon.canBreakAutoSurgeon(worldName, x, y) then
             safeBubble(player, "`4Empty the Auto Surgeon storage and withdraw earnings before breaking.")
             return true
         end
@@ -1322,17 +1692,34 @@ onPlayerSurgeryCallback(function(world, surgeon, rewardID, rewardCount, targetPl
     end
 
     local worldName = getWorldName(world, surgeon)
+    local treatmentRecorded = false
 
     if targetPlayer and MaladySystem.hasActiveMalady(targetPlayer) then
+        local targetMalady = MaladySystem.getActiveMalady(targetPlayer)
+        local mappedMalady = SURGERY_REWARD_MALADY_KEY[tonumber(rewardID) or -1]
+        local surgeryMaladyKey = targetMalady or mappedMalady
         local ok, reason = MaladySystem.cureFromManualSurgery(targetPlayer)
         if ok then
             safeConsole(targetPlayer, "`2Your malady has been cured by surgery.")
+            recordHospitalTreatment(worldName, surgeryMaladyKey, true)
+            treatmentRecorded = true
         else
             safeConsole(targetPlayer, "`4Malady cure failed: " .. tostring(reason))
+            recordHospitalTreatment(worldName, surgeryMaladyKey, false)
+            treatmentRecorded = true
         end
     end
 
-    if isEffectiveDoctor(world, worldName, getUserID(surgeon), surgeon) then
+    local effectiveDoctor = isEffectiveDoctor(world, worldName, getUserID(surgeon), surgeon)
+    if effectiveDoctor then
+        if not treatmentRecorded then
+            -- Fallback for Surg-E/manual surgery that does not go through MaladySystem target flow.
+            -- onPlayerSurgeryCallback is treated as successful surgery event here.
+            local mappedMalady = SURGERY_REWARD_MALADY_KEY[tonumber(rewardID) or -1]
+            recordHospitalTreatment(worldName, mappedMalady, true)
+            treatmentRecorded = true
+        end
+
         local added = addHospitalProgressIfPossible(worldName, 1)
         if added then safeConsole(surgeon, "`2Hospital progress increased by 1.") end
         addDoctorSurgery(worldName, getUserID(surgeon))
@@ -1365,16 +1752,20 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     if sub == "help" then
         safeConsole(player, "`w/hospitaltest panel `o= open reception panel")
         safeConsole(player, "`w/hospitaltest owner `o= open owner panel while standing on station")
-        safeConsole(player, "`w/hospitaltest infect chicken|torn|grumble|gems|auto|broken")
+        safeConsole(player, "`w/hospitaltest infect chicken/torn/grumble/gems/auto/broken")
         safeConsole(player, "`w/hospitaltest clear")
         safeConsole(player, "`w/hospitaltest state")
         safeConsole(player, "`w/hospitaltest addprogress")
         safeConsole(player, "`w/hospitaltest stationstate")
+        safeConsole(player, "`w/hospitaltest tileextra `o= debug Auto Surgeon tile extra values")
+        safeConsole(player, "`w/hospitaltest tileextra id <0-255> `o= force selectedIllness visual ID")
+        safeConsole(player, "`w/hospitaltest tileextra auto `o= clear forced selectedIllness ID")
+        safeConsole(player, "`w/hospitaltest tileextra wl 0|1 `o= force wlCount visual flag")
         return true
     end
 
     if sub == "panel" then
-        showReceptionDeskPanel(world, player)
+        ReceptionDesk.showReceptionDeskPanel(world, player)
         return true
     end
 
@@ -1387,7 +1778,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             return true
         end
         local worldName = getWorldName(world)
-        showAutoSurgeonOwnerPanel(world, player, worldName, tile:getPosX(), tile:getPosY())
+        AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, tile:getPosX(), tile:getPosY())
         return true
     end
 
@@ -1423,7 +1814,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         local state = getHospitalState(worldName)
         safeConsole(player, "`wHospital Level: `o" .. tostring(state.level))
         safeConsole(player, "`wHospital Progress: `o" .. tostring(state.progress))
-        safeConsole(player, "`wDoctors: `o" .. tostring(countDoctors(worldName)))
+        safeConsole(player, "`wDoctors: `o" .. tostring(ReceptionDesk.countDoctors(worldName)))
         return true
     end
 
@@ -1457,7 +1848,186 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         return true
     end
 
+    if sub == "tileextra" then
+        local px   = math.floor((player:getPosX() or 0) / 32)
+        local py   = math.floor((player:getPosY() or 0) / 32)
+        local tile = world:getTile(px, py)
+        if not tile or tile:getTileID() ~= AUTO_SURGEON_ID then
+            safeBubble(player, "`4Stand on an Auto Surgeon Station first.")
+            return true
+        end
+
+        local mode = string.lower(parts[3] or "")
+        if mode == "id" then
+            local raw = tonumber(parts[4])
+            if not raw then
+                safeBubble(player, "`4Usage: /hospitaltest tileextra id <0-255>")
+                return true
+            end
+            _G.__HOSPITAL_FORCE_ILLNESS_ID = math.max(0, math.min(255, math.floor(raw)))
+            world:updateTile(tile)
+            safeConsole(player, "`wForced selectedIllness ID => `o" .. tostring(_G.__HOSPITAL_FORCE_ILLNESS_ID))
+            return true
+        elseif mode == "auto" then
+            _G.__HOSPITAL_FORCE_ILLNESS_ID = nil
+            world:updateTile(tile)
+            safeConsole(player, "`wForced selectedIllness ID cleared (back to malady mapping).")
+            return true
+        elseif mode == "wl" then
+            local raw = tonumber(parts[4])
+            if raw == nil then
+                safeBubble(player, "`4Usage: /hospitaltest tileextra wl 0|1")
+                return true
+            end
+            _G.__HOSPITAL_FORCE_WL_VISUAL = raw > 0 and 1 or 0
+            world:updateTile(tile)
+            safeConsole(player, "`wForced wlCountVisual => `o" .. tostring(_G.__HOSPITAL_FORCE_WL_VISUAL))
+            return true
+        end
+
+        local station = getStation(getWorldName(world), tile:getPosX(), tile:getPosY())
+        if not station then
+            safeBubble(player, "`4Station data not found.")
+            return true
+        end
+
+        local maladyType = tostring(station.malady_type or "")
+        local illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
+        local forcedIllnessID = tonumber(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID"))
+        if forcedIllnessID then illnessID = forcedIllnessID end
+        local wlCount = tonumber(station.earned_wl) or 0
+        local wlCountVisual = wlCount > 0 and 1 or 0
+        local forcedWLVisual = tonumber(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL"))
+        if forcedWLVisual then wlCountVisual = forcedWLVisual > 0 and 1 or 0 end
+        local outOfOrder = (maladyType == "" or tonumber(station.enabled) ~= 1) and 1 or 0
+
+        safeConsole(player, "`wTileExtra Malady: `o" .. maladyType)
+        safeConsole(player, "`wTileExtra selectedIllness ID: `o" .. tostring(illnessID))
+        safeConsole(player, "`wTileExtra outOfOrder: `o" .. tostring(outOfOrder))
+        safeConsole(player, "`wTileExtra wlCount: `o" .. tostring(wlCount))
+        safeConsole(player, "`wTileExtra wlCountVisual(0/1): `o" .. tostring(wlCountVisual))
+        safeConsole(player, "`wTileExtra forced selectedIllness ID: `o" .. tostring(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID") or "nil"))
+        safeConsole(player, "`wTileExtra forced wlVisual: `o" .. tostring(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL") or "nil"))
+        return true
+    end
+
     return true
+end)
+
+-- =======================================================
+-- GLOBAL DIALOG CALLBACK - Handles all hospital dialogs
+-- This ensures proper dialog navigation even with nested dialogs
+-- =======================================================
+
+onPlayerDialogCallback(function(world, player, data)
+    if type(data) ~= "table" or type(world) ~= "userdata" or type(player) ~= "userdata" then
+        return false
+    end
+    
+    local dialogName = tostring(data["dialog_name"] or "")
+    local buttonClicked = tostring(data["buttonClicked"] or "")
+    local worldName = getWorldName(world, player)
+    
+    -- List of all hospital dialog names we handle
+    local hospitalDialogs = {
+        ["hospitalStatsUi"] = true,
+        ["hospitalLevelUpUi"] = true,
+        ["receptionDeskMainUi"] = true,
+        [DLG_MANAGE_DOCTORS] = true,
+    }
+    
+    -- Check if this is one of our hospital dialogs
+    if not hospitalDialogs[dialogName] then
+        return false
+    end
+    
+    -- ===== HOSPITAL STATS UI =====
+    if dialogName == "hospitalStatsUi" then
+        if isDialogButtonPressed(data, BTN_BACK_STATS) or isDialogBackAction(buttonClicked, BTN_BACK_STATS) then
+            ReceptionDesk.showReceptionDeskPanel(world, player)
+            return true
+        end
+        return false
+    end
+    
+    -- ===== LEVEL UP UI =====
+    if dialogName == "hospitalLevelUpUi" then
+        if isDialogButtonPressed(data, BTN_LEVEL_UP_BACK) or isDialogBackAction(buttonClicked, BTN_LEVEL_UP_BACK) then
+            ReceptionDesk.showReceptionDeskPanel(world, player)
+            return true
+        end
+        
+        if isDialogButtonPressed(data, BTN_LEVEL_UP_NEW_CONFIRM) then
+            local state = getHospitalState(worldName)
+            local level = tonumber(state.level) or 1
+            local levelData = HOSPITAL_LEVELS[level]
+            local ownerAccess = isWorldOwner(world, player) or safeHasRole(player, ROLE_DEVELOPER)
+            
+            if ownerAccess and levelData and levelData.next_level then
+                local upgradeCost = tonumber(levelData.upgrade_wl) or 0
+                local totalWLEquiv = getTotalWLEquivalent(player)
+                local snapshot = getLevelUpSnapshot(world, worldName, state, totalWLEquiv)
+                local levelRule = LEVEL_UP_RULES[level] or {}
+                
+                if totalWLEquiv >= upgradeCost and isLevelUpReadyForRule(levelRule, snapshot, upgradeCost) and deductWLEquivalent(player, upgradeCost) then
+                    setHospitalState(worldName, levelData.next_level, 0)
+                    safeConsole(player, "`2Hospital has been upgraded to level " .. tostring(levelData.next_level) .. "!")
+                    ReceptionDesk.showReceptionDeskPanel(world, player)
+                    return true
+                else
+                    safeBubble(player, "`4You don't meet the requirements or don't have enough locks (WL/DL/BGL).")
+                end
+            end
+            return false
+        end
+        
+        return false
+    end
+    
+    -- ===== RECEPTION DESK MAIN UI =====
+    if dialogName == "receptionDeskMainUi" then
+        if buttonClicked == BTN_SHOW_STATS then
+            ReceptionDesk.showHospitalStatsPanel(world, player)
+            return true
+        end
+        
+        if buttonClicked == BTN_LEVEL_UP then
+            ReceptionDesk.showLevelUpPanel(world, player)
+            return true
+        end
+        
+        return false
+    end
+    
+    -- ===== MANAGE DOCTORS DIALOG =====
+    if dialogName == DLG_MANAGE_DOCTORS then
+        if isDialogButtonPressed(data, BTN_DOCTORS_BACK) or isDialogBackAction(buttonClicked, BTN_DOCTORS_BACK) then
+            ReceptionDesk.showReceptionDeskPanel(world, player)
+            return true
+        end
+        
+        if buttonClicked and buttonClicked:match("^" .. BTN_ADD_DOCTOR_PREFIX) then
+            local uid = tonumber(buttonClicked:gsub("^" .. BTN_ADD_DOCTOR_PREFIX, ""))
+            if uid and uid > 0 then
+                ReceptionDesk.addDoctor(worldName, uid)
+                ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+                return true
+            end
+        end
+        
+        if buttonClicked and buttonClicked:match("^" .. BTN_REMOVE_DOCTOR_PREFIX) then
+            local uid = tonumber(buttonClicked:gsub("^" .. BTN_REMOVE_DOCTOR_PREFIX, ""))
+            if uid and uid > 0 then
+                ReceptionDesk.removeDoctor(worldName, uid)
+                ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+                return true
+            end
+        end
+        
+        return false
+    end
+    
+    return false
 end)
 
 return HospitalSystem

@@ -41,6 +41,7 @@ Semua file ada di folder `api-docs/`:
 | `10-os-library.md` | OS/System utilities — time, date, execute, file ops |
 | `11-dialog-syntax.md` | Dialog UI string syntax — semua command untuk membuat dialog |
 | `12-constants-enums.md` | Constants & Enumerations — world flags, ghost types, subscription types, tile flags, role flags, dll |
+| `custom-nameTitle.md` | Dokumentasi script custom title lewat `OnNameChanged` variant |
 
 ## Cara Kerja
 

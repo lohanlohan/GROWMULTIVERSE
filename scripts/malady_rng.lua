@@ -180,6 +180,55 @@ local function safeBubble(player, text)
     end
 end
 
+local function extractColorCode(s)
+    local str = tostring(s or "")
+    return str:match("(`.)")
+end
+
+local function getPlayerRoleChatColor(player)
+    if type(player) ~= "userdata" then
+        return "`$"
+    end
+
+    if hasMethod(player, "getRole") then
+        local activeRole = player:getRole()
+        if activeRole then
+            local c = extractColorCode(activeRole.chatPrefix)
+            if c then return c end
+            c = extractColorCode(activeRole.namePrefix)
+            if c then return c end
+        end
+    end
+
+    if type(getRoles) == "function" and hasMethod(player, "hasRole") then
+        local roles = getRoles() or {}
+        local chosen = nil
+        for i = 1, #roles do
+            local role = roles[i]
+            if role and role.roleID and player:hasRole(role.roleID) then
+                if not chosen then
+                    chosen = role
+                else
+                    local p1 = role.rolePriority or 999999
+                    local p2 = chosen.rolePriority or 999999
+                    if p1 < p2 then
+                        chosen = role
+                    end
+                end
+            end
+        end
+
+        if chosen then
+            local c = extractColorCode(chosen.chatPrefix)
+            if c then return c end
+            c = extractColorCode(chosen.namePrefix)
+            if c then return c end
+        end
+    end
+
+    return "`$"
+end
+
 local function hasCoreRecovering(player)
     if not CORE_RECOVERING_MOD_ID then
         return false
@@ -602,6 +651,7 @@ onPlayerActionCallback(function(world, player, data)
         local garbled = MaladySystem.transformChat(player, text)
         local netID   = player:getNetID()
         local name    = player.getName and player:getName() or "?"
+        local chatColor = getPlayerRoleChatColor(player)
         local players = world:getPlayers()
         if type(players) == "table" then
             for _, p in pairs(players) do
@@ -609,7 +659,7 @@ onPlayerActionCallback(function(world, player, data)
                     p:onTalkBubble(netID, garbled, 0)
                 end
                 if p and p.onConsoleMessage then
-                    p:onConsoleMessage("`6<`o" .. name .. "`6>" .. garbled)
+                    p:onConsoleMessage("`6<" .. name .. "`6> " .. chatColor .. garbled .. "``")
                 end
             end
         end
