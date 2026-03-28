@@ -134,23 +134,55 @@ social → admin → standalones
 | `ticket_booth.lua` | `TicketBooth_Carnival.lua` | ✅ rarity exchange → Golden Tickets, 3-step dialog |
 | `ringmaster.lua` | `Ringmastered.lua` | ✅ 20 quest types, 10 steps, admin dialogs |
 
-### Hospital 🔲 NEXT
-| File | Dari | Lines | Keterangan |
-|------|------|-------|------------|
-| `hospital_loader.lua` | — | — | ✅ stub `return {}`, perlu diaktifkan |
-| `malady_rng.lua` | `malady_rng.lua` | 722 | 🔲 port, `_G.MaladySystem`, guard `registerLuaPlaymod` dipertahankan |
-| `hospital.lua` | `hospital.lua` | 2178 | 🔲 port, `_G.HospitalSystem`, constants + DB + shared helpers |
-| `reception_desk.lua` | `hospital_reception_desk.lua` | 641 | 🔲 port, ganti `rawget(_G,...)` → `_G.HospitalSystem` |
-| `operating_table.lua` | `hospital_operating_table.lua` | 286 | 🔲 port |
-| `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | 962 | 🔲 port |
+### Hospital ✅ SELESAI 2026-03-28
+| File | Dari | Status |
+|------|------|--------|
+| `hospital_loader.lua` | — | ✅ load 5 modul |
+| `malady_rng.lua` | `malady_rng.lua` | ✅ `_G.MaladySystem`, 12 maladies |
+| `hospital.lua` | `hospital.lua` | ✅ `_G.HospitalSystem`, constants + DB + helpers |
+| `reception_desk.lua` | `hospital_reception_desk.lua` | ✅ owner panel, manage doctors |
+| `operating_table.lua` | `hospital_operating_table.lua` | ✅ SurgBot lifecycle |
+| `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
 
-**Load order:** `malady_rng → hospital → reception_desk → operating_table → auto_surgeon`
+**Tile Extra Data (auto_surgeon.lua) — Updated 2026-03-28:**
+- Pakai GTPS Cloud internal keys: `"outOfOrder"`, `"selectedIllness"`, `"wlCount"` (BUKAN XML variable names)
+- `TILE_FLAG_HAS_EXTRA_DATA` JANGAN pernah di-set manual → flag persisten di world DB → crash jika callback hilang
+- ✅ `world:updateTile(tile)` MEMANG trigger `onGetTileExtraDataCallback` → live update BISA tanpa re-enter world
+- `world:getTile(x, y)` butuh **tile coords** (pixel ÷ 32), BUKAN pixel coords dari `tile:getPosX()`
+- Urutan kritis: panggil `showDialog` dulu, baru `refreshAutoSurgeonTileVisual` → jika terbalik, client drop tile update karena dialog packet datang bersamaan
+- `BinaryWriter` adalah table (bukan function) → cek `== nil` bukan `type() ~= "function"`
 
-**Perubahan kunci old → new:**
-- `package.loaded` di `hospital_main.lua` → **DIHAPUS** (new arch reload sudah bersih)
-- `rawget(_G, "xxx")` fallback di reception_desk → ganti `_G.HospitalSystem.xxx` langsung
-- Guard `if not _MALADY_CHICKEN_FEET_MOD_ID` di malady_rng → **dipertahankan**
-- `hospital_main.lua` lama → digantikan oleh `hospital_loader.lua` dengan loop pattern
+**Dialog Callback (auto_surgeon.lua) — Confirmed 2026-03-28:**
+- ❌ Inline callback `player:onDialogRequest(d, 0, function...end)` = TIDAK PERNAH dipanggil di GTPS Cloud
+- ✅ Semua dialog handling WAJIB pakai `onPlayerDialogCallback` global
+- Dialog name encode x,y: `"autosurgeon_owner_v5m_" .. x .. "_" .. y` → parse dengan pattern `_(%d+)_(%d+)$`
+- Tool panel punya 3 angka: `_(%d+)_(%d+)_(%d+)$` → handle duluan sebelum pattern 2-angka
+
+**Bug Fixes (hospital.lua) — 2026-03-28:**
+- Reception desk: player biasa dapat owner panel → fix: hapus `else showReceptionDeskPanel` (visitor dapat bubble saja)
+- "Unhandled dialog" warnings: semua dialog yang kita "own" harus `return true` di akhir (bukan `return false`)
+- Warning dialog auto_surgeon: `onDialogRequest(warn, 0, function() end)` untuk suppress warning
+
+**Native GT Items dengan Tile Extra Data (confirmed via xdata_debug):**
+- Vending Machine: 2978 | Digivend Machine: 9268 | Magplant 5000: 5638
+- Unstable Tesseract: 6948 | Tesseract Manipulator: 6952 | Gaia's Beacon: 6946
+- `onGetTileExtraDataCallback` fire untuk semua item ini saat player enter + saat `world:updateTile` dipanggil
+
+### UI Experiment — Overlay Icon Pattern (✅ Confirmed 2026-03-28)
+
+`ui_test.lua` — test script untuk eksperimen dialog UI, command `/panel`, di-load dari `main.lua`.
+
+**Pattern overlay icon di pojok kiri atas `staticGreyFrame` button (C1 = winner):**
+```
+add_button_with_icon|btn|LABEL|staticGreyFrame,is_count_label|MAIN_ID|SIZE|
+add_custom_button||display:block;height:1px;width:1.0;state:disabled;|
+reset_placement_x|
+add_custom_button||icon:OVERLAY_ID;width:0.10;margin-top:-80px;state:disabled;|
+add_custom_break|
+```
+- Kedua icon = **item ID** (integer)
+- `margin-left` TIDAK bekerja di `add_custom_button`
+- Icon overlay dirender SETELAH button → z-order ON TOP
 
 ---
 

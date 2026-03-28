@@ -1535,81 +1535,9 @@ _G.getOperatingPatientDurationByLevel = getOperatingPatientDurationByLevel
 -- =======================================================
 -- CALLBACKS
 -- =======================================================
-
-local function buildAutoSurgeonTileExtraData(world, tile, game_version)
-    if type(tile) ~= "userdata" then return false end
-
-    local fg = 0
-    if tile.getTileForeground then
-        fg = tonumber(tile:getTileForeground()) or 0
-    elseif tile.getTileID then
-        fg = tonumber(tile:getTileID()) or 0
-    end
-    if fg ~= AUTO_SURGEON_ID then return false end
-
-    if tonumber(game_version) and tonumber(game_version) < 4.65 then
-        return false
-    end
-    if type(BinaryWriter) ~= "function" then
-        return false
-    end
-
-    local worldName = getWorldName(world)
-    local x = tile:getPosX()
-    local y = tile:getPosY()
-    local station = getStation(worldName, x, y)
-
-    local maladyType = tostring(station and station.malady_type or "")
-    local illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
-    local forcedIllnessID = tonumber(rawget(_G, "__HOSPITAL_FORCE_ILLNESS_ID"))
-    if forcedIllnessID then
-        illnessID = math.max(0, math.min(255, math.floor(forcedIllnessID)))
-    end
-
-    local wlCount = tonumber(station and station.earned_wl) or 0
-    local wlCountVisual = wlCount > 0 and 1 or 0
-    local forcedWLVisual = tonumber(rawget(_G, "__HOSPITAL_FORCE_WL_VISUAL"))
-    if forcedWLVisual then
-        wlCountVisual = forcedWLVisual > 0 and 1 or 0
-    end
-
-    local outOfOrder = 0
-    if not station or maladyType == "" or tonumber(station.enabled) ~= 1 then
-        outOfOrder = 1
-    end
-
-    local wr = BinaryWriter("")
-    wr:WriteUInt32(39)
-    wr:WriteUInt8(163)
-
-    wr:WriteUInt8(106)
-    wr:WriteString("outOfOrder")
-    wr:WriteUInt8(outOfOrder)
-
-    wr:WriteUInt8(111)
-    wr:WriteString("selectedIllness")
-    wr:WriteUInt8(illnessID)
-
-    wr:WriteUInt8(103)
-    wr:WriteString("wlCount")
-    wr:WriteUInt8(wlCountVisual)
-
-    return wr:GetCurrentString()
-end
-
--- Avoid duplicate callback stacking on reloadScripts().
--- Register once, then always route to latest handler through _G.
-_G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER = buildAutoSurgeonTileExtraData
-if type(onGetTileExtraDataCallback) == "function" and not _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_REGISTERED then
-    _G.__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_REGISTERED = true
-    onGetTileExtraDataCallback(function(world, tile, game_version)
-        local fn = rawget(_G, "__HOSPITAL_AUTO_SURGEON_TILE_EXTRA_HANDLER")
-        if type(fn) == "function" then
-            return fn(world, tile, game_version)
-        end
-        return false
-    end)
-end
+-- NOTE: Auto Surgeon tile extra data callback is registered in auto_surgeon.lua
+-- (loads after hospital.lua). resolveAutoSurgeonIllnessVisualID is exposed via
+-- _G so the /hospitaltest tileextra command can use it.
 
 onTileWrenchCallback(function(world, player, tile)
     if tile:getTileID() == RECEPTION_DESK_ID then
@@ -1619,10 +1547,8 @@ onTileWrenchCallback(function(world, player, tile)
             _G.ReceptionDesk.showReceptionDeskPanel(world, player)
         elseif _G.ReceptionDesk.isDoctor(worldName, uid) then
             _G.ReceptionDesk.showDoctorReceptionPanel(world, player, worldName)
-        elseif world:hasAccess(player) then
-            safeBubble(player, "`4You are not registered as a doctor at this hospital!")
         else
-            _G.ReceptionDesk.showReceptionDeskPanel(world, player)
+            safeBubble(player, "`4You are not registered as a doctor at this hospital!")
         end
         return true
     end
@@ -2076,9 +2002,8 @@ onPlayerDialogCallback(function(world, player, data)
     if dialogName == "hospitalStatsUi" then
         if isDialogButtonPressed(data, BTN_BACK_STATS) or isDialogBackAction(buttonClicked, BTN_BACK_STATS) then
             _G.ReceptionDesk.showReceptionDeskPanel(world, player)
-            return true
         end
-        return false
+        return true
     end
 
     -- ===== LEVEL UP UI =====
@@ -2104,30 +2029,21 @@ onPlayerDialogCallback(function(world, player, data)
                     setHospitalState(worldName, levelData.next_level, 0)
                     safeConsole(player, "`2Hospital has been upgraded to level " .. tostring(levelData.next_level) .. "!")
                     _G.ReceptionDesk.showReceptionDeskPanel(world, player)
-                    return true
-                else
-                    safeBubble(player, "`4You don't meet the requirements or don't have enough locks (WL/DL/BGL).")
                 end
             end
-            return false
         end
 
-        return false
+        return true
     end
 
     -- ===== RECEPTION DESK MAIN UI =====
     if dialogName == "receptionDeskMainUi" then
         if buttonClicked == BTN_SHOW_STATS then
             _G.ReceptionDesk.showHospitalStatsPanel(world, player)
-            return true
-        end
-
-        if buttonClicked == BTN_LEVEL_UP then
+        elseif buttonClicked == BTN_LEVEL_UP then
             _G.ReceptionDesk.showLevelUpPanel(world, player)
-            return true
         end
-
-        return false
+        return true
     end
 
     -- ===== MANAGE DOCTORS DIALOG =====
@@ -2142,20 +2058,16 @@ onPlayerDialogCallback(function(world, player, data)
             if uid and uid > 0 then
                 _G.ReceptionDesk.addDoctor(worldName, uid)
                 _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
-                return true
             end
-        end
-
-        if buttonClicked and buttonClicked:match("^" .. BTN_REMOVE_DOCTOR_PREFIX) then
+        elseif buttonClicked and buttonClicked:match("^" .. BTN_REMOVE_DOCTOR_PREFIX) then
             local uid = tonumber(buttonClicked:gsub("^" .. BTN_REMOVE_DOCTOR_PREFIX, ""))
             if uid and uid > 0 then
                 _G.ReceptionDesk.removeDoctor(worldName, uid)
                 _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
-                return true
             end
         end
 
-        return false
+        return true
     end
 
     return false

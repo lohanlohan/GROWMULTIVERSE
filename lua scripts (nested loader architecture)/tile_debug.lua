@@ -124,9 +124,41 @@ local function handleTile(world, player)
     end
 end
 
+local TILE_FLAG_HAS_EXTRA_DATA = bit.lshift(1, 0)  -- bit 0 = 1
+local AUTO_SURGEON_ID          = 14666
+
+local function handleClearXData(world, player)
+    local tiles   = world:getTiles()
+    local cleared = 0
+    for _, tile in ipairs(tiles) do
+        local flags = tile:getFlags()
+        if bit.band(flags, TILE_FLAG_HAS_EXTRA_DATA) ~= 0 then
+            local fg = tonumber(tile:getTileForeground()) or 0
+            if fg ~= AUTO_SURGEON_ID then
+                tile:setFlags(bit.band(flags, bit.bnot(TILE_FLAG_HAS_EXTRA_DATA)))
+                world:updateTile(tile)
+                cleared = cleared + 1
+            end
+        end
+    end
+    player:onConsoleMessage("`2[clearxdata] Done — `w" .. cleared .. " `2tiles cleared.")
+end
+
 onPlayerCommandCallback(function(world, player, full)
     local cmd = full:match("^(%S+)")
-    if not cmd or cmd:lower() ~= "tile" then return false end
+    if not cmd then return false end
+    cmd = cmd:lower()
+
+    if cmd == "clearxdata" then
+        if not player:hasRole(ROLE_DEV) then
+            player:onConsoleMessage("`4No permission.")
+            return true
+        end
+        handleClearXData(world, player)
+        return true
+    end
+
+    if cmd ~= "tile" then return false end
     if not player:hasRole(ROLE_DEV) then
         player:onConsoleMessage("`4No permission.")
         return true

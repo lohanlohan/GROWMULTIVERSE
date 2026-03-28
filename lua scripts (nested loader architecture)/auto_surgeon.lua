@@ -30,20 +30,54 @@ local MALADY_ICON          = _G.MALADY_ICON or {}
 local MALADY_ICON_VISUAL   = _G.MALADY_ICON_VISUAL or {}
 local MALADY_UNLOCK_LEVEL  = _G.MALADY_UNLOCK_LEVEL or {}
 
-local BTN_BIND_PREFIX          = _G.BTN_BIND_PREFIX
-local BTN_TOOL_PREFIX          = _G.BTN_TOOL_PREFIX
-local BTN_WITHDRAW_TOOL_PREFIX = _G.BTN_WITHDRAW_TOOL_PREFIX
-local BTN_OPEN_STORAGE         = _G.BTN_OPEN_STORAGE
-local BTN_STORAGE_BACK         = _G.BTN_STORAGE_BACK
-local BTN_WITHDRAW_WL          = _G.BTN_WITHDRAW_WL
-local BTN_CLOSE_OWNER          = _G.BTN_CLOSE_OWNER
-local BTN_CURE_MALADY          = _G.BTN_CURE_MALADY
-local BTN_OWNER_CONFIRM        = _G.BTN_OWNER_CONFIRM
-local BTN_CHOOSE_ILLNESS       = _G.BTN_CHOOSE_ILLNESS
-local BTN_PICKER_BACK          = _G.BTN_PICKER_BACK
-local BTN_TOOL_PANEL_ADD       = _G.BTN_TOOL_PANEL_ADD
-local BTN_TOOL_PANEL_REMOVE    = _G.BTN_TOOL_PANEL_REMOVE
-local BTN_TOOL_PANEL_BACK      = _G.BTN_TOOL_PANEL_BACK
+local BTN_BIND_PREFIX          = "v5m_bind_"
+local BTN_TOOL_PREFIX          = "v5m_tool_"
+local BTN_WITHDRAW_TOOL_PREFIX = "v5m_withdraw_tool_"
+local BTN_OPEN_STORAGE         = "v5m_open_storage_panel"
+local BTN_STORAGE_BACK         = "v5m_storage_back"
+local BTN_WITHDRAW_WL          = "v5m_withdraw_station_wl"
+local BTN_CLOSE_OWNER          = "v5m_close_station_owner"
+local BTN_CURE_MALADY          = "v5m_cure_malady_station"
+local BTN_OWNER_CONFIRM        = "v5m_owner_confirm"
+local BTN_CHOOSE_ILLNESS       = "v5m_choose_illness"
+local BTN_PICKER_BACK          = "v5m_picker_back"
+local BTN_TOOL_PANEL_ADD       = "v5m_tool_panel_add"
+local BTN_TOOL_PANEL_REMOVE    = "v5m_tool_panel_remove"
+local BTN_TOOL_PANEL_BACK      = "v5m_tool_panel_back"
+
+-- Illness visual IDs for the Auto Surgeon tile (Growtopia client numeric IDs).
+-- Note: On this runtime/client build, Torn and Gems visual IDs are reversed
+-- compared to some public examples.
+-- Illness visual IDs sourced from client XML (tile.extra.autoSurgeonIllness).
+-- AutomationCurse has no client visual state — mapped to ChaosInfection (25) as closest.
+local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 20,
+    [MaladySystem.MALADY.GEMS_CUTS]            = 21,
+    [MaladySystem.MALADY.CHICKEN_FEET]         = 22,
+    [MaladySystem.MALADY.GRUMBLETEETH]         = 23,
+    [MaladySystem.MALADY.BROKEN_HEARTS]        = 24,
+    [MaladySystem.MALADY.CHAOS_INFECTION]      = 25,
+    [MaladySystem.MALADY.MOLDY_GUTS]           = 26,
+    [MaladySystem.MALADY.BRAINWORMS]           = 27,
+    [MaladySystem.MALADY.LUPUS]                = 28,
+    [MaladySystem.MALADY.ECTO_BONES]           = 29,
+    [MaladySystem.MALADY.FATTY_LIVER]          = 30,
+    [MaladySystem.MALADY.AUTOMATION_CURSE]     = 25
+}
+
+local function resolveAutoSurgeonIllnessVisualID(maladyType)
+    local key    = tostring(maladyType or "")
+    local mapped = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[key])
+    if mapped then return mapped end
+    local upper = string.upper(key)
+    if upper:find("TORN",       1, true) or upper:find("ECTO",  1, true)  then return 20 end
+    if upper:find("GEMS",       1, true) or upper:find("MOLD",  1, true)  then return 21 end
+    if upper:find("CHICKEN",    1, true) or upper:find("FATTY", 1, true)  then return 22 end
+    if upper:find("GRUMBLE",    1, true) or upper:find("BRAIN", 1, true)  then return 23 end
+    if upper:find("BROKEN",     1, true) or upper:find("LUPUS", 1, true)  then return 24 end
+    if upper:find("CHAOS",      1, true) or upper:find("AUTOMATION", 1, true) then return 25 end
+    return 20
+end
 
 local MALADY_PICKER_LABEL = {
     [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "Torn Muscle",
@@ -61,6 +95,10 @@ local MALADY_PICKER_LABEL = {
 }
 
 -- Bridge wrappers (hospital.lua guaranteed loaded first)
+local function getWorldName(world)
+    return _G.getWorldName(world)
+end
+
 local function getStation(worldName, x, y)
     return _G.getStation(worldName, x, y)
 end
@@ -123,10 +161,39 @@ end
 
 local function refreshAutoSurgeonTileVisual(world, x, y)
     if type(world) ~= "userdata" then return end
-    if not world.getTile or not world.updateTile then return end
-    local tile = world:getTile(x, y)
+    local tile = world:getTile(math.floor(x / 32), math.floor(y / 32))
     if not tile then return end
     world:updateTile(tile)
+end
+
+-- =======================================================
+-- MODULE-LEVEL HELPERS
+-- =======================================================
+
+local function isTruthyChoice(value, keyName)
+    if value == nil then return false end
+    local v = string.lower(tostring(value))
+    if v == "" or v == "0" or v == "false" or v == "off" or v == "no" or v == "nil" then
+        return false
+    end
+    if keyName and (v == string.lower(tostring(keyName))) then
+        return true
+    end
+    return true
+end
+
+local function showAutoSurgeonWarning(player, x, y, title, message)
+    local warnDlg = "autosurgeon_warn_v5m_" .. tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(os.time())
+    local warn = "set_default_color|`o\n"
+    warn = warn .. "set_bg_color|54,152,198,180|\n"
+    warn = warn .. "add_label_with_icon|big|" .. tostring(title) .. "|left|2946|\n"
+    warn = warn .. "add_spacer|small|\n"
+    warn = warn .. "add_smalltext|" .. tostring(message) .. "|\n"
+    warn = warn .. "add_spacer|small|\n"
+    warn = warn .. "add_custom_button|btn_warn_close|textLabel:Close;middle_colour:80543231;border_colour:80543231;display:block;|\n"
+    warn = warn .. "add_quick_exit|\n"
+    warn = warn .. "end_dialog|" .. warnDlg .. "|||\n"
+    player:onDialogRequest(warn, 0)
 end
 
 -- =======================================================
@@ -362,60 +429,7 @@ function AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, to
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-
-        local btn = tostring(data["buttonClicked"] or "")
-        if btn == BTN_TOOL_PANEL_BACK then
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        if btn == BTN_TOOL_PANEL_ADD then
-            local requested    = math.max(1, math.floor(tonumber(data["tool_add_amount"]) or 0))
-            local haveTool     = getPlayerItemAmount(cbPlayer, toolID)
-            local current      = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
-            local freeSpace    = MAX_TOOL_STORAGE - current
-            local depositAmount = math.min(requested, haveTool, freeSpace)
-
-            if depositAmount <= 0 then
-                if current >= MAX_TOOL_STORAGE then
-                    safeBubble(cbPlayer, "`4This tool storage is already full.")
-                else
-                    safeBubble(cbPlayer, "`4You do not have enough tools in inventory.")
-                end
-            else
-                cbPlayer:changeItem(toolID, -depositAmount, 0)
-                AutoSurgeon.addStationTool(worldName, x, y, toolID, depositAmount)
-                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
-                safeBubble(cbPlayer, "`2Added " .. tostring(depositAmount) .. "x " .. tostring(toolName) .. ".")
-            end
-
-            AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
-            return true
-        end
-
-        if btn == BTN_TOOL_PANEL_REMOVE then
-            local requested     = math.max(1, math.floor(tonumber(data["tool_remove_amount"]) or 0))
-            local current       = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
-            local withdrawAmount = math.min(requested, current)
-
-            if withdrawAmount <= 0 then
-                safeBubble(cbPlayer, "`4There is no stock for this tool.")
-            else
-                cbPlayer:changeItem(toolID, withdrawAmount, 0)
-                AutoSurgeon.removeStationTool(worldName, x, y, toolID, withdrawAmount)
-                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
-                safeBubble(cbPlayer, "`2Removed " .. tostring(withdrawAmount) .. "x " .. tostring(toolName) .. ".")
-            end
-
-            AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
-            return true
-        end
-
-        return true
-    end)
+    player:onDialogRequest(d, 0)
 end
 
 -- =======================================================
@@ -452,13 +466,7 @@ function AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-        if data["buttonClicked"] ~= BTN_STORAGE_BACK then return true end
-        AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-        return true
-    end)
+    player:onDialogRequest(d, 0)
 end
 
 -- =======================================================
@@ -480,104 +488,22 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
     d = d .. "add_spacer|small|\n"
 
     local unlockedMaladies = getUnlockedAutoSurgeonMaladies(hospitalLevel)
-    local perRow           = 4
-    local rowCount         = math.max(1, math.floor((#unlockedMaladies + perRow - 1) / perRow))
-    local pickerBottomPad  = 30 + (rowCount * 92)
 
-    d = d .. "add_custom_margin|x:34;y:0|\n"
     for i = 1, #unlockedMaladies do
         local m           = unlockedMaladies[i]
         local btnName     = BTN_BIND_PREFIX .. tostring(m)
         local displayName = tostring(MALADY_PICKER_LABEL[m] or MaladySystem.MALADY_DISPLAY[m] or m)
-        local visual      = getVisualIconString(m)
         local labelColor  = selected == m and "`2" or "`o"
-
-        if visual then
-            d = d .. "add_custom_button|" .. btnName .. "|" .. visual .. "image_size:32,32;width:0.05;|\n"
-            d = d .. "add_custom_label|" .. labelColor .. displayName .. "|target:" .. btnName .. ";top:1.32;left:0.62;size:tiny;|\n"
-        else
-            local iconID = getMaladyIconID(m)
-            d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|" .. tostring(iconID) .. "|\n"
-        end
-
-        d = d .. "add_custom_margin|x:86;y:0|\n"
-        if (i % perRow) == 0 then
-            d = d .. "reset_placement_x|\n"
-            d = d .. "add_custom_margin|x:34;y:92|\n"
-        end
+        local iconID      = getMaladyIconID(m)
+        d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|staticBlueFrame,is_count_label|" .. tostring(iconID) .. "||\n"
+        d = d .. "add_spacer|small|\n"
     end
-    d = d .. "reset_placement_x|\n"
-    d = d .. "add_custom_margin|x:0;y:" .. tostring(pickerBottomPad) .. "|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|" .. BTN_PICKER_BACK .. "|Back|noflags|0|0|\n"
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-
-        local btn = tostring(data["buttonClicked"] or "")
-        if btn == BTN_PICKER_BACK then
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        local newMalady = nil
-        if btn:match("^" .. BTN_BIND_PREFIX) then
-            newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
-        else
-            local function isTruthyChoice(value, keyName)
-                if value == nil then return false end
-                local v = string.lower(tostring(value))
-                if v == "" or v == "0" or v == "false" or v == "off" or v == "no" or v == "nil" then
-                    return false
-                end
-                if keyName and (v == string.lower(tostring(keyName))) then
-                    return true
-                end
-                return true
-            end
-
-            for i = 1, #unlockedMaladies do
-                local candidate = tostring(unlockedMaladies[i])
-                local key       = BTN_BIND_PREFIX .. candidate
-                local raw       = data[key]
-                if isTruthyChoice(raw, key) then
-                    newMalady = candidate
-                    break
-                end
-            end
-
-            if (not newMalady or newMalady == "") and type(data) == "table" then
-                for k, v in pairs(data) do
-                    local keyName = tostring(k)
-                    if keyName:match("^" .. BTN_BIND_PREFIX) and isTruthyChoice(v, keyName) then
-                        newMalady = extractButtonSuffix(keyName, BTN_BIND_PREFIX)
-                        break
-                    end
-                end
-            end
-        end
-
-        if newMalady and newMalady ~= "" then
-            local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[newMalady]) or 1
-            local currentLevel  = tonumber((getHospitalState(worldName) or {}).level) or 1
-            if currentLevel < requiredLevel then
-                safeBubble(cbPlayer, "`4Hospital level is too low for this treatment.")
-                AutoSurgeon.showAutoSurgeonIllnessPickerPanel(cbWorld, cbPlayer, worldName, x, y)
-                return true
-            end
-            AutoSurgeon.setStationMalady(worldName, x, y, newMalady)
-            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
-            refreshAutoSurgeonTileVisual(cbWorld, x, y)
-            safeBubble(cbPlayer, "`2Station bound to " .. (MaladySystem.MALADY_DISPLAY[newMalady] or newMalady) .. ".")
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        return true
-    end)
+    player:onDialogRequest(d, 0)
 end
 
 -- =======================================================
@@ -665,92 +591,7 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
-    player:onDialogRequest(d, 0, function(cbWorld, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-
-        local btn        = tostring(data["buttonClicked"] or "")
-        local newEnabled = data["station_enabled"] == "1"
-        local newPrice   = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(data["station_price_wl"]) or MIN_CURE_PRICE_WL))
-
-        AutoSurgeon.setStationEnabled(worldName, x, y, newEnabled)
-        AutoSurgeon.setStationPrice(worldName, x, y, newPrice)
-        refreshAutoSurgeonTileVisual(cbWorld, x, y)
-
-        if btn == BTN_CLOSE_OWNER then
-            return true
-        end
-
-        if btn == BTN_CHOOSE_ILLNESS then
-            AutoSurgeon.showAutoSurgeonIllnessPickerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        if btn == BTN_OWNER_CONFIRM then
-            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
-            refreshAutoSurgeonTileVisual(cbWorld, x, y)
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        if btn:match("^" .. BTN_BIND_PREFIX) then
-            local newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
-            AutoSurgeon.setStationMalady(worldName, x, y, newMalady)
-            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
-            refreshAutoSurgeonTileVisual(cbWorld, x, y)
-            safeBubble(cbPlayer, "`2Station bound to " .. (MaladySystem.MALADY_DISPLAY[newMalady] or newMalady) .. ".")
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        if btn:match("^" .. BTN_TOOL_PREFIX) then
-            local toolID = tonumber(extractButtonSuffix(btn, BTN_TOOL_PREFIX)) or 0
-            if toolID > 0 then
-                AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
-                return true
-            end
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        if (not btn or btn == "") and type(data) == "table" then
-            for k, v in pairs(data) do
-                local keyName = tostring(k)
-                if keyName:match("^" .. BTN_TOOL_PREFIX) then
-                    local raw = string.lower(tostring(v or ""))
-                    if raw ~= "" and raw ~= "0" and raw ~= "false" and raw ~= "off" then
-                        local toolID = tonumber(extractButtonSuffix(keyName, BTN_TOOL_PREFIX)) or 0
-                        if toolID > 0 then
-                            AutoSurgeon.showAutoSurgeonToolPanel(cbWorld, cbPlayer, worldName, x, y, toolID)
-                            return true
-                        end
-                    end
-                end
-            end
-        end
-
-        if btn == BTN_OPEN_STORAGE then
-            AutoSurgeon.showAutoSurgeonStoragePanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        if btn == BTN_WITHDRAW_WL then
-            local stationNow   = getStation(worldName, x, y)
-            local wlToWithdraw = tonumber(stationNow and stationNow.earned_wl) or 0
-            if wlToWithdraw <= 0 then
-                safeBubble(cbPlayer, "`4No World Locks to withdraw.")
-            else
-                cbPlayer:changeItem(WORLD_LOCK_ID, wlToWithdraw, 0)
-                AutoSurgeon.clearStationEarnedWL(worldName, x, y)
-                refreshAutoSurgeonTileVisual(cbWorld, x, y)
-                safeBubble(cbPlayer, "`2Withdrew " .. tostring(wlToWithdraw) .. " WL from station earnings.")
-            end
-            AutoSurgeon.showAutoSurgeonOwnerPanel(cbWorld, cbPlayer, worldName, x, y)
-            return true
-        end
-
-        return true
-    end)
+    player:onDialogRequest(d, 0)
 end
 
 -- =======================================================
@@ -771,35 +612,21 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
     local maladyVisual = getVisualIconString(maladyType)
     local ownedWL    = getPlayerItemAmount(player, WORLD_LOCK_ID)
 
-    local function showWarningDialog(targetPlayer, title, message)
-        local warnDlg = "autosurgeon_warn_v5m_" .. tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(os.time())
-        local warn = "set_default_color|`o\n"
-        warn = warn .. "set_bg_color|54,152,198,180|\n"
-        warn = warn .. "add_label_with_icon|big|" .. tostring(title) .. "|left|2946|\n"
-        warn = warn .. "add_spacer|small|\n"
-        warn = warn .. "add_smalltext|" .. tostring(message) .. "|\n"
-        warn = warn .. "add_spacer|small|\n"
-        warn = warn .. "add_custom_button|btn_warn_close|textLabel:Close;middle_colour:80543231;border_colour:80543231;display:block;|\n"
-        warn = warn .. "add_quick_exit|\n"
-        warn = warn .. "end_dialog|" .. warnDlg .. "|||\n"
-        targetPlayer:onDialogRequest(warn, 0)
-    end
-
     local activeMalady = MaladySystem.getActiveMalady(player)
     if not activeMalady then
-        showWarningDialog(player, "Error", "You do not have any malady that requires treatment.")
+        showAutoSurgeonWarning(player, x, y, "Error", "You do not have any malady that requires treatment.")
         return
     end
     if MaladySystem.isRecovering(player) then
-        showWarningDialog(player, "Out Of Order", "You are recovering and cannot use Auto Surgeon right now.")
+        showAutoSurgeonWarning(player, x, y, "Out Of Order", "You are recovering and cannot use Auto Surgeon right now.")
         return
     end
     if maladyType == "" then
-        showWarningDialog(player, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+        showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
         return
     end
     if tostring(activeMalady) ~= maladyType then
-        showWarningDialog(player, "Error", "This Auto Surgeon Station can only cure `5" .. tostring(maladyName) .. "``! Come back soon.")
+        showAutoSurgeonWarning(player, x, y, "Error", "This Auto Surgeon Station can only cure `5" .. tostring(maladyName) .. "``! Come back soon.")
         return
     end
 
@@ -807,16 +634,16 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
     local hospitalLevel = tonumber(hospitalState.level) or 1
     local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
     if hospitalLevel < requiredLevel then
-        showWarningDialog(player, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+        showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
         return
     end
     if not enabled then
-        showWarningDialog(player, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+        showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
         return
     end
     if not AutoSurgeon.stationHasEnoughTools(worldName, x, y, maladyType) then
         AutoSurgeon.setStationEnabled(worldName, x, y, false)
-        showWarningDialog(player, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+        showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
         return
     end
 
@@ -840,69 +667,392 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
         table.insert(dialog, 5, "add_label_with_icon|small|`5" .. tostring(maladyName) .. "``|left|" .. tostring(getMaladyIconID(maladyType)) .. "|")
     end
 
-    player:onDialogRequest(table.concat(dialog, "\n"), 0, function(_, cbPlayer, data)
-        if type(data) ~= "table" then return end
-        if data["dialog_name"] ~= dlgName then return end
-        local clicked = tostring(data["buttonClicked"] or "")
-        if clicked == "btn_player_close" then return true end
-        if clicked ~= BTN_CURE_MALADY then return true end
+    player:onDialogRequest(table.concat(dialog, "\n"), 0)
+end
 
-        MaladySystem.refreshPlayerState(cbPlayer)
-        local activeMalady2 = MaladySystem.getActiveMalady(cbPlayer)
+-- =======================================================
+-- TILE EXTRA DATA — Auto Surgeon visual (illness + wl earned + out of order)
+-- =======================================================
 
-        if not activeMalady2 then
-            showWarningDialog(cbPlayer, "Error", "You do not have any malady that requires treatment.")
+local function buildAutoSurgeonTileExtraData(world, tile, game_version)
+    if type(tile) ~= "userdata" then return false end
+    local fg = tonumber(tile:getTileForeground()) or 0
+    if fg ~= AUTO_SURGEON_ID then return false end
+    if game_version and game_version < 4.65 then return false end
+    if BinaryWriter == nil then return false end
+
+    local worldName  = getWorldName(world)
+    local x          = tile:getPosX()
+    local y          = tile:getPosY()
+    local station    = getStation(worldName, x, y)
+
+    local maladyType = tostring(station and station.malady_type or "")
+    local illnessID  = resolveAutoSurgeonIllnessVisualID(maladyType)
+    local forcedIllnessID = tonumber(_G.__HOSPITAL_FORCE_ILLNESS_ID)
+    if forcedIllnessID then
+        illnessID = math.max(0, math.min(255, math.floor(forcedIllnessID)))
+    end
+
+    local wlCountVisual = (tonumber(station and station.earned_wl) or 0) > 0 and 1 or 0
+    local forcedWLVisual = tonumber(_G.__HOSPITAL_FORCE_WL_VISUAL)
+    if forcedWLVisual then wlCountVisual = forcedWLVisual > 0 and 1 or 0 end
+
+    -- outOfOrder=1 only when malady is not configured
+    local outOfOrder = (not station or maladyType == "") and 1 or 0
+
+    local wr = BinaryWriter("")
+    -- GTPS Cloud internal keys (server maps these to XML variable names internally)
+    -- Total: 1(163) + (1+10+1) + (1+15+1) + (1+7+1) = 39
+    wr:WriteUInt32(39)
+    wr:WriteUInt8(163)
+
+    wr:WriteUInt8(106)          -- 96 + #"outOfOrder" = 106
+    wr:WriteString("outOfOrder")
+    wr:WriteUInt8(outOfOrder)
+
+    wr:WriteUInt8(111)          -- 96 + #"selectedIllness" = 111
+    wr:WriteString("selectedIllness")
+    wr:WriteUInt8(illnessID)
+
+    wr:WriteUInt8(103)          -- 96 + #"wlCount" = 103
+    wr:WriteString("wlCount")
+    wr:WriteUInt8(wlCountVisual)
+
+    return wr:GetCurrentString()
+end
+
+-- Register callback every load (GTPS Cloud clears callbacks on restart but keeps _G).
+if type(onGetTileExtraDataCallback) == "function" then
+    onGetTileExtraDataCallback(function(world, tile, game_version)
+        return buildAutoSurgeonTileExtraData(world, tile, game_version)
+    end)
+end
+
+-- =======================================================
+-- GLOBAL DIALOG CALLBACK — handles all autosurgeon dialogs
+-- =======================================================
+
+onPlayerDialogCallback(function(world, player, data)
+    if type(data) ~= "table" then return false end
+    local dlgName = tostring(data["dialog_name"] or "")
+    if not dlgName:match("^autosurgeon_") then return false end
+
+    -- Suppress warning dialogs silently
+    if dlgName:match("^autosurgeon_warn_") then return true end
+
+    local worldName = getWorldName(world)
+    local btn = tostring(data["buttonClicked"] or "")
+
+    -- -------------------------------------------------------
+    -- Tool panel: autosurgeon_tool_panel_v5m_{x}_{y}_{toolID}
+    -- -------------------------------------------------------
+    local tx, ty, ttoolID = dlgName:match("^autosurgeon_tool_panel_v5m_(%d+)_(%d+)_(%d+)$")
+    if tx then
+        local x      = tonumber(tx)
+        local y      = tonumber(ty)
+        local toolID = tonumber(ttoolID) or 0
+        local toolName = getItemNameByID(toolID)
+
+        if btn == BTN_TOOL_PANEL_BACK then
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
             return true
         end
-        if MaladySystem.isRecovering(cbPlayer) then
-            showWarningDialog(cbPlayer, "Out Of Order", "You are recovering and cannot use Auto Surgeon right now.")
+
+        if btn == BTN_TOOL_PANEL_ADD then
+            local requested     = math.max(1, math.floor(tonumber(data["tool_add_amount"]) or 0))
+            local haveTool      = getPlayerItemAmount(player, toolID)
+            local current       = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+            local freeSpace     = MAX_TOOL_STORAGE - current
+            local depositAmount = math.min(requested, haveTool, freeSpace)
+
+            if depositAmount <= 0 then
+                if current >= MAX_TOOL_STORAGE then
+                    safeBubble(player, "`4This tool storage is already full.")
+                else
+                    safeBubble(player, "`4You do not have enough tools in inventory.")
+                end
+            else
+                player:changeItem(toolID, -depositAmount, 0)
+                AutoSurgeon.addStationTool(worldName, x, y, toolID, depositAmount)
+                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                safeBubble(player, "`2Added " .. tostring(depositAmount) .. "x " .. tostring(toolName) .. ".")
+            end
+
+            AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+            return true
+        end
+
+        if btn == BTN_TOOL_PANEL_REMOVE then
+            local requested      = math.max(1, math.floor(tonumber(data["tool_remove_amount"]) or 0))
+            local current        = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+            local withdrawAmount = math.min(requested, current)
+
+            if withdrawAmount <= 0 then
+                safeBubble(player, "`4There is no stock for this tool.")
+            else
+                player:changeItem(toolID, withdrawAmount, 0)
+                AutoSurgeon.removeStationTool(worldName, x, y, toolID, withdrawAmount)
+                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                safeBubble(player, "`2Removed " .. tostring(withdrawAmount) .. "x " .. tostring(toolName) .. ".")
+            end
+
+            AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+            return true
+        end
+
+        -- Any other button on tool panel: re-show it
+        AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+        return true
+    end
+
+    -- For all remaining panels, extract x,y from last two numbers in dialog name
+    local sx, sy = dlgName:match("_(%d+)_(%d+)$")
+    if not sx then return true end
+    local x = tonumber(sx)
+    local y = tonumber(sy)
+
+    -- -------------------------------------------------------
+    -- Owner panel: autosurgeon_owner_v5m_{x}_{y}
+    -- -------------------------------------------------------
+    if dlgName:match("^autosurgeon_owner_") then
+        local newEnabled = data["station_enabled"] == "1"
+        local newPrice   = math.max(MIN_CURE_PRICE_WL, math.floor(tonumber(data["station_price_wl"]) or MIN_CURE_PRICE_WL))
+
+        AutoSurgeon.setStationEnabled(worldName, x, y, newEnabled)
+        AutoSurgeon.setStationPrice(worldName, x, y, newPrice)
+
+        if btn == BTN_CLOSE_OWNER then
+            -- No dialog follows → refresh here works reliably
+            refreshAutoSurgeonTileVisual(world, x, y)
+            return true
+        end
+
+        if btn == BTN_OWNER_CONFIRM then
+            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            refreshAutoSurgeonTileVisual(world, x, y)
+            return true
+        end
+
+        if btn == BTN_CHOOSE_ILLNESS then
+            AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName, x, y)
+            return true
+        end
+
+        if btn:match("^" .. BTN_BIND_PREFIX) then
+            local newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
+            AutoSurgeon.setStationMalady(worldName, x, y, newMalady)
+            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+            safeBubble(player, "`2Station bound to " .. (MaladySystem.MALADY_DISPLAY[newMalady] or newMalady) .. ".")
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            refreshAutoSurgeonTileVisual(world, x, y)
+            return true
+        end
+
+        if btn:match("^" .. BTN_TOOL_PREFIX) then
+            local toolID = tonumber(extractButtonSuffix(btn, BTN_TOOL_PREFIX)) or 0
+            if toolID > 0 then
+                AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+                return true
+            end
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            return true
+        end
+
+        if (not btn or btn == "") and type(data) == "table" then
+            for k, v in pairs(data) do
+                local keyName = tostring(k)
+                if keyName:match("^" .. BTN_TOOL_PREFIX) then
+                    local raw = string.lower(tostring(v or ""))
+                    if raw ~= "" and raw ~= "0" and raw ~= "false" and raw ~= "off" then
+                        local toolID = tonumber(extractButtonSuffix(keyName, BTN_TOOL_PREFIX)) or 0
+                        if toolID > 0 then
+                            AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+
+        if btn == BTN_OPEN_STORAGE then
+            AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
+            return true
+        end
+
+        if btn == BTN_WITHDRAW_WL then
+            local stationNow   = getStation(worldName, x, y)
+            local wlToWithdraw = tonumber(stationNow and stationNow.earned_wl) or 0
+            if wlToWithdraw <= 0 then
+                safeBubble(player, "`4No World Locks to withdraw.")
+            else
+                player:changeItem(WORLD_LOCK_ID, wlToWithdraw, 0)
+                AutoSurgeon.clearStationEarnedWL(worldName, x, y)
+                safeBubble(player, "`2Withdrew " .. tostring(wlToWithdraw) .. " WL from station earnings.")
+            end
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            refreshAutoSurgeonTileVisual(world, x, y)
+            return true
+        end
+
+        return true
+    end
+
+    -- -------------------------------------------------------
+    -- Storage panel: autosurgeon_storage_v5m_{x}_{y}
+    -- -------------------------------------------------------
+    if dlgName:match("^autosurgeon_storage_") then
+        if btn == BTN_STORAGE_BACK then
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            return true
+        end
+
+        if btn:match("^" .. BTN_WITHDRAW_TOOL_PREFIX) then
+            local toolID = tonumber(extractButtonSuffix(btn, BTN_WITHDRAW_TOOL_PREFIX)) or 0
+            if toolID > 0 then
+                AutoSurgeon.tryWithdrawToolFromStation(player, worldName, x, y, toolID)
+            end
+            AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
+            return true
+        end
+
+        return true
+    end
+
+    -- -------------------------------------------------------
+    -- Illness picker: autosurgeon_picker_v5m_{x}_{y}
+    -- -------------------------------------------------------
+    if dlgName:match("^autosurgeon_picker_") then
+        if btn == BTN_PICKER_BACK then
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            return true
+        end
+
+        local newMalady = nil
+        if btn:match("^" .. BTN_BIND_PREFIX) then
+            newMalady = extractButtonSuffix(btn, BTN_BIND_PREFIX)
+        else
+            local hospitalState = getHospitalState(worldName)
+            local hospitalLevel = tonumber(hospitalState.level) or 1
+            local unlockedMaladies = getUnlockedAutoSurgeonMaladies(hospitalLevel)
+
+            for i = 1, #unlockedMaladies do
+                local candidate = tostring(unlockedMaladies[i])
+                local key       = BTN_BIND_PREFIX .. candidate
+                local raw       = data[key]
+                if isTruthyChoice(raw, key) then
+                    newMalady = candidate
+                    break
+                end
+            end
+
+            if (not newMalady or newMalady == "") and type(data) == "table" then
+                for k, v in pairs(data) do
+                    local keyName = tostring(k)
+                    if keyName:match("^" .. BTN_BIND_PREFIX) and isTruthyChoice(v, keyName) then
+                        newMalady = extractButtonSuffix(keyName, BTN_BIND_PREFIX)
+                        break
+                    end
+                end
+            end
+        end
+
+        if newMalady and newMalady ~= "" then
+            local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[newMalady]) or 1
+            local currentLevel  = tonumber((getHospitalState(worldName) or {}).level) or 1
+            if currentLevel < requiredLevel then
+                safeBubble(player, "`4Hospital level is too low for this treatment.")
+                AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName, x, y)
+                return true
+            end
+            AutoSurgeon.setStationMalady(worldName, x, y, newMalady)
+            AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+            safeBubble(player, "`2Station bound to " .. (MaladySystem.MALADY_DISPLAY[newMalady] or newMalady) .. ".")
+            AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+            refreshAutoSurgeonTileVisual(world, x, y)
+            return true
+        end
+
+        return true
+    end
+
+    -- -------------------------------------------------------
+    -- Player panel: autosurgeon_player_v5m_{x}_{y}
+    -- -------------------------------------------------------
+    if dlgName:match("^autosurgeon_player_") then
+        if btn == "btn_player_close" then return true end
+        if btn ~= BTN_CURE_MALADY then return true end
+
+        -- Re-read station data fresh (no closure state)
+        local station    = getStation(worldName, x, y)
+        if not station then
+            showAutoSurgeonWarning(player, x, y, "Error", "This Auto Surgeon Station is currently out of order! Come back soon.")
+            return true
+        end
+        local maladyType = tostring(station.malady_type or "")
+        local enabled    = tonumber(station.enabled) == 1
+        local priceWL    = tonumber(station.price_wl) or MIN_CURE_PRICE_WL
+        local maladyName = maladyType ~= "" and (MaladySystem.MALADY_DISPLAY[maladyType] or maladyType) or "Not configured"
+
+        MaladySystem.refreshPlayerState(player)
+        local activeMalady = MaladySystem.getActiveMalady(player)
+
+        if not activeMalady then
+            showAutoSurgeonWarning(player, x, y, "Error", "You do not have any malady that requires treatment.")
+            return true
+        end
+        if MaladySystem.isRecovering(player) then
+            showAutoSurgeonWarning(player, x, y, "Out Of Order", "You are recovering and cannot use Auto Surgeon right now.")
             return true
         end
         if maladyType == "" then
-            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+            showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
-        if tostring(activeMalady2) ~= maladyType then
-            showWarningDialog(cbPlayer, "Error", "This Auto Surgeon Station can only cure `5" .. tostring(maladyName) .. "``! Come back soon.")
+        if tostring(activeMalady) ~= maladyType then
+            showAutoSurgeonWarning(player, x, y, "Error", "This Auto Surgeon Station can only cure `5" .. tostring(maladyName) .. "``! Come back soon.")
             return true
         end
 
-        local hospitalState2 = getHospitalState(worldName)
-        local hospitalLevel2 = tonumber(hospitalState2.level) or 1
-        local requiredLevel2 = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
-        if hospitalLevel2 < requiredLevel2 then
-            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+        local hospitalState = getHospitalState(worldName)
+        local hospitalLevel = tonumber(hospitalState.level) or 1
+        local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[maladyType]) or 999
+        if hospitalLevel < requiredLevel then
+            showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
         if not enabled then
-            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+            showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
         if not AutoSurgeon.stationHasEnoughTools(worldName, x, y, maladyType) then
             AutoSurgeon.setStationEnabled(worldName, x, y, false)
-            showWarningDialog(cbPlayer, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
+            showAutoSurgeonWarning(player, x, y, "Out Of Order", "This Auto Surgeon Station is currently out of order! Come back soon.")
             return true
         end
-        if getPlayerItemAmount(cbPlayer, WORLD_LOCK_ID) < priceWL then
-            showWarningDialog(cbPlayer, "Error", "You do not have enough World Locks to purchase this cure.")
+        if getPlayerItemAmount(player, WORLD_LOCK_ID) < priceWL then
+            showAutoSurgeonWarning(player, x, y, "Error", "You do not have enough World Locks to purchase this cure.")
             return true
         end
 
-        local ok, reason = MaladySystem.cureFromAutoSurgeon(cbPlayer)
+        local ok, reason = MaladySystem.cureFromAutoSurgeon(player)
         if not ok then
-            showWarningDialog(cbPlayer, "Error", "Auto Surgeon cure failed: " .. tostring(reason))
+            showAutoSurgeonWarning(player, x, y, "Error", "Auto Surgeon cure failed: " .. tostring(reason))
             return true
         end
 
-        cbPlayer:changeItem(WORLD_LOCK_ID, -priceWL, 0)
+        player:changeItem(WORLD_LOCK_ID, -priceWL, 0)
         AutoSurgeon.consumeStationTools(worldName, x, y, maladyType)
         AutoSurgeon.addStationEarnedWL(worldName, x, y, getOwnerNetGain(priceWL))
         AutoSurgeon.refreshStationOperationalState(worldName, x, y)
         refreshAutoSurgeonTileVisual(world, x, y)
-        safeBubble(cbPlayer, "`2Your malady has been cured.")
+        safeBubble(player, "`2Your malady has been cured.")
         return true
-    end)
-end
+    end
+
+    -- Unknown autosurgeon dialog — suppress
+    return true
+end)
 
 _G.AutoSurgeon = AutoSurgeon
 return AutoSurgeon
