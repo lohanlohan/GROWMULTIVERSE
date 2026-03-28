@@ -118,13 +118,20 @@ social → admin → standalones
 
 ## 🔲 BELUM SELESAI
 
-### Carnival
-| File | Dari | Keterangan |
-|------|------|------------|
-| `carnival_loader.lua` | — | ✅ stub ada (`return {}`), belum implementasi |
-| `carnival.lua` | `carnival.lua` | 3767 baris — perlu dipecah jadi sub-modul |
-| `ticket_booth.lua` | `TicketBooth_Carnival.lua` | |
-| `ringmaster.lua` | `Ringmastered.lua` | |
+### Carnival ✅ SELESAI
+| File | Dari | Status |
+|------|------|--------|
+| `carnival_loader.lua` | — | ✅ load 10 modul |
+| `carnival_shared.lua` | `carnival.lua` | ✅ shared constants, helpers, prize system, registry |
+| `concentration.lua` | `carnival.lua` | ✅ 2 rooms, card flip, solo queue |
+| `shooting_gallery.lua` | `carnival.lua` | ✅ 2 rooms, bullseye toggle, solo queue |
+| `death_race.lua` | `carnival.lua` | ✅ 1 room, multiplayer, checkpoint system |
+| `mirror_maze.lua` | `carnival.lua` | ✅ 1 room, recursive backtracker maze, solo queue |
+| `growganoth_gulch.lua` | `carnival.lua` | ✅ 2 rooms, platform+eye toggle, solo queue |
+| `spiky_survivor.lua` | `carnival.lua` | ✅ 1 room, multiplayer survival, platform toggle |
+| `brutal_bounce.lua` | `carnival.lua` | ✅ 1 room, multiplayer last-man-standing, spikeball punch |
+| `ticket_booth.lua` | `TicketBooth_Carnival.lua` | ✅ rarity exchange → Golden Tickets, 3-step dialog |
+| `ringmaster.lua` | `Ringmastered.lua` | ✅ 20 quest types, 10 steps, admin dialogs |
 
 ### Hospital
 | File | Dari | Keterangan |
@@ -152,7 +159,9 @@ social → admin → standalones
 | `"autofarm_boost_12" + uid` | `autofarm_speed.lua` | `DB.saveStr/loadStr` per-player |
 | `"autofarm_custom_delay_1212" + uid` | `autofarm_speed.lua` | `DB.saveStr/loadStr` per-player |
 | `"marvelous-missions"` | `marvelous_missions.lua` | `DB.save/load` |
-| `"CARNIVAL_PRIZE_V1"` | `carnival.lua` (belum port) | |
+| `"CARNIVAL_PRIZE_V1"` | `carnival_shared.lua` | `saveDataToServer/loadDataFromServer` |
+| `"RINGMASTER_QUEST_DATA_V2"` | `ringmaster.lua` | `saveDataToServer/loadDataFromServer` |
+| `"RINGMASTER_CONFIG_DATA_V2"` | `ringmaster.lua` | `saveDataToServer/loadDataFromServer` |
 | `rent_entrance.json` | `rent_entrance.lua` | `DB.loadFeature/saveFeature` |
 | `vile_vial.json` | `vile_vial.lua` | `DB.loadFeature/saveFeature` |
 | `backpack.json` | `backpack.lua` | `DB.loadFeature/saveFeature` |
@@ -192,7 +201,7 @@ social → admin → standalones
 | `/news` | `news.lua` | 0 |
 | `/lsb` `/osb` `/ssb` `/scsb` | `broadcast.lua` | varies |
 | `/errorlog` | `logger.lua` | 51 |
-| `/carnivalprize` `/carnivalreset` | carnival (belum port) | 51 |
+| `/carnivalprize` `/carnivalreset` | `carnival_shared.lua` | 51 |
 
 ### Cross-Feature References
 | Reference | Dibuat oleh | Dipakai oleh |
@@ -202,6 +211,7 @@ social → admin → standalones
 | `_G.Config` | `config.lua` | semua |
 | `_G.DB` | `db.lua` | semua |
 | `_G.ItemCategorizer` | `item_categorizer.lua` | `backpack.lua` |
+| `_G.CarnivalShared` | `carnival_shared.lua` | semua game modul carnival |
 | `_G.MaladySystem` | `malady_rng.lua` (belum port) | `vile_vial.lua` `automation_menu.lua` |
 | `_G.BP_storeItem` | `backpack.lua` | `grow_matic.lua` |
 | `_G.BP_openBackpack` | `backpack.lua` | `profile.lua` |
