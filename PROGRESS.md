@@ -35,13 +35,14 @@ social → admin → standalones
 - ✅ Loop pattern `for _, name in ipairs(modules) do M[name] = require(name) end` = WAJIB di setiap loader
 - ❌ Single direct `require("x")` di loader = CRASH — selalu pakai loop meski hanya 1 modul
 - ❌ Module/loader yang return `nil` (tidak ada `return`) = CRASH "attempt to index a nil value"
+- ❌ Path folder di require = `invalid module name` error — gunakan nama file saja: `require("carnival_shared")` bukan `require("lua scripts .../carnival_shared")`
 - ✅ Stub loader WAJIB `return {}` — meskipun isinya hanya print skip
 - `logger` di-require langsung dari `main.lua` (bukan via loader) karena sama-sama single require
 
 ---
 
 > **✅ FULL LOAD CONFIRMED 2026-03-27** — "Loaded 1 Lua scripts", 14 loaders sukses.
-> profile.lua: backpack → `_G.BP_openBackpack` ✅, cheats → `_G.GM_openCheatMenu` ✅, marvelous_missions → `_G.openMarvelousMissions` ✅
+> **✅ CARNIVAL SYSTEM SELESAI 2026-03-28** — 10 modul, carnival_loader aktif.
 > Cross-reference audit: semua _G.* valid. Hanya `_G.MaladySystem` belum ada (pending hospital).
 
 ---
@@ -133,15 +134,23 @@ social → admin → standalones
 | `ticket_booth.lua` | `TicketBooth_Carnival.lua` | ✅ rarity exchange → Golden Tickets, 3-step dialog |
 | `ringmaster.lua` | `Ringmastered.lua` | ✅ 20 quest types, 10 steps, admin dialogs |
 
-### Hospital
-| File | Dari | Keterangan |
-|------|------|------------|
-| `hospital_loader.lua` | — | ✅ stub ada (`return {}`), belum implementasi |
-| `reception_desk.lua` | `hospital_reception_desk.lua` | |
-| `operating_table.lua` | `hospital_operating_table.lua` | |
-| `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | |
-| `malady_rng.lua` | `malady_rng.lua` | `_G.MaladySystem` undefined — vile_vial & automation_menu ada guard, aman |
-| `hospital_main.lua` | `hospital_main.lua` | |
+### Hospital 🔲 NEXT
+| File | Dari | Lines | Keterangan |
+|------|------|-------|------------|
+| `hospital_loader.lua` | — | — | ✅ stub `return {}`, perlu diaktifkan |
+| `malady_rng.lua` | `malady_rng.lua` | 722 | 🔲 port, `_G.MaladySystem`, guard `registerLuaPlaymod` dipertahankan |
+| `hospital.lua` | `hospital.lua` | 2178 | 🔲 port, `_G.HospitalSystem`, constants + DB + shared helpers |
+| `reception_desk.lua` | `hospital_reception_desk.lua` | 641 | 🔲 port, ganti `rawget(_G,...)` → `_G.HospitalSystem` |
+| `operating_table.lua` | `hospital_operating_table.lua` | 286 | 🔲 port |
+| `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | 962 | 🔲 port |
+
+**Load order:** `malady_rng → hospital → reception_desk → operating_table → auto_surgeon`
+
+**Perubahan kunci old → new:**
+- `package.loaded` di `hospital_main.lua` → **DIHAPUS** (new arch reload sudah bersih)
+- `rawget(_G, "xxx")` fallback di reception_desk → ganti `_G.HospitalSystem.xxx` langsung
+- Guard `if not _MALADY_CHICKEN_FEET_MOD_ID` di malady_rng → **dipertahankan**
+- `hospital_main.lua` lama → digantikan oleh `hospital_loader.lua` dengan loop pattern
 
 ---
 

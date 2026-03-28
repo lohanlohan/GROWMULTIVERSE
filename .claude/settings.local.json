@@ -5,7 +5,9 @@
       "Bash(find \"lua scripts \\(nested loader architecture\\)\" -name \"*.lua\" -type f -exec grep -l \"_G\\\\.\" {})",
       "Bash(find \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(nested loader architecture\\)\" -name \"*hospital*\" -o -name \"*malady*\")",
       "Bash(\"/tmp/audit_analysis.txt\":*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(ls \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)/\")",
+      "Bash(wc -l \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_reception_desk.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_operating_table.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_auto_surgeon.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\malady_rng.lua\")"
     ]
   }
 }
