@@ -14,6 +14,7 @@ local modules = {
     "gsm",
     "xqsb",
     "tile_debug",
+    "xdata_debug",
     "item_effect",
 }
 local M = {}

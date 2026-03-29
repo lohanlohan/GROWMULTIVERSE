@@ -134,23 +134,53 @@ social → admin → standalones
 | `ticket_booth.lua` | `TicketBooth_Carnival.lua` | ✅ rarity exchange → Golden Tickets, 3-step dialog |
 | `ringmaster.lua` | `Ringmastered.lua` | ✅ 20 quest types, 10 steps, admin dialogs |
 
-### Hospital ✅ SELESAI 2026-03-28
+### Hospital ✅ SELESAI + Surgery Minigame IN PROGRESS 2026-03-30
 | File | Dari | Status |
 |------|------|--------|
 | `hospital_loader.lua` | — | ✅ load 5 modul |
 | `malady_rng.lua` | `malady_rng.lua` | ✅ `_G.MaladySystem`, 12 maladies |
 | `hospital.lua` | `hospital.lua` | ✅ `_G.HospitalSystem`, constants + DB + helpers |
 | `reception_desk.lua` | `hospital_reception_desk.lua` | ✅ owner panel, manage doctors |
-| `operating_table.lua` | `hospital_operating_table.lua` | ✅ SurgBot lifecycle |
+| `operating_table.lua` | `hospital_operating_table.lua` | ✅ 3 visual states + DB state + prize panel + surgery minigame |
+| `surgery_loader.lua` | — | ✅ load 4 surgery modul |
+| `surgery_data.lua` | — | ✅ 5 diagnoses + tool definitions + item IDs |
+| `surgery_engine.lua` | — | ✅ session management + game logic + win/fail checks |
+| `surgery_ui.lua` | — | ✅ dialog panel builder (6-6-3 tool grid) |
+| `surgery_callbacks.lua` | — | ✅ dialog callbacks + public SurgerySystem API |
+
+**Surgery Minigame — Status 2026-03-30:**
+- UI: 6-6-3 tool grid, compact status block, urgent/info messages ✅
+- Tool IDs: semua benar sesuai real GT ✅
+- Tile transitions: 25030→25026→25028→25030 benar ✅
+- `_pendingSwap` fast-swap setelah surgery selesai ✅
+- **PENDING:** Diagnoses & mechanics review — harus 100% real GT, user akan jelaskan per diagnosis
 | `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
 
 **Tile Extra Data (auto_surgeon.lua) — Updated 2026-03-28:**
 - Pakai GTPS Cloud internal keys: `"outOfOrder"`, `"selectedIllness"`, `"wlCount"` (BUKAN XML variable names)
-- `TILE_FLAG_HAS_EXTRA_DATA` JANGAN pernah di-set manual → flag persisten di world DB → crash jika callback hilang
-- ✅ `world:updateTile(tile)` MEMANG trigger `onGetTileExtraDataCallback` → live update BISA tanpa re-enter world
+- `TILE_FLAG_HAS_EXTRA_DATA` JANGAN pernah di-set manual → crash client Growtopia untuk item 14662
 - `world:getTile(x, y)` butuh **tile coords** (pixel ÷ 32), BUKAN pixel coords dari `tile:getPosX()`
 - Urutan kritis: panggil `showDialog` dulu, baru `refreshAutoSurgeonTileVisual` → jika terbalik, client drop tile update karena dialog packet datang bersamaan
 - `BinaryWriter` adalah table (bukan function) → cek `== nil` bukan `type() ~= "function"`
+
+**Tile Extra Data (operating_table.lua) — Confirmed 2026-03-29:**
+- `onGetTileExtraDataCallback` untuk item 14662 hanya fire saat **world load** (re-enter), BUKAN dari `world:updateTile`
+- `world:updateTile` dengan `flags=0` → callback TIDAK fire (konfirmasi via xdata_debug `/xtest`)
+- Set `TILE_FLAG_HAS_EXTRA_DATA` manual + `world:updateTile` → **crash client Growtopia**
+- `return nil` dari callback → GTPS native handle → surgbot visual (default item 14662)
+- `return false` dari callback → override native, kirim no data → empty bed visual
+- `return data(isABed=0x01)` → empty bed visual
+- `BinaryWriter` nil di dalam `onGetTileExtraDataCallback` — HARUS pre-build di `onWorldTick` atau `onPlayerCommandCallback`
+- Pre-build pattern: `_tryBuildData()` dipanggil dari `onWorldTick` (fire ~100ms setelah start, sebelum player join)
+
+**Operating Table Item IDs — Confirmed 2026-03-30:**
+- `25030` = empty bed (item baru, plain tile tanpa extra data dependency) — BUKAN 14662
+- `25026` = surgbot idle
+- `25028` = in-surgery animation
+- `setTileForeground` dari dialog callback context TIDAK broadcast visual ke client — harus dari tick context
+- `_pendingSwap[worldName] = true` di `onSurgeryEnd` → tick bypass 5s gate → swap dalam <100ms
+- `onTilePlaceCallback` block placement 25026 & 25028 secara manual
+- `countOperatingTables` di hospital.lua hitung ketiga state (25030 + 25026 + 25028) anti-bypass
 
 **Dialog Callback (auto_surgeon.lua) — Confirmed 2026-03-28:**
 - ❌ Inline callback `player:onDialogRequest(d, 0, function...end)` = TIDAK PERNAH dipanggil di GTPS Cloud

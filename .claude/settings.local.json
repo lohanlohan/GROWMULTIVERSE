@@ -7,7 +7,13 @@
       "Bash(\"/tmp/audit_analysis.txt\":*)",
       "Read(//tmp/**)",
       "Bash(ls \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)/\")",
-      "Bash(wc -l \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_reception_desk.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_operating_table.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_auto_surgeon.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\malady_rng.lua\")"
+      "Bash(wc -l \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_reception_desk.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_operating_table.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\hospital_auto_surgeon.lua\" \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(old architecture\\)\\\\malady_rng.lua\")",
+      "Bash(wc -l \"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/hospital_operating_table.lua\")",
+      "Bash(find c:UsersPCDocumentsGROWMULTIVERSEGameData -type f -name *.json -o -name *.lua -o -name *.dat)",
+      "Bash(xargs file:*)",
+      "Bash(find c:UsersPCDocumentsGROWMULTIVERSE -maxdepth 2 -type f -name *item* -o -name *Item*)",
+      "Bash(grep -r 14662 c:UsersPCDocumentsGROWMULTIVERSE --include=*.lua --include=*.json --include=*.txt --include=*.md)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

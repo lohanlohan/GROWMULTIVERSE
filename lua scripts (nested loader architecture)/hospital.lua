@@ -13,7 +13,9 @@ local ROLE_DEVELOPER = 51
 
 local RECEPTION_DESK_ID = 14668
 local AUTO_SURGEON_ID   = 14666
-local OPERATING_TABLE_ID = 14662
+local OPERATING_TABLE_ID  = 25030  -- empty bed state
+local SURGBOT_ITEM_ID     = 25026  -- surgbot idle
+local INSURGERY_ITEM_ID   = 25028  -- in-surgery animation
 local WORLD_LOCK_ID     = 242
 local DIAMOND_LOCK_ID   = 1796
 local BGL_ID            = 7188
@@ -372,7 +374,7 @@ local function buildRewardsFromCodes(codes)
     for i = 1, #codes do
         local code = tostring(codes[i])
         if code == "OPERATING_TABLE" then
-            rewards[#rewards + 1] = { label = "Operating Table (x1)", icon = OPERATING_TABLE_ID }
+            rewards[#rewards + 1] = { label = "Operating Table (x1)", icon = SURGBOT_ITEM_ID }
         elseif code == "AUTO_SURGEON" then
             rewards[#rewards + 1] = { label = "Auto Surgeon Station (x1)", icon = AUTO_SURGEON_ID }
         end
@@ -905,7 +907,10 @@ end
 local function countOperatingTables(world)
     local count = 0
     for _, tile in pairs(getAllWorldTiles(world)) do
-        if tile and tile:getTileID() == OPERATING_TABLE_ID then count = count + 1 end
+        local fg = tile and (tonumber(tile:getTileID()) or 0) or 0
+        if fg == OPERATING_TABLE_ID or fg == SURGBOT_ITEM_ID or fg == INSURGERY_ITEM_ID then
+            count = count + 1
+        end
     end
     return count
 end
