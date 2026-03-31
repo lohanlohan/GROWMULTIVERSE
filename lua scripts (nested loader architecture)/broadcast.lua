@@ -83,14 +83,14 @@ end
 local function tagFor(cmd, player)
     if cmd == "lsb" then
         if hasAny(player, { ROLE.LORD, ROLE.OVERLORD, ROLE.SUPREME }) then
-            return "`eLord-Broadcast"
+            return "`eLord"
         end
     elseif cmd == "osb" then
         if hasAny(player, { ROLE.OVERLORD, ROLE.SUPREME }) then
-            return "`4Overlord-Broadcast"
+            return "`4Overlord"
         end
     elseif cmd == "ssb" then
-        if player:hasRole(ROLE.SUPREME) then return "`bSupreme-Broadcast" end
+        if player:hasRole(ROLE.SUPREME) then return "`bSupreme" end
     elseif cmd == "scsb" then
         if player:hasRole(ROLE.DEVELOPER)      then return "`@Developer" end
         if player:hasRole(ROLE.SERVER_CREATOR) then return "`@Server-Creator" end
@@ -113,17 +113,15 @@ local function broadcastAll(sender, tag, msg, soundFile, usedGems, world)
 
     local currentGems = sender:getGems() or 0
     local senderMsg = string.format(
-        ">> %s `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems)
+        ">> %s-Broadcast `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems)
     
     if sender and sender.sendVariant then
-        sender:sendVariant({"OnConsoleMessage", "CT:[SB]_ " .. senderMsg}, 0, sender:getNetID())
-    else
         sender:onConsoleMessage(senderMsg)
     end
 
     for _, p in ipairs(allPlayers()) do
         if p and p.sendVariant then
-            p:sendVariant({"OnConsoleMessage", "CT:[SB]_ " .. text}, 0, p:getNetID())
+            p:onConsoleMessage("CT:[SB] " .. text)
         else
             p:onConsoleMessage(text)
         end
@@ -137,7 +135,7 @@ local function atomicNoticeAll(sender, tag, msg)
 
     local senderMsg = ">> " .. tag .. " sent."
     if sender and sender.sendVariant then
-        sender:sendVariant({"OnConsoleMessage", "CT:[SB]_ " .. senderMsg}, 0, sender:getNetID())
+        sender:onConsoleMessage("CT:[SB] " .. text)
     else
         sender:onConsoleMessage(senderMsg)
     end
