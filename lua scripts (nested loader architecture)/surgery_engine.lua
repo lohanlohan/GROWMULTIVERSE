@@ -92,10 +92,12 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         fixItDone      = not diag.needsFixIt,  -- pre-done if not needed
         abxUnlocked    = not diag.needsLabKit,
         bonesRevealed  = not diag.needsUltrasound,
-        diagRevealed   = false,  -- always hidden until ultrasound
+        diagRevealed   = (not diag.needsUltrasound and not diag.needsLabKit and diag.headline ~= nil),
 
         -- Story headline + persistent context message
-        storyHeadline  = "`4The patient has not been diagnosed.",
+        -- Diagnoses that need neither Lab Kit nor Ultrasound reveal the headline immediately
+        storyHeadline  = (not diag.needsUltrasound and not diag.needsLabKit and diag.headline)
+                         and diag.headline or "`4The patient has not been diagnosed.",
         contextMsg     = "",
 
         -- Modifiers (map for quick lookup + array for display)
@@ -149,9 +151,9 @@ function M.isToolAvailable(session, toolId)
     -- Fix It: available when objective reached, disappears after use
     if toolId == T.FIX_IT then return st.fixItReady and not st.fixItDone end
 
-    -- Bone tools: require bones revealed (Ultrasound used or needsUltrasound=false)
-    if toolId == T.SPLINT then return st.bonesRevealed and st.brokenBones > 0 end
-    if toolId == T.PINS   then return st.bonesRevealed and st.incisions > 0 and st.shatteredBones > 0 end
+    -- Bone tools: Splint available whenever bones exist (GT shows Splint before ultrasound for trauma)
+    if toolId == T.SPLINT then return st.brokenBones > 0 end
+    if toolId == T.PINS   then return st.incisions > 0 and st.shatteredBones > 0 end
     if toolId == T.CLAMP  then return st.incisions > 0 end
 
     return true
@@ -172,8 +174,13 @@ function M.applyToolEffect(session, toolId)
         return "You clean the operation site. Visibility improves."
 
     elseif toolId == T.LAB_KIT then
-        st.labKitUsed    = true
-        st.abxUnlocked   = true
+        st.labKitUsed  = true
+        st.abxUnlocked = true
+        -- For diagnoses revealed by Lab Kit (not Ultrasound), set headline here
+        if not diag.needsUltrasound and diag.headline then
+            st.diagRevealed  = true
+            st.storyHeadline = diag.headline
+        end
         return "Lab results in. Antibiotics are now unlocked."
 
     elseif toolId == T.ANTIBIOTICS then

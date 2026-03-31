@@ -142,35 +142,38 @@ social → admin → standalones
 | `hospital.lua` | `hospital.lua` | ✅ `_G.HospitalSystem`, constants + DB + helpers |
 | `reception_desk.lua` | `hospital_reception_desk.lua` | ✅ owner panel, manage doctors |
 | `operating_table.lua` | `hospital_operating_table.lua` | ✅ 3 visual states + event-driven tick + prize panel + surgery minigame |
-| `surgery_loader.lua` | — | ✅ load 4 surgery modul |
-| `surgery_data.lua` | — | ✅ 27 diagnoses + 7-level pulse + modifiers + exact GT fail messages |
-| `surgery_engine.lua` | — | ✅ session management + unified win check + special events + modifiers |
-| `surgery_ui.lua` | — | ✅ dialog panel builder (6-6-3 tool grid) + modifier display |
-| `surgery_callbacks.lua` | — | ✅ dialog callbacks + public SurgerySystem API |
+| `surgery_loader.lua` | — | ✅ load 5 surgery modul (+ surgprize) |
+| `surgery_data.lua` | — | ✅ 27 diagnoses + 7-level pulse + modifiers + exact GT fail messages + headline texts |
+| `surgery_engine.lua` | — | ✅ session management + unified win check + special events + Lab Kit reveal |
+| `surgery_ui.lua` | — | ✅ sequential tool grid + story headline + fever/bleeding rows + heart stopped warning |
+| `surgery_callbacks.lua` | — | ✅ dialog callbacks + DB prize pool + 3 reward flavor messages + allowedDiags |
+| `surgprize.lua` | — | ✅ /surgprize panel UI per-diagnosis, 5 slots, item picker |
 | `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
 
-**Surgery Minigame — Status 2026-03-31 ✅ COMPLETE, updated 2026-03-31:**
+**Surgery Minigame — Status 2026-04-01, updated via real GT debug:**
 - 27 diagnoses: 16 standard + 5 malady + 6 vile vial ✅
-- 7-level pulse: STRONG→GOOD→STEADY→WEAK→VERY_WEAK→EXTREMELY_WEAK→NONE ✅
-- Consciousness states: AWAKE/UNCONSCIOUS/COMING_TO/NEAR_COMA ✅
-- Anesthetic 3-tier logic: COMING_TO=safe re-dose, UNCONSCIOUS=overdose→NEAR_COMA (anesthTurns=2), NEAR_COMA=PERMA_DEATH ✅
-- Antibiotics: immediate drop + 2-turn passive (1-3°F/turn), clears tempRising, skill fail = rip tools only ✅
-- Antibiotics require labKitUsed (bukan abxUnlocked) — selalu terkunci sampai Lab Kit dipakai ✅
-- Skill fail rip-tools-only: Pins, Splint, Transfusion (tidak ada side effect) ✅
-- Site dirtiness: chance per turn trigger tempRising (SLIGHTLY_DIRTY=5%, DIRTY=15%, UNSANITARY=30%) — tidak direct naikkan temp ✅
-- tempRising: temp naik 0.5/1.0/1.5/2.0°F per turn, dihilangkan oleh Antibiotics ✅
-- Special events per vile vial (chaos/howl/worms_escape/guts_burst/ecto_pins_fail/fat_heartstop) ✅
-- Modifiers: HYPERACTIVE/HEMOPHILIAC/ANTIBIOTIC_RESISTANT/FILTHY/TOUGH_SKIN (random roll semua diagnosis) ✅
-- Unified win check — tempRising & pulse tidak memblok win ✅
-- Exact GT skill fail messages per tool ✅
+- Story headline system: storyHeadline per milestone (diagRevealed via Lab Kit/Ultrasound, scalpelHeadline, fixItHeadline) ✅
+- Lab Kit reveal: set storyHeadline jika needsUltrasound=false ✅
+- Diagnoses dengan confirmed headlines (dari GT debug): FLU, BROKEN_LEG, APPENDICITIS, KIDNEY_FAILURE, BRAIN_TUMOR, SWALLOWED_WL, HERNIATED_DISC, SERIOUS_TRAUMA ✅
+- Splint available dari awal (tidak perlu bonesRevealed) ✅
+- Bones row: hidden sepenuhnya sebelum ultrasound ✅
+- allowedDiags cfg: operating_table hanya pakai DIAG_KEYS_STANDARD (16 penyakit) ✅
+- Prize pool: DB-based per diagnosis via /surgprize, Caduceus wajib + random prize ✅
+- 3 reward flavor messages (random) ✅
+- Success: console only (tidak ada result panel) ✅
+- Fail: result panel tetap muncul ✅
+- Heart stopped: consLabel "Heart `4stopped!" + extra spacer + warning row ✅
+- FLU: tempRiseFast=true → "climbing fast!" dari awal ✅
+- getItem() (bukan getItemById) ✅
+- role_inject.lua: item 25036 = role 51, 25038 = role 0 ✅
 
-**Surgery UI — Updated 2026-03-31:**
-- Panel header: [icon] Surg-E → modifier (`9 color) → nama diagnosis (`$) atau "not diagnosed" (`4) ✅
-- diagRevealed: false sampai Lab Kit/Antibiotics/Ultrasound dipakai. Diagnoses tanpa lab+ultrasound = langsung revealed ✅
-- Ultrasound message: reveal diagnosis/bones confirmed (bukan bone count) ✅
-- X button dihapus dari panel surgery — hanya Give Up button ✅
-- Give Up flow: tombol Give Up → konfirmasi panel (Ya/Tidak) → balik ke surgery kalau cancel ✅
-- Surgbot confirm dialog: Cancel (kiri, dark red) | Okay! (kanan, default) — side-by-side via add_custom_button + anchor ✅
+**Surgery UI confirmed via GT debug (2026-04-01):**
+- Tool order: Defibrillator, Sponge, Anesthetic, Stitches, Scalpel, Ultrasound, Antiseptic, Fix It!, Lab Kit, Antibiotics, Transfusion, Splint, Pins, Clamp ✅
+- Sequential layout (END_LIST), client auto-wrap, text_scaling_string|Defibrillator ✅
+- Bleeding row SEBELUM spacer, fever row SEBELUM spacer ✅
+- "prepped for surgery" hanya muncul jika lastMsg DAN contextMsg kosong ✅
+- Operation site: lowercase 's' ✅
+- Incision color: `2 kalau 0, `3 kalau >0 ✅
 
 **Operating Table Tick — Status 2026-03-31 ✅ OPTIMIZED:**
 - Event-driven: tick fire tepat saat `readyAt` tiba via `_G._OT_nextEvent` ✅
@@ -260,6 +263,8 @@ add_custom_break|
 | `rent_entrance.json` | `rent_entrance.lua` | `DB.loadFeature/saveFeature` |
 | `vile_vial.json` | `vile_vial.lua` | `DB.loadFeature/saveFeature` |
 | `backpack.json` | `backpack.lua` | `DB.loadFeature/saveFeature` |
+| `surg_prize` | `surgprize.lua` | `DB.loadFeature/saveFeature` |
+| `surgeon_skill` | `surgery_callbacks.lua` | `DB.getPlayer/setPlayer` per-player |
 
 ### Commands
 | Command | File | Role |
@@ -297,6 +302,8 @@ add_custom_break|
 | `/lsb` `/osb` `/ssb` `/scsb` | `broadcast.lua` | varies |
 | `/errorlog` | `logger.lua` | 51 |
 | `/carnivalprize` `/carnivalreset` | `carnival_shared.lua` | 51 |
+| `/surgprize` | `surgprize.lua` | 51 |
+| `/sbtest` | `sbtest.lua` (standalone) | 51 |
 
 ### Cross-Feature References
 | Reference | Dibuat oleh | Dipakai oleh |

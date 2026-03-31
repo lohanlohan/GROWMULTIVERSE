@@ -3,6 +3,7 @@
 
 local M = {}
 local Utils = _G.Utils
+local ROLE_DEVELOPER = 51
 
 -- ─── Local constants ───────────────────────────────────────────────
 local ProfileCat = {
@@ -24,6 +25,9 @@ local PlayerSubscriptions = {
     TYPE_TIKTOK           = 5,
     TYPE_BOOST            = 6,
     TYPE_STAFF            = 7,
+    TYPE_FREE_DAY_SUBSCRIPTION = 8,
+    TYPE_FREE_3_DAY_SUBSCRIPTION = 9,
+    TYPE_FREE_14_DAY_SUBSCRIPTION = 10,
 }
 
 local PlayerClothes = { HAND_ITEM = 5 }
@@ -37,15 +41,21 @@ local PlayerStatus = {
 local PlayerStats = { FiresPutout = 29 }
 
 -- ─── Helpers ───────────────────────────────────────────────────────
-local function shortenNumber(n)
-    local suffixes = { "", "k", "m", "b", "t" }
-    local idx = 1
-    while n >= 1000 and idx < #suffixes do
-        n = n / 1000
-        idx = idx + 1
-    end
-    local precision = (n < 10) and 2 or 1
-    return string.format("%." .. precision .. "f%s", n, suffixes[idx])
+--local function shortenNumber(n)
+--     local suffixes = { "", "k", "m", "b", "t" }
+--     local idx = 1
+--     while n >= 1000 and idx < #suffixes do
+--         n = n / 1000
+--         idx = idx + 1
+--     end
+--     local precision = (n < 10) and 2 or 1
+--     return string.format("%." .. precision .. "f%s", n, suffixes[idx])
+-- end
+
+local function canAccessBillboard(player)
+    return player:getSubscription(PlayerSubscriptions.TYPE_SUPPORTER) ~= nil
+        or player:getSubscription(PlayerSubscriptions.TYPE_SUPER_SUPPORTER) ~= nil
+        or player:hasRole(ROLE_DEVELOPER)
 end
 
 -- ─── Main profile builder ──────────────────────────────────────────
@@ -110,23 +120,26 @@ local function onProfile(world, player, cat, flags)
         local effectStr  = (#effectLines > 0)
             and "add_textbox|`wActive effects:``|left|\n" .. table.concat(effectLines, "\n") .. "\nadd_spacer|small|\n"
             or ""
+        local billboardButton = canAccessBillboard(player)
+            and "add_custom_button|billboard_edit|image:interface/large/gui_wrench_edit_billboard.rttex;image_size:400,260;width:0.19;|\n"
+            or ""
 
         tabData =
             "add_progress_bar|" .. player:getName() .. "|big|Level " .. player:getLevel() ..
             "|" .. (player:getLevel() == getMaxLevel() and player:getRequiredXP() or player:getXP()) ..
             "|" .. player:getRequiredXP() ..
-            "|" .. (player:getLevel() == getMaxLevel() and "(MAX!)" or "(" .. shortenNumber(player:getXP()) .. "/" .. shortenNumber(player:getRequiredXP()) .. ")") ..
+            "|" .. (player:getLevel() == getMaxLevel() and "(MAX!)" or "(" .. player:getXP() .. "/" .. player:getRequiredXP() .. ")") ..
             "|4294967295|\n" ..
             "add_spacer|small|\n" ..
             player:getSubscriptionInfo() ..
             player:getProfileGuildInfo() ..
             player:getProfileGuildJoinButton() ..
             player:getProfileAccessButton() ..
-            player:getCardBattleInfo() ..
+--            player:getCardBattleInfo() ..
             "set_custom_spacing|x:5;y:10|\n" ..
             "add_custom_button|open_personalize_profile|image:interface/large/gui_wrench_personalize_profile.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|set_online_status|image:" .. statusBanner .. ";image_size:400,260;width:0.19;|\n" ..
-            "add_custom_button|billboard_edit|image:interface/large/gui_wrench_edit_billboard.rttex;image_size:400,260;width:0.19;|\n" ..
+            billboardButton ..
             "add_custom_button|wardrobe_customization|image:interface/large/gui_wrench_wardrobe.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|seed_diary_customization|image:interface/large/gui_wrench_seed_diary.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|notebook_edit|image:interface/large/gui_wrench_notebook.rttex;image_size:400,260;width:0.19;|\n" ..
@@ -140,10 +153,10 @@ local function onProfile(world, player, cat, flags)
             "add_custom_button|title_edit|image:interface/large/gui_wrench_title.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|wrench_customization|image:interface/large/gui_wrench_customization.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|trades|image:interface/large/gui_wrench_trades.rttex;image_size:400,260;width:0.19;|\n" ..
-            "add_custom_button|backpack|image:interface/large/cgui_wrench_backpack.rttex;image_size:400,260;width:0.19;|\n" ..
-            "add_custom_label|(" .. player:getBackpackUsedSize() .. " items)|target:backpack;top:0.72;left:0.5;size:small|\n" ..
+            "add_custom_button|backpack|image:interface/large/gui_wrench_backpack.rttex;image_size:400,260;width:0.19;|\n" ..
+--            "add_custom_label|(" .. player:getBackpackUsedSize() .. " items)|target:backpack;top:0.72;left:0.5;size:small|\n" ..
             "add_custom_button|open_worldlock_storage|image:interface/large/gui_wrench_auction.rttex;image_size:400,260;width:0.19;|\n" ..
-            "add_custom_button|tab_" .. ProfileCat.CHEATS_MENU + 1 .. "|image:interface/large/gui_wrench_c_cheats.rttex;image_size:400,260;width:0.19;|\n" ..
+            "add_custom_button|tab_" .. ProfileCat.CHEATS_MENU + 1 .. "|image:interface/large/gui_wrench_automation.rttex;image_size:400,260;width:0.19;|\n" ..
             ((player:getGuildID() ~= 0) and "add_custom_button|guild_notebook|image:interface/large/gui_wrench_guild_notebook.rttex;image_size:400,260;width:0.19;|\n" or "") ..
             ((world:isGameActive() and world:getOwner():getUserID() == player:getUserID()) and "add_custom_button|end_game|image:interface/large/gui_wrench_end_game.rttex;image_size:400,260;width:0.19;|\n" or "") ..
             player:getTransformProfileButtons() ..
@@ -200,7 +213,14 @@ onPlayerDialogCallback(function(world, player, data)
         emojis                  = function() player:onGrowmojiUI() end,
         bonus                   = function() player:onGrowpassUI() end,
         notebook_edit           = function() player:onNotebookUI() end,
-        billboard_edit          = function() player:onBillboardUI() end,
+        billboard_edit          = function()
+            if not canAccessBillboard(player) then
+                player:onConsoleMessage("`4This feature is only for Supporter, Super Supporter, or Developer.")
+                player:playAudio("bleep_fail.wav")
+                return
+            end
+            player:onBillboardUI()
+        end,
         open_personalize_profile = function() player:onPersonalizeWrenchUI() end,
         set_online_status       = function() player:onOnlineStatusUI() end,
         favorite_items          = function() player:onFavItemsUI() end,

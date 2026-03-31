@@ -63,11 +63,19 @@ local function giveSuccessPrizes(world, player, diagKey)
     local cadName  = cadItem and cadItem:getName() or "Caduceus"
 
     if prizeId then
-        local pItem    = getItem(prizeId)
-        local pName    = pItem and pItem:getName() or "item"
-        local deserve  = "After surgery like that, you decide you deserve " .. prizeAmt .. " " .. pName .. "."
-        player:onConsoleMessage(deserve)
-        player:onTalkBubble(player:getNetID(), deserve, 0)
+        local pItem  = getItem(prizeId)
+        local pName  = pItem and pItem:getName() or "item"
+        local fmt    = math.random(1, 3)
+        local flavor
+        if fmt == 1 then
+            flavor = "After surgery like that, you decide you deserve " .. prizeAmt .. " " .. pName .. "."
+        elseif fmt == 2 then
+            flavor = "The Growtopian Hippocratic Society has awarded you " .. prizeAmt .. " " .. pName .. " for your surgical triumph!"
+        else
+            flavor = "Hey, somebody left " .. prizeAmt .. " " .. pName .. " in this patient last time they operated!"
+        end
+        player:onConsoleMessage(flavor)
+        player:onTalkBubble(player:getNetID(), flavor, 0)
         player:onConsoleMessage("You got " .. prizeAmt .. " `2" .. pName .. "`` and a `3" .. cadName .. "``!")
     else
         player:onConsoleMessage("You got a `3" .. cadName .. "``!")
