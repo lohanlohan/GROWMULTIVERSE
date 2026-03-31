@@ -278,7 +278,7 @@ function M.buildResultPanel(success, failReason, diagName, surgeonSkill, newSkil
         d = d .. "add_spacer|small|\n"
         d = d .. "add_textbox|`wOperation complete! The " .. (diagName or "patient") .. " is cured.|\n"
         d = d .. "add_spacer|small|\n"
-        d = d .. "add_smalltext|`wSurgeon Skill: `o" .. (surgeonSkill or 0) .. " `w→ `2" .. (newSkill or 0) .. "|\n"
+        d = d .. "add_smalltext|`oSurgeon Skill: " .. (surgeonSkill or 0) .. " `w→ `2" .. (newSkill or 0) .. "|\n"
         d = d .. "add_smalltext|`oYou received: `21x Caduceus `o+ a random prize.|\n"
     else
         d = d .. "add_label_with_icon|big|`4Surgery Failed!|left|" .. INSURGERY_ITEM_ID .. "|\n"
