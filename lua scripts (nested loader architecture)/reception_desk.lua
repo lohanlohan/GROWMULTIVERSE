@@ -490,28 +490,6 @@ function ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
     end
 
     d = d .. "add_spacer|small|\n"
-
-    -- Section: players in world that can be added as doctor
-    d = d .. "add_label|small|`wPlayers In World (click to add as doctor):|left|\n"
-    local players = world:getPlayers()
-    local anyAddable = false
-    if type(players) == "table" then
-        for _, p in pairs(players) do
-            local pid  = getUserID(p)
-            local pkey = "u" .. tostring(pid)
-            -- Skip owner and already-doctors
-            if not isWorldOwner(world, p) and not doctors[pkey] then
-                anyAddable = true
-                local pname = tostring(p.getName and p:getName() or pid)
-                d = d .. "add_button|" .. BTN_ADD_DOCTOR_PREFIX .. pid .. "|`2Add: " .. pname .. "|noflags|0|0|\n"
-            end
-        end
-    end
-    if not anyAddable then
-        d = d .. "add_smalltext|`7No eligible players in this world.|\n"
-    end
-
-    d = d .. "add_spacer|small|\n"
     d = d .. "add_button|" .. BTN_DOCTORS_BACK .. "|Back|noflags|0|0|\n"
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. DLG_MANAGE_DOCTORS .. "|||\n"
