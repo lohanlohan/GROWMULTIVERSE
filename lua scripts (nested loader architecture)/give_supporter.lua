@@ -1,26 +1,249 @@
 -- MODULE
--- give_supporter.lua — /givesupp /giveinv: grant supporter role or inventory slots
+-- give_supporter.lua — /givesupp /giveinv: grant subscriptions or inventory slots
 
 local M = {}
+local DB = _G.DB
+local Utils = _G.Utils
 
 local ROLE_DEV        = 51
 local MAX_INVENTORY   = 396
+local SUB_SUPPORTER   = 0
+local SUB_SUPER_SUPP  = 1
 
-registerLuaCommand({ command = "givesupp", roleRequired = ROLE_DEV, description = "Grants Supporter or Super Supporter role to a player." })
+local KNOWN_SUBSCRIPTIONS = {
+    { id = 0,  name = "TYPE_SUPPORTER" },
+    { id = 1,  name = "TYPE_SUPER_SUPPORTER" },
+    { id = 2,  name = "TYPE_YEAR_SUBSCRIPTION" },
+    { id = 3,  name = "TYPE_MONTH_SUBSCRIPTION" },
+    { id = 4,  name = "TYPE_GROWPASS" },
+    { id = 5,  name = "TYPE_TIKTOK" },
+    { id = 6,  name = "TYPE_BOOST" },
+    { id = 7,  name = "TYPE_STAFF" },
+    { id = 8,  name = "TYPE_FREE_DAY_SUBSCRIPTION" },
+    { id = 9,  name = "TYPE_FREE_3_DAY_SUBSCRIPTION" },
+    { id = 10, name = "TYPE_FREE_14_DAY_SUBSCRIPTION" },
+}
+
+registerLuaCommand({ command = "givesupp", roleRequired = ROLE_DEV, description = "Grant Supporter/Super Supporter subscription." })
 registerLuaCommand({ command = "giveinv",  roleRequired = ROLE_DEV, description = "Give inventory space to a player." })
+registerLuaCommand({ command = "sublist",  roleRequired = ROLE_DEV, description = "Show active subscriptions of self/target." })
+
+local function uidKey(player)
+    if Utils and Utils.uid then
+        return Utils.uid(player)
+    end
+    return tostring(player:getUserID())
+end
+
+local function normalizeBaseName(raw)
+    local s = tostring(raw or "")
+    s = s:gsub("`.", ""):gsub("^@+", ""):gsub("^%s+", ""):gsub("%s+$", "")
+    s = s:gsub("^Dr%.", ""):gsub(" of Legend$", ""):gsub(" Mentor$", "")
+    return s
+end
+
+local function getDefaultDisplayName(target)
+    local base = ""
+    if target.getRealCleanName then
+        base = normalizeBaseName(target:getRealCleanName())
+    end
+    if base == "" and target.getCleanName then
+        base = normalizeBaseName(target:getCleanName())
+    end
+    if base == "" then
+        base = normalizeBaseName(target:getName())
+    end
+    if base == "" then
+        base = "Player"
+    end
+    return "`0" .. base .. "``"
+end
+
+local function formatSubscriptionStatus(sub)
+    if not sub then
+        return "inactive"
+    end
+    if sub.isPermanent and sub:isPermanent() then
+        return "active (permanent)"
+    end
+    if sub.getExpireTime then
+        local exp = sub:getExpireTime()
+        if exp and exp > 0 then
+            return "active (expires=" .. exp .. ")"
+        end
+    end
+    return "active"
+end
+
+local function showSubscriptionList(requester, target)
+    requester:onConsoleMessage("`w[SubList] Target: `2" .. target:getName() .. "`` (UID: " .. target:getUserID() .. ")")
+
+    local knownSet = {}
+    local activeKnown = 0
+    for _, entry in ipairs(KNOWN_SUBSCRIPTIONS) do
+        knownSet[entry.id] = true
+        local sub = target:getSubscription(entry.id)
+        local status = formatSubscriptionStatus(sub)
+        requester:onConsoleMessage("`o- " .. entry.name .. " (" .. entry.id .. "): `w" .. status)
+        if sub ~= nil then
+            activeKnown = activeKnown + 1
+        end
+    end
+
+    local foundUnknown = false
+    for id = 11, 64 do
+        local sub = target:getSubscription(id)
+        if sub ~= nil then
+            if not foundUnknown then
+                requester:onConsoleMessage("`w[SubList] Non-standard active IDs detected:")
+                foundUnknown = true
+            end
+            requester:onConsoleMessage("`o- ID " .. id .. ": `w" .. formatSubscriptionStatus(sub))
+        end
+    end
+
+    if activeKnown == 0 and not foundUnknown then
+        requester:onConsoleMessage("`4[SubList] No active subscriptions.")
+    end
+end
 
 local function findPlayer(name)
-    local needle = name:lower()
+    local needle = (name or ""):lower()
     for _, p in ipairs(getServerPlayers()) do
         local nm = (p.getCleanName and p:getCleanName()) or p:getName()
-        if nm and nm:lower() == needle then return p end
+        if nm and nm:lower() == needle then
+            return p
+        end
     end
     return nil
 end
 
+local function findPlayerByUID(uid)
+    for _, p in ipairs(getServerPlayers()) do
+        if p:getUserID() == uid then
+            return p
+        end
+    end
+    return nil
+end
+
+local function applySupporterSubscription(target, tier)
+    if tier == "sup" then
+        target:removeSubscription(SUB_SUPER_SUPP)
+        target:addSubscription(SUB_SUPPORTER, 0)
+        return "Supporter"
+    end
+
+    target:removeSubscription(SUB_SUPPORTER)
+    target:addSubscription(SUB_SUPER_SUPP, 0)
+    return "Super Supporter"
+end
+
+local function resetSupporterPersonalization(target)
+    if target.resetNickname then
+        target:resetNickname()
+    end
+
+    if target.setCountryFlagBackground then
+        target:setCountryFlagBackground(0)
+    end
+
+    if target.setCountryFlagForeground then
+        target:setCountryFlagForeground(0)
+    end
+
+    if DB and DB.updatePlayer then
+        DB.updatePlayer("player", uidKey(target), {
+            titles = {
+                useIcon = false,
+                prefixDr = false,
+                suffixLegend = false,
+                mentorTitle = false,
+            }
+        })
+    end
+
+    if _G.PlayerSystem
+        and _G.PlayerSystem.custom_titles
+        and _G.PlayerSystem.custom_titles.resetProfile
+    then
+        _G.PlayerSystem.custom_titles.resetProfile(target)
+        return
+    end
+
+    if target.sendVariant then
+        local displayName = getDefaultDisplayName(target)
+        local payload = string.format(
+            "{\"PlayerWorldID\":%d,\"TitleTexture\":\"\",\"TitleTextureCoordinates\":\"0,0\",\"WrenchCustomization\":{\"WrenchForegroundCanRotate\":false,\"WrenchForegroundID\":-1,\"WrenchIconID\":-1}}",
+            target:getNetID()
+        )
+        target:sendVariant({ "OnNameChanged", displayName, payload }, 0, target:getNetID())
+    end
+end
+
+local function resetSupporterSubscription(target)
+    target:removeSubscription(SUB_SUPPORTER)
+    target:removeSubscription(SUB_SUPER_SUPP)
+    resetSupporterPersonalization(target)
+end
+
+local function openGiveSuppDialog(requester, target)
+    local targetUID = target:getUserID()
+    local targetName = target:getName()
+
+    requester:onDialogRequest(
+        "set_default_color|`o\n" ..
+        "add_label|big|`wGrant Subscription|left|\n" ..
+        "add_textbox|Target: `w" .. targetName .. "``|left|\n" ..
+        "add_spacer|small|\n" ..
+        "add_button|grant_sup|Supporter|noflags|0|0|\n" ..
+        "add_button|grant_ssup|Super Supporter|noflags|0|0|\n" ..
+        "add_button|grant_default|Default Player|noflags|0|0|\n" ..
+        "add_quick_exit|\n" ..
+        "end_dialog|givesupp_menu|Cancel||",
+        0,
+        function(world, player, data)
+            local btn = data["buttonClicked"]
+            if btn ~= "grant_sup" and btn ~= "grant_ssup" and btn ~= "grant_default" then
+                return
+            end
+
+            local liveTarget = findPlayerByUID(targetUID)
+            if not liveTarget then
+                player:onConsoleMessage("`4Target player is no longer online.")
+                player:playAudio("bleep_fail.wav")
+                return
+            end
+
+            if btn == "grant_default" then
+                resetSupporterSubscription(liveTarget)
+                player:onConsoleMessage("`2Reset subscription of " .. liveTarget:getName() .. " to Default Player.")
+                player:playAudio("piano_nice.wav")
+                if liveTarget:getUserID() == player:getUserID() then
+                    liveTarget:onConsoleMessage("`2Your subscription has been reset to Default Player.")
+                else
+                    liveTarget:onConsoleMessage("`2Your subscription has been reset to Default Player by a Developer.")
+                end
+                liveTarget:sendVariant({ "OnAddNotification", "", "`wYour subscription is now `oDefault Player`w.", "audio/success.wav", 0 })
+            else
+                local roleName = applySupporterSubscription(liveTarget, btn == "grant_sup" and "sup" or "ssup")
+                player:onConsoleMessage("`2Granted " .. roleName .. " subscription to " .. liveTarget:getName() .. ".")
+                player:playAudio("piano_nice.wav")
+
+                if liveTarget:getUserID() == player:getUserID() then
+                    liveTarget:onConsoleMessage("`2Your " .. roleName .. " subscription is now active.")
+                else
+                    liveTarget:onConsoleMessage("`2You have been granted " .. roleName .. " subscription by a Developer.")
+                end
+                liveTarget:sendVariant({ "OnAddNotification", "", "`wYou received `2" .. roleName .. "`w Subscription!", "audio/success.wav", 0 })
+            end
+        end
+    )
+end
+
 onPlayerCommandCallback(function(world, player, full)
     local cmd, args = full:match("^(%S+)%s*(.*)$")
-    if cmd ~= "givesupp" and cmd ~= "giveinv" then return false end
+    if cmd ~= "givesupp" and cmd ~= "giveinv" and cmd ~= "sublist" then return false end
 
     if not player:hasRole(ROLE_DEV) then
         player:onConsoleMessage("`4Unknown command. `oEnter /? for a list of valid commands.")
@@ -28,20 +251,38 @@ onPlayerCommandCallback(function(world, player, full)
         return true
     end
 
-    if args == "" then
-        player:onConsoleMessage("Usage: /" .. cmd .. " <playerName> <sup/ssup|amount>")
-        return true
-    end
-
     local targetName, param = args:match("^(%S+)%s*(%S*)$")
-    local target = findPlayer(targetName or "")
-    if not target then
-        player:onConsoleMessage("Player '" .. (targetName or "") .. "' not found or not online.")
-        player:playAudio("bleep_fail.wav")
+
+    if cmd == "sublist" then
+        if args == "" then
+            showSubscriptionList(player, player)
+            return true
+        end
+
+        local target = findPlayer(targetName or "")
+        if not target then
+            player:onConsoleMessage("Player '" .. (targetName or "") .. "' not found or not online.")
+            player:playAudio("bleep_fail.wav")
+            return true
+        end
+
+        showSubscriptionList(player, target)
         return true
     end
 
     if cmd == "giveinv" then
+        if args == "" then
+            player:onConsoleMessage("Usage: /giveinv <playerName> <amount>")
+            return true
+        end
+
+        local target = findPlayer(targetName or "")
+        if not target then
+            player:onConsoleMessage("Player '" .. (targetName or "") .. "' not found or not online.")
+            player:playAudio("bleep_fail.wav")
+            return true
+        end
+
         local amount = tonumber(param)
         if not amount then
             player:onConsoleMessage("Usage: /giveinv <playerName> <amount>")
@@ -68,24 +309,53 @@ onPlayerCommandCallback(function(world, player, full)
     end
 
     -- /givesupp
-    local tier = param:lower()
-    local cost, roleName
-    if tier == "ssup" then
-        cost = 100; roleName = "Super Supporter"
-    elseif tier == "sup" then
-        cost = 35;  roleName = "Supporter"
-    else
-        player:onConsoleMessage("Invalid tier. Use 'sup' or 'ssup'.")
+    if args == "" then
+        openGiveSuppDialog(player, player)
+        return true
+    end
+
+    local target = findPlayer(targetName or "")
+    if not target then
+        player:onConsoleMessage("Player '" .. (targetName or "") .. "' not found or not online.")
         player:playAudio("bleep_fail.wav")
         return true
     end
 
-    target:addCoins(cost)
-    target:removeCoins(cost, 1)
-    player:onConsoleMessage("You have successfully granted " .. roleName .. " Role to " .. target:getName() .. ".")
-    player:playAudio("piano_nice.wav")
-    target:onConsoleMessage("You have been granted the `#" .. roleName .. " Role`o by a Developer!")
-    target:sendVariant({ "OnAddNotification", "", "`wYou received `2" .. roleName .. "`w Role!", "audio/success.wav", 0 })
+    -- Backward compatibility: /givesupp <name> <sup|ssup|default>
+    if param and param ~= "" then
+        local tier = param:lower()
+        if tier ~= "sup" and tier ~= "ssup" and tier ~= "default" then
+            player:onConsoleMessage("Usage: /givesupp OR /givesupp <playerName> OR /givesupp <playerName> <sup/ssup/default>")
+            player:playAudio("bleep_fail.wav")
+            return true
+        end
+
+        if tier == "default" then
+            resetSupporterSubscription(target)
+            player:onConsoleMessage("`2Reset subscription of " .. target:getName() .. " to Default Player.")
+            player:playAudio("piano_nice.wav")
+            if target:getUserID() == player:getUserID() then
+                target:onConsoleMessage("`2Your subscription has been reset to Default Player.")
+            else
+                target:onConsoleMessage("`2Your subscription has been reset to Default Player by a Developer.")
+            end
+            target:sendVariant({ "OnAddNotification", "", "`wYour subscription is now `oDefault Player`w.", "audio/success.wav", 0 })
+            return true
+        end
+
+        local roleName = applySupporterSubscription(target, tier)
+        player:onConsoleMessage("`2Granted " .. roleName .. " subscription to " .. target:getName() .. ".")
+        player:playAudio("piano_nice.wav")
+        if target:getUserID() == player:getUserID() then
+            target:onConsoleMessage("`2Your " .. roleName .. " subscription is now active.")
+        else
+            target:onConsoleMessage("`2You have been granted " .. roleName .. " subscription by a Developer.")
+        end
+        target:sendVariant({ "OnAddNotification", "", "`wYou received `2" .. roleName .. "`w Subscription!", "audio/success.wav", 0 })
+        return true
+    end
+
+    openGiveSuppDialog(player, target)
     return true
 end)
 

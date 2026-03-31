@@ -1,9 +1,11 @@
 -- MODULE
--- freezewand.lua — Freeze Wand consumable (item 274), freeze 10s
+-- snowball.lua — Snowball consumable (item 1368), freeze 30s
 
 local M = {}
 
-local FREEZE_WAND_ID = 274
+local SNOWBALL_ID = 1368
+local FREEZE_DURATION_SECONDS = 2
+local NINJA_STEALTH_MOD_ID = 290
 
 local StateFlags = {
     STATE_NO_CLIP = 0,
@@ -33,20 +35,20 @@ local StateFlags = {
     STATE_SOAKED = 27
 }
 
-local freezeWandModData = {
-    modID = 4454,
+local snowballModData = {
+    modID = 4455,
     modName = "Frozen!",
-    onAddMessage = "You have been frozen! You cannot move.",
-    onRemoveMessage = "You have thawed out and can move again.",
-    iconID = FREEZE_WAND_ID,
+    onAddMessage = "Your body has turned to ice. You can't move!",
+    onRemoveMessage = "You've thawed out.",
+    iconID = SNOWBALL_ID,
     changeSkin = {0, 175, 255, 255},
     modState = {StateFlags.STATE_FROZEN}
 }
 
-local freezeWandModID = registerLuaPlaymod(freezeWandModData)
+local snowballModID = registerLuaPlaymod(snowballModData)
 
 onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
-    if itemID ~= FREEZE_WAND_ID then return false end
+    if itemID ~= SNOWBALL_ID then return false end
 
     if not clickedPlayer then
         player:onTalkBubble(player:getNetID(), "`wMust be used on a person.", 1)
@@ -54,7 +56,8 @@ onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
     end
 
     if player:changeItem(itemID, -1, 0) then
-        clickedPlayer:addMod(freezeWandModID, 10)
+        clickedPlayer:addMod(snowballModID, FREEZE_DURATION_SECONDS)
+        clickedPlayer:addMod(NINJA_STEALTH_MOD_ID, FREEZE_DURATION_SECONDS)
         world:useItemEffect(player:getNetID(), itemID, clickedPlayer:getNetID(), 0)
         world:updateClothing(clickedPlayer)
         clickedPlayer:playAudio("freeze.wav")

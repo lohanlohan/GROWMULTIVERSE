@@ -142,6 +142,17 @@ local function applyProfile(player, profile)
     return true
 end
 
+local function resetProfile(player)
+    local profile = {
+        useIcon = false,
+        prefixDr = false,
+        suffixLegend = false,
+        mentorTitle = false,
+    }
+    saveProfile(player, profile)
+    return applyProfile(player, profile)
+end
+
 -- ─── Dialog ────────────────────────────────────────────────────────
 local function openDialog(player)
     local p = loadProfile(player)
@@ -219,5 +230,7 @@ onPlayerEnterWorldCallback(function(world, player)
         applyProfile(player, profile)
     end
 end)
+
+M.resetProfile = resetProfile
 
 return M

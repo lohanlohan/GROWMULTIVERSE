@@ -243,6 +243,17 @@ add_custom_break|
 
 ---
 
+## Broadcast Console Style (✅ Confirmed 2026-04-01)
+
+- Referensi utama: `docs/broadcast-console-style.md`
+- Echo command client (contoh `/lsb a`) adalah bawaan client, bukan output script server.
+- Echo command client tidak bisa di-overwrite/hapus pakai `gsub` dari Lua server.
+- Gunakan `sendVariant({"OnConsoleMessage", "CT:[SB] ..."})` untuk output broadcast agar style custom muncul.
+- Hindari kirim echo command tambahan dari script karena akan terlihat dobel di console.
+- Untuk pesan sistem internal (contoh potong gems/sukses command), gunakan `onConsoleMessage` default jika ingin tampil sebagai system message.
+
+---
+
 ## Registry — Jangan Duplikasi
 
 ### Storage Keys

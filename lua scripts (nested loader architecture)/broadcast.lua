@@ -74,6 +74,20 @@ local function playSfx(player, soundFile)
     end
 end
 
+local function sendConsole(player, message, channelTag)
+    if not player or type(message) ~= "string" or message == "" then
+        return
+    end
+
+    if player.sendVariant then
+        local tag = channelTag or "SB"
+        player:sendVariant({ "OnConsoleMessage", "CT:[" .. tag .. "] " .. message })
+        return
+    end
+
+    player:onConsoleMessage(message)
+end
+
 local function calcCost(cmd, onlineCount)
     local cfg = BROADCAST_COST[cmd]
     if not cfg then return 0 end
@@ -83,14 +97,14 @@ end
 local function tagFor(cmd, player)
     if cmd == "lsb" then
         if hasAny(player, { ROLE.LORD, ROLE.OVERLORD, ROLE.SUPREME }) then
-            return "`eLord-Broadcast"
+            return "`eLord"
         end
     elseif cmd == "osb" then
         if hasAny(player, { ROLE.OVERLORD, ROLE.SUPREME }) then
-            return "`4Overlord-Broadcast"
+            return "`4Overlord"
         end
     elseif cmd == "ssb" then
-        if player:hasRole(ROLE.SUPREME) then return "`bSupreme-Broadcast" end
+        if player:hasRole(ROLE.SUPREME) then return "`bSupreme" end
     elseif cmd == "scsb" then
         if player:hasRole(ROLE.DEVELOPER)      then return "`@Developer" end
         if player:hasRole(ROLE.SERVER_CREATOR) then return "`@Server-Creator" end
@@ -112,11 +126,13 @@ local function broadcastAll(sender, tag, msg, soundFile, usedGems, world)
         tag, sname, displayWorld, msg)
 
     local currentGems = sender:getGems() or 0
-    sender:onConsoleMessage(string.format(
-        ">> %s `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems))
+    local senderMsg = string.format(
+        ">> %s-Broadcast `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems)
+
+    sender:onConsoleMessage(senderMsg)
 
     for _, p in ipairs(allPlayers()) do
-        p:onConsoleMessage(text)
+        sendConsole(p, text)
         playSfx(p, soundFile)
     end
 end
@@ -125,7 +141,8 @@ local function atomicNoticeAll(sender, tag, msg)
     local sname = sender:getName()
     local title = string.format("`0[%s]`w %s\n`w%s", tag, sname, msg)
 
-    sender:onConsoleMessage(">> " .. tag .. " sent.")
+    local senderMsg = ">> " .. tag .. " sent."
+    sender:onConsoleMessage(senderMsg)
 
     for _, p in ipairs(allPlayers()) do
         if p and p.sendVariant then
@@ -158,13 +175,13 @@ onPlayerCommandCallback(function(world, player, full)
     end
 
     if not hasAny(player, meta.roles) then
-        player:onConsoleMessage("`4Unknown command. `oEnter `$/help `ofor a list of valid commands.")
+        player:onConsoleMessage("`4Unknown command.`o Enter`$ /?`o for a list of valid commands.")
         return true
     end
 
     local tag = tagFor(cmd, player)
     if not tag then
-        player:onConsoleMessage("`4Unknown command. `oEnter `$/help `ofor a list of valid commands.")
+        player:onConsoleMessage("`4Unknown command.`o Enter`$ /?`o for a list of valid commands.")
         return true
     end
 
