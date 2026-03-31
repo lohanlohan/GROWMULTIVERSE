@@ -2,6 +2,7 @@
 -- give_supporter.lua — /givesupp /giveinv: grant subscriptions or inventory slots
 
 local M = {}
+local DB = _G.DB
 
 local ROLE_DEV        = 51
 local MAX_INVENTORY   = 396
@@ -43,9 +44,43 @@ local function applySupporterSubscription(target, tier)
     return "Super Supporter"
 end
 
+local function resetSupporterPersonalization(target)
+    if target.resetNickname then
+        target:resetNickname()
+    end
+
+    if target.setCountryFlagBackground then
+        target:setCountryFlagBackground(0)
+    end
+
+    if target.setCountryFlagForeground then
+        target:setCountryFlagForeground(0)
+    end
+
+    if DB and DB.updatePlayer then
+        DB.updatePlayer("player", target:getUserID(), {
+            titles = {
+                useIcon = false,
+                prefixDr = false,
+                suffixLegend = false,
+                mentorTitle = false,
+            }
+        })
+    end
+
+    if target.sendVariant then
+        local payload = string.format(
+            "{\"PlayerWorldID\":%d,\"TitleTexture\":\"\",\"TitleTextureCoordinates\":\"0,0\",\"WrenchCustomization\":{\"WrenchForegroundCanRotate\":false,\"WrenchForegroundID\":-1,\"WrenchIconID\":-1}}",
+            target:getNetID()
+        )
+        target:sendVariant({ "OnNameChanged", target:getName(), payload }, 0, target:getNetID())
+    end
+end
+
 local function resetSupporterSubscription(target)
     target:removeSubscription(SUB_SUPPORTER)
     target:removeSubscription(SUB_SUPER_SUPP)
+    resetSupporterPersonalization(target)
 end
 
 local function openGiveSuppDialog(requester, target)
