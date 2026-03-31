@@ -759,7 +759,7 @@ end
 
 local function safeBubble(player, text)
     if player and player.onTalkBubble and player.getNetID then
-        player:onTalkBubble(player:getNetID(), text, 0)
+        player:onTalkBubble(player:getNetID(), text, 1)
     end
 end
 
