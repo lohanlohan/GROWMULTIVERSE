@@ -495,7 +495,7 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
         local displayName = tostring(MALADY_PICKER_LABEL[m] or MaladySystem.MALADY_DISPLAY[m] or m)
         local labelColor  = selected == m and "`2" or "`o"
         local iconID      = getMaladyIconID(m)
-        d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|staticBlueFrame,is_count_label|" .. tostring(iconID) .. "||\n"
+        d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|noflag|" .. tostring(iconID) .. "||\n"
         d = d .. "add_spacer|small|\n"
     end
     d = d .. "add_spacer|small|\n"
@@ -697,8 +697,28 @@ local function buildAutoSurgeonTileExtraData(world, tile, game_version)
     local forcedWLVisual = tonumber(_G.__HOSPITAL_FORCE_WL_VISUAL)
     if forcedWLVisual then wlCountVisual = forcedWLVisual > 0 and 1 or 0 end
 
-    -- outOfOrder=1 only when malady is not configured
-    local outOfOrder = (not station or maladyType == "") and 1 or 0
+    -- outOfOrder=1 when:
+    -- 1. Station does not exist
+    -- 2. Malady is not configured (empty string)
+    -- 3. Station does not have enough tools to perform cure
+    local outOfOrder = 0
+    if not station or maladyType == "" then
+        outOfOrder = 1
+    else
+        -- Inline check for tools requirement to avoid upvalue dependency
+        local req = TOOL_REQUIREMENT[maladyType]
+        if not req then
+            outOfOrder = 1
+        else
+            local storage = station.storage or {}
+            for toolID, need in pairs(req) do
+                if (tonumber(storage["t" .. tostring(toolID)]) or 0) < need then
+                    outOfOrder = 1
+                    break
+                end
+            end
+        end
+    end
 
     local wr = BinaryWriter("")
     -- GTPS Cloud internal keys (server maps these to XML variable names internally)
