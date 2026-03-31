@@ -3,6 +3,7 @@
 
 local M = {}
 local Utils = _G.Utils
+local ROLE_DEVELOPER = 51
 
 -- ─── Local constants ───────────────────────────────────────────────
 local ProfileCat = {
@@ -49,6 +50,12 @@ local function shortenNumber(n)
     end
     local precision = (n < 10) and 2 or 1
     return string.format("%." .. precision .. "f%s", n, suffixes[idx])
+end
+
+local function canAccessBillboard(player)
+    return player:getSubscription(PlayerSubscriptions.TYPE_SUPPORTER) ~= nil
+        or player:getSubscription(PlayerSubscriptions.TYPE_SUPER_SUPPORTER) ~= nil
+        or player:hasRole(ROLE_DEVELOPER)
 end
 
 -- ─── Main profile builder ──────────────────────────────────────────
@@ -113,6 +120,9 @@ local function onProfile(world, player, cat, flags)
         local effectStr  = (#effectLines > 0)
             and "add_textbox|`wActive effects:``|left|\n" .. table.concat(effectLines, "\n") .. "\nadd_spacer|small|\n"
             or ""
+        local billboardButton = canAccessBillboard(player)
+            and "add_custom_button|billboard_edit|image:interface/large/gui_wrench_edit_billboard.rttex;image_size:400,260;width:0.19;|\n"
+            or ""
 
         tabData =
             "add_progress_bar|" .. player:getName() .. "|big|Level " .. player:getLevel() ..
@@ -129,7 +139,7 @@ local function onProfile(world, player, cat, flags)
             "set_custom_spacing|x:5;y:10|\n" ..
             "add_custom_button|open_personalize_profile|image:interface/large/gui_wrench_personalize_profile.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|set_online_status|image:" .. statusBanner .. ";image_size:400,260;width:0.19;|\n" ..
-            "add_custom_button|billboard_edit|image:interface/large/gui_wrench_edit_billboard.rttex;image_size:400,260;width:0.19;|\n" ..
+            billboardButton ..
             "add_custom_button|wardrobe_customization|image:interface/large/gui_wrench_wardrobe.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|seed_diary_customization|image:interface/large/gui_wrench_seed_diary.rttex;image_size:400,260;width:0.19;|\n" ..
             "add_custom_button|notebook_edit|image:interface/large/gui_wrench_notebook.rttex;image_size:400,260;width:0.19;|\n" ..
@@ -203,7 +213,14 @@ onPlayerDialogCallback(function(world, player, data)
         emojis                  = function() player:onGrowmojiUI() end,
         bonus                   = function() player:onGrowpassUI() end,
         notebook_edit           = function() player:onNotebookUI() end,
-        billboard_edit          = function() player:onBillboardUI() end,
+        billboard_edit          = function()
+            if not canAccessBillboard(player) then
+                player:onConsoleMessage("`4This feature is only for Supporter, Super Supporter, or Developer.")
+                player:playAudio("bleep_fail.wav")
+                return
+            end
+            player:onBillboardUI()
+        end,
         open_personalize_profile = function() player:onPersonalizeWrenchUI() end,
         set_online_status       = function() player:onOnlineStatusUI() end,
         favorite_items          = function() player:onFavItemsUI() end,
