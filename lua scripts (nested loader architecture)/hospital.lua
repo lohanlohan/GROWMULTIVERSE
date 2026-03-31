@@ -1622,7 +1622,7 @@ onTilePunchCallback(function(world, player, tile)
 
     if tile:getTileID() == RECEPTION_DESK_ID then
         if countAutoSurgeons(world) > 0 then
-            safeBubble(player, "`4Remove all Auto Surgeon Stations before breaking the Reception Desk.")
+            safeBubble(player, "`8WARNING!`o Breaking the Reception Desk will reset all Hospital Stats!")
             return true
         end
     end
@@ -1636,7 +1636,7 @@ onTilePunchCallback(function(world, player, tile)
 
     if tile:getTileID() == WORLD_LOCK_ID then
         if hasHospitalInWorld(world) then
-            safeBubble(player, "`4Cannot break the World Lock while a hospital is active in this world.")
+            safeBubble(player, "`oCan't smash the `$World Lock`o while a Reception Desk exists in the world!")
             return true
         end
     end
