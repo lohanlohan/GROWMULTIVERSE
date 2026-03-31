@@ -71,8 +71,9 @@ local function consLabel(st)
         return "`4Coming To! `o(" .. st.anesthTurns .. " moves)"
     elseif c == "NEAR_COMA" then
         return "`4Near Coma!"
-    elseif c == "HEART_STOPPED" then
-        return "`4HEART STOPPED"
+    end
+    if st.heartStopped then
+        return "`4Heart `4stopped!"
     end
     return "`3Awake"
 end
@@ -83,28 +84,26 @@ end
 
 -- Bleeding row: between incisions and spacer
 local function bleedingRow(bleeding)
-    if bleeding == "INTENSE" then return "`4Patient is losing blood intensely!" end
-    if bleeding == "RAPID"   then return "`4Patient is losing blood rapidly!" end
-    if bleeding == "MODERATE" then return "`oPatient is losing blood." end
-    if bleeding == "SLIGHT"  then return "`3Patient is losing blood `3slowly." end
+    if bleeding == "INTENSE"  then return "`4Patient is losing blood intensely!" end
+    if bleeding == "RAPID"    then return "`4Patient is losing blood rapidly!" end
+    if bleeding == "MODERATE" then return "Patient is `6losing `6blood!" end
+    if bleeding == "SLIGHT"   then return "Patient is losing blood `3slow`3ly." end
     return nil
 end
 
--- Info: shown AFTER spacer (fever/status info)
-local function buildInfoMessages(st)
-    local msgs = {}
-
-    if st.temperature >= 105.0 then
-        msgs[#msgs+1] = "`4Patient's fever is dangerously high!"
-    elseif st.tempRising and st.temperature > 98.6 then
-        msgs[#msgs+1] = "`oPatient's Fever is `6climbing."
+-- Fever row: shown BEFORE spacer (same position as bleeding)
+local function feverRow(st)
+    if st.temperature < 100.0 then return nil end
+    local diag = SD.DIAG[st.diagKey] or {}
+    if st.tempRising and diag.tempRiseFast then
+        return "Patient's fever is `4climbing `4fast!"
+    elseif st.temperature >= 106.0 and st.tempRising then
+        return "Patient's fever is `4climbing `4fast!"
+    elseif st.temperature >= 101.0 and st.tempRising then
+        return "Patient's fever is `6clim`6bing!"
+    else
+        return "Patient's fever is `3slowly `3rising."
     end
-
-    if #msgs == 0 then
-        msgs[#msgs+1] = "`3The patient is prepped for surgery."
-    end
-
-    return msgs
 end
 
 -- =======================================================
@@ -154,23 +153,21 @@ function M.buildPanel(player, session, surgeonSkill)
     d = d .. "add_smalltext|`$Pulse: "        .. pulseLabel(st.pulse)
           .. "    `$Status: "                   .. consLabel(st) .. "|\n"
     d = d .. "add_smalltext|`$Temp: "          .. tempLabel(st.temperature)
-          .. "    `$Operation Site: "           .. cleanLabel(st.siteClean) .. "|\n"
+          .. "    `$Operation site: "           .. cleanLabel(st.siteClean) .. "|\n"
 
     local vr = visRow(st.visibility)
     if vr then
         d = d .. "add_smalltext|" .. vr .. "|\n"
     end
 
-    local incColor = st.fixItReady and "`2" or "`3"
-    local incRow = "add_smalltext|`$Incisions: " .. incColor .. st.incisions
+    local incColor = st.incisions == 0 and "`2" or "`3"
+    local incRow = "add_smalltext|`$Incisions: " .. incColor .. st.incisions .. "``"
 
-    if diag.needsUltrasound or (diag.brokenBones and diag.brokenBones > 0)
-    or st.brokenBones > 0 or st.shatteredBones > 0 then
+    local hasBones = st.brokenBones > 0 or st.shatteredBones > 0
+    if hasBones and st.bonesRevealed then
         local boneStr
-        if not st.bonesRevealed then
-            boneStr = "`o??"
-        elseif st.brokenBones > 0 and st.shatteredBones > 0 then
-            boneStr = "`6" .. st.brokenBones .. " broken`$, `6" .. st.shatteredBones .. " shattered"
+        if st.brokenBones > 0 and st.shatteredBones > 0 then
+            boneStr = "`6" .. st.brokenBones .. " broken``, `6" .. st.shatteredBones .. " shattered"
         elseif st.brokenBones > 0 then
             boneStr = "`6" .. st.brokenBones .. " broken"
         elseif st.shatteredBones > 0 then
@@ -183,22 +180,30 @@ function M.buildPanel(player, session, surgeonSkill)
         d = d .. incRow .. "|\n"
     end
 
-    -- Bleeding info (between incisions and spacer)
+    -- Bleeding + fever rows (between incisions and spacer)
     local br = bleedingRow(st.bleeding)
-    if br then
-        d = d .. "add_smalltext|" .. br .. "|\n"
-    end
+    if br then d = d .. "add_smalltext|" .. br .. "|\n" end
+    local fr = feverRow(st)
+    if fr then d = d .. "add_smalltext|" .. fr .. "|\n" end
 
-    -- Info messages + action/context (after spacer)
+    -- After spacer: lastMsg, contextMsg, or default "prepped" if nothing
     d = d .. "add_spacer|small|\n"
-    for _, msg in ipairs(buildInfoMessages(st)) do
-        d = d .. "add_smalltext|" .. msg .. "|\n"
-    end
+    local hasMsg = false
     if st.lastMsg and st.lastMsg ~= "" then
         d = d .. "add_smalltext|`3" .. st.lastMsg .. "|\n"
+        hasMsg = true
     end
     if st.contextMsg and st.contextMsg ~= "" then
         d = d .. "add_smalltext|`3" .. st.contextMsg .. "|\n"
+        hasMsg = true
+    end
+    if not hasMsg then
+        d = d .. "add_smalltext|Patient is prepped for surgery.|\n"
+    end
+    -- Heart stopped: extra spacer + warning (shown after lastMsg/contextMsg)
+    if st.heartStopped then
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_smalltext|`4The patient's `4heart `4has stopped!|\n"
     end
 
     -- ── Tool grid (sequential, client auto-wrap) ─────────────────────────────

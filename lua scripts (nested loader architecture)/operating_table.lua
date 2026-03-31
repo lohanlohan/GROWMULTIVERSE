@@ -247,9 +247,10 @@ onPlayerDialogCallback(function(world, player, data)
 
     local prizes = loadWorldPrizes(worldName)
     _G.SurgerySystem.start(world, player, x, y, {
-        prizePool  = prizes,
-        caduceusId = 4298,
-        onEnd      = onSurgeryEnd,
+        prizePool    = prizes,
+        caduceusId   = 4298,
+        onEnd        = onSurgeryEnd,
+        allowedDiags = _G.SurgeryData.DIAG_KEYS_STANDARD,
     })
     return true
 end)

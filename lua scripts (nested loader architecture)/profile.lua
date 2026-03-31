@@ -129,7 +129,7 @@ local function onProfile(world, player, cat, flags)
             "|" .. (player:getLevel() == getMaxLevel() and player:getRequiredXP() or player:getXP()) ..
             "|" .. player:getRequiredXP() ..
             "|" .. (player:getLevel() == getMaxLevel() and "(MAX!)" or "(" .. player:getXP() .. "/" .. player:getRequiredXP() .. ")") ..
-            "|00000000|\n" ..
+            "|4294967295|\n" ..
             "add_spacer|small|\n" ..
             player:getSubscriptionInfo() ..
             player:getProfileGuildInfo() ..
