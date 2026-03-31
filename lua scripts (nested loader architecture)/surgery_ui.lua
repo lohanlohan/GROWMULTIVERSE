@@ -91,10 +91,6 @@ local function buildUrgentMessages(st)
         msgs[#msgs+1] = "`oThe operation site is unclean."
     end
 
-    if diag.needsLabKit and not st.labKitUsed then
-        msgs[#msgs+1] = "`4The patient has not been diagnosed."
-    end
-
     if st.heartStopped then
         msgs[#msgs+1] = "`4HEART STOPPED! Use Defibrillator immediately!"
     end
@@ -119,7 +115,7 @@ local function buildInfoMessages(st)
     if st.temperature >= 105.0 then
         msgs[#msgs+1] = "`4Patient's fever is dangerously high!"
     elseif st.tempRising and st.temperature > 98.6 then
-        msgs[#msgs+1] = "`oPatient's fever is climbing rapidly!"
+        msgs[#msgs+1] = "`oPatient's Fever is `6climbing."
     end
 
     if st.bleeding == "INTENSE" then
@@ -163,7 +159,26 @@ function M.buildPanel(player, session, surgeonSkill)
     local d = ""
     d = d .. "set_default_color|`o\n"
     d = d .. "set_bg_color|54,152,198,200|\n"
-    d = d .. "add_label_with_icon|big|`wSurg-E: " .. (diag.name or "?") .. "|left|" .. INSURGERY_ITEM_ID .. "|\n"
+    d = d .. "add_label_with_icon|big|`wSurg-E|left|" .. INSURGERY_ITEM_ID .. "|\n"
+
+    -- Modifiers (right after header, `9 color)
+    if st.modifierList and #st.modifierList > 0 then
+        local parts = {}
+        for _, key in ipairs(st.modifierList) do
+            local mod = SD.MODIFIER[key]
+            if mod then parts[#parts+1] = "`9" .. mod.label end
+        end
+        if #parts > 0 then
+            d = d .. "add_smalltext|" .. table.concat(parts, " `w| ") .. "|\n"
+        end
+    end
+
+    -- Diagnosis name (revealed) or "not diagnosed"
+    if st.diagRevealed then
+        d = d .. "add_smalltext|`$" .. (diag.name or "?") .. "|\n"
+    else
+        d = d .. "add_smalltext|`4The patient has not been diagnosed.|\n"
+    end
     d = d .. "add_spacer|small|\n"
 
     -- Last action message
@@ -212,20 +227,6 @@ function M.buildPanel(player, session, surgeonSkill)
     end
     d = d .. "add_spacer|small|\n"
 
-    -- Active modifiers (shown once, compact)
-    if st.modifierList and #st.modifierList > 0 then
-        local SD2 = _G.SurgeryData
-        local parts = {}
-        for _, key in ipairs(st.modifierList) do
-            local mod = SD2.MODIFIER[key]
-            if mod then parts[#parts+1] = "`o" .. mod.label end
-        end
-        if #parts > 0 then
-            d = d .. "add_smalltext|`wConditions: " .. table.concat(parts, " `w| ") .. "|\n"
-            d = d .. "add_spacer|small|\n"
-        end
-    end
-
     -- ── Tool grid ────────────────────────────────────────────────────────────
     -- Row 1 (6): Defibrillator, Sponge, Anesthetic, Stitches, Scalpel, Ultrasound
     -- Row 2 (6): Antiseptic, Fix It, Lab Kit, Antibiotics, Transfusion, Splint
@@ -258,9 +259,26 @@ function M.buildPanel(player, session, surgeonSkill)
     d = d .. "add_custom_break|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|btn_giveup|`4Give Up!|noflags|0|0|\n"
-    d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
+    return d
+end
+
+-- =======================================================
+-- BUILD GIVE UP CONFIRMATION PANEL
+-- =======================================================
+
+function M.buildGiveUpConfirm(tileX, tileY)
+    local d = ""
+    d = d .. "set_default_color|`o\n"
+    d = d .. "set_bg_color|54,152,198,200|\n"
+    d = d .. "add_label_with_icon|big|`4Give Up Surgery?|left|" .. INSURGERY_ITEM_ID .. "|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`wAre you sure you want to give up? The patient will not be saved.|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_button|btn_confirm_giveup|`4Yes, Give Up|noflags|0|0|\n"
+    d = d .. "add_button|btn_cancel_giveup|`2No, Continue Surgery|noflags|0|0|\n"
+    d = d .. "end_dialog|surg_giveup_" .. tileX .. "_" .. tileY .. "|||\n"
     return d
 end
 

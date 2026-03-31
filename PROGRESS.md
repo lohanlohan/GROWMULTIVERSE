@@ -134,27 +134,39 @@ social → admin → standalones
 | `ticket_booth.lua` | `TicketBooth_Carnival.lua` | ✅ rarity exchange → Golden Tickets, 3-step dialog |
 | `ringmaster.lua` | `Ringmastered.lua` | ✅ 20 quest types, 10 steps, admin dialogs |
 
-### Hospital ✅ SELESAI + Surgery Minigame IN PROGRESS 2026-03-30
+### Hospital ✅ SELESAI + Surgery Minigame ✅ SELESAI 2026-03-31
 | File | Dari | Status |
 |------|------|--------|
 | `hospital_loader.lua` | — | ✅ load 5 modul |
 | `malady_rng.lua` | `malady_rng.lua` | ✅ `_G.MaladySystem`, 12 maladies |
 | `hospital.lua` | `hospital.lua` | ✅ `_G.HospitalSystem`, constants + DB + helpers |
 | `reception_desk.lua` | `hospital_reception_desk.lua` | ✅ owner panel, manage doctors |
-| `operating_table.lua` | `hospital_operating_table.lua` | ✅ 3 visual states + DB state + prize panel + surgery minigame |
+| `operating_table.lua` | `hospital_operating_table.lua` | ✅ 3 visual states + event-driven tick + prize panel + surgery minigame |
 | `surgery_loader.lua` | — | ✅ load 4 surgery modul |
-| `surgery_data.lua` | — | ✅ 5 diagnoses + tool definitions + item IDs |
-| `surgery_engine.lua` | — | ✅ session management + game logic + win/fail checks |
-| `surgery_ui.lua` | — | ✅ dialog panel builder (6-6-3 tool grid) |
+| `surgery_data.lua` | — | ✅ 27 diagnoses + 7-level pulse + modifiers + exact GT fail messages |
+| `surgery_engine.lua` | — | ✅ session management + unified win check + special events + modifiers |
+| `surgery_ui.lua` | — | ✅ dialog panel builder (6-6-3 tool grid) + modifier display |
 | `surgery_callbacks.lua` | — | ✅ dialog callbacks + public SurgerySystem API |
-
-**Surgery Minigame — Status 2026-03-30:**
-- UI: 6-6-3 tool grid, compact status block, urgent/info messages ✅
-- Tool IDs: semua benar sesuai real GT ✅
-- Tile transitions: 25030→25026→25028→25030 benar ✅
-- `_pendingSwap` fast-swap setelah surgery selesai ✅
-- **PENDING:** Diagnoses & mechanics review — harus 100% real GT, user akan jelaskan per diagnosis
 | `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
+
+**Surgery Minigame — Status 2026-03-31 ✅ COMPLETE:**
+- 27 diagnoses: 16 standard + 5 malady + 6 vile vial ✅
+- 7-level pulse: STRONG→GOOD→STEADY→WEAK→VERY_WEAK→EXTREMELY_WEAK→NONE ✅
+- Consciousness states: AWAKE/UNCONSCIOUS/COMING_TO/NEAR_COMA/HEART_STOPPED ✅
+- Anesthetic overdose death (anesthTurns < 4) ✅
+- Special events per vile vial (chaos/howl/worms_escape/guts_burst/ecto_pins_fail/fat_heartstop) ✅
+- Modifiers: HYPERACTIVE/HEMOPHILIAC/ANTIBIOTIC_RESISTANT/FILTHY/TOUGH_SKIN (random roll semua diagnosis) ✅
+- Unified win check — tempRising & pulse tidak memblok win ✅
+- Exact GT skill fail messages per tool ✅
+- UI: NEAR_COMA warning, COMING_TO label, modifier display ✅
+
+**Operating Table Tick — Status 2026-03-31 ✅ OPTIMIZED:**
+- Event-driven: tick fire tepat saat `readyAt` tiba via `_G._OT_nextEvent` ✅
+- Full tile scan (`world:getTiles()`) hanya 1x per 5 menit (stale insurgery cleanup) ✅
+- `swapTile()` langsung di `onSurgeryEnd` — tidak ada delay ✅
+- `loadAllStates()` 1x read + 1x write per operasi (tidak ada double read) ✅
+- Dead code dihapus: `rollPrizes`, `getSurgeonSkill`, `addSurgeonSkill`, `isOwnerOrDev`, stubs ✅
+- `hospital.lua`: hapus `processOperatingTablesInWorld`, `getOperatingStateRow`, empty tick block ✅
 
 **Tile Extra Data (auto_surgeon.lua) — Updated 2026-03-28:**
 - Pakai GTPS Cloud internal keys: `"outOfOrder"`, `"selectedIllness"`, `"wlCount"` (BUKAN XML variable names)
@@ -177,8 +189,8 @@ social → admin → standalones
 - `25030` = empty bed (item baru, plain tile tanpa extra data dependency) — BUKAN 14662
 - `25026` = surgbot idle
 - `25028` = in-surgery animation
-- `setTileForeground` dari dialog callback context TIDAK broadcast visual ke client — harus dari tick context
-- `_pendingSwap[worldName] = true` di `onSurgeryEnd` → tick bypass 5s gate → swap dalam <100ms
+- `swapTile()` dipanggil langsung di `onSurgeryEnd` — 25030 plain item, works dari context manapun ✅
+- `_G._OT_nextEvent[worldName] = readyAt` di `onSurgeryEnd` → tick fire tepat waktu cooldown habis ✅
 - `onTilePlaceCallback` block placement 25026 & 25028 secara manual
 - `countOperatingTables` di hospital.lua hitung ketiga state (25030 + 25026 + 25028) anti-bypass
 

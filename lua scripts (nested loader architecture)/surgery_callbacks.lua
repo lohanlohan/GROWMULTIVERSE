@@ -191,7 +191,8 @@ onPlayerDialogCallback(function(world, player, data)
     local btn = data["buttonClicked"] or ""
 
     if btn == "btn_giveup" then
-        endSurgery(world, player, session, false, "You gave up on the surgery.")
+        local confirmDlg = SU.buildGiveUpConfirm(x, y)
+        player:onDialogRequest(confirmDlg, 0)
         return true
     end
 
@@ -219,6 +220,34 @@ onPlayerDialogCallback(function(world, player, data)
     end
 
     processTool(world, player, session, toolId)
+    return true
+end)
+
+-- =======================================================
+-- DIALOG CALLBACK: surg_giveup_X_Y  (give up confirmation)
+-- =======================================================
+
+onPlayerDialogCallback(function(world, player, data)
+    local dlg = data["dialog_name"] or ""
+    local tx, ty = dlg:match("^surg_giveup_(-?%d+)_(-?%d+)$")
+    if not tx then return false end
+
+    local worldName = world:getName()
+    local x, y     = tonumber(tx), tonumber(ty)
+    local session   = SE.getSession(worldName, x, y)
+    local btn       = data["buttonClicked"] or ""
+
+    if not session then return true end
+    if session.surgeonName ~= player:getName() then return true end
+
+    if btn == "btn_confirm_giveup" then
+        endSurgery(world, player, session, false, "You couldn't save them!")
+    else
+        -- "btn_cancel_giveup" → reopen surgery panel
+        local skill = getSurgeonSkill(player)
+        local panel = SU.buildPanel(player, session, skill)
+        player:onDialogRequest(panel, 0)
+    end
     return true
 end)
 

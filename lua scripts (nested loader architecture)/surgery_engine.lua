@@ -92,6 +92,8 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         fixItDone      = not diag.needsFixIt,  -- pre-done if not needed
         abxUnlocked    = not diag.needsLabKit,
         bonesRevealed  = not diag.needsUltrasound,
+        -- Diagnosis name hidden until diagnostic tool is used
+        diagRevealed   = not (diag.needsUltrasound or diag.needsLabKit),
 
         -- Modifiers (map for quick lookup + array for display)
         modifiers      = modMap,
@@ -101,6 +103,9 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         lastMsg        = "",
         failReason     = nil,
         moveCount      = 0,
+
+        -- Antibiotics passive effect counter
+        abxTurnsLeft   = 0,
     }
 end
 
@@ -135,8 +140,8 @@ function M.isToolAvailable(session, toolId)
     if toolId == T.ULTRASOUND  then return not st.ultrasoundUsed end
     if toolId == T.LAB_KIT     then return not st.labKitUsed end
 
-    -- Unlocked by Lab Kit
-    if toolId == T.ANTIBIOTICS then return st.abxUnlocked end
+    -- Only available after Lab Kit is physically used
+    if toolId == T.ANTIBIOTICS then return st.labKitUsed end
 
     -- Fix It: available when objective reached, disappears after use
     if toolId == T.FIX_IT then return st.fixItReady and not st.fixItDone end
@@ -164,33 +169,45 @@ function M.applyToolEffect(session, toolId)
         return "You clean the operation site. Visibility improves."
 
     elseif toolId == T.LAB_KIT then
-        st.labKitUsed   = true
-        st.abxUnlocked  = true
+        st.labKitUsed    = true
+        st.abxUnlocked   = true
+        st.diagRevealed  = true
         return "Lab results in. Antibiotics are now unlocked."
 
     elseif toolId == T.ANTIBIOTICS then
-        -- Antibiotic-resistant modifier: weaker drop
-        local drop = st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT
-            and (0.3 + math.random(0, 3) * 0.1)
-            or  (0.5 + math.random(0, 10) * 0.1)
-        st.temperature = math.max(98.6, st.temperature - drop)
-        if st.temperature <= 98.6 then st.tempRising = false end
-        return string.format("Antibiotics administered. Temperature: %.1f°F", st.temperature)
+        -- Immediate drop on use + 2-turn passive effect (1-3°F per turn)
+        -- Also clears fever climbing flag
+        local drop
+        if st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT then
+            drop = 0.3 + math.random(0, 3) * 0.1  -- 0.3–0.6°F
+        else
+            drop = 1 + math.random(0, 2)  -- 1–3°F
+        end
+        st.temperature  = math.max(98.6, st.temperature - drop)
+        st.tempRising   = false
+        st.abxTurnsLeft = 2
+        st.diagRevealed = true
+        return string.format("Antibiotics administered. Temperature: %.1f°F. Treatment active for 2 more turns.", st.temperature)
 
     elseif toolId == T.ANTISEPTIC then
         st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, -2)
         return "Area disinfected."
 
     elseif toolId == T.ANESTHETIC then
-        -- Overdose check: using on non-awake patient with < 4 turns left = permanent death
-        if st.consciousness ~= "AWAKE" and st.anesthTurns < 4 then
+        -- Near coma → re-dose = permanent death (overdose)
+        if st.consciousness == "NEAR_COMA" then
             return "<<PERMA_DEATH>>"
         end
-        -- Hyperactive modifier: only 4 moves instead of 10
+        -- Already unconscious → overdose: patient enters NEAR_COMA after passive tick
+        if st.consciousness == "UNCONSCIOUS" then
+            st.anesthTurns = 2  -- passive tick: 2→1 = NEAR_COMA
+            return "Overdose! Patient critical — DO NOT use Anesthetic again!"
+        end
+        -- AWAKE or COMING_TO → normal dose / safe re-dose → UNCONSCIOUS
         local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 4 or 10
         st.consciousness = "UNCONSCIOUS"
         st.anesthTurns   = turns
-        return string.format("Patient is now unconscious. You have about %d moves.", turns)
+        return string.format("Patient sedated. You have about %d moves.", turns)
 
     elseif toolId == T.SCALPEL then
         st.incisions    = st.incisions + 1
@@ -228,8 +245,12 @@ function M.applyToolEffect(session, toolId)
     elseif toolId == T.ULTRASOUND then
         st.ultrasoundUsed = true
         st.bonesRevealed  = true
-        return string.format("Ultrasound reveals: %d broken, %d shattered bone(s).",
-            st.brokenBones, st.shatteredBones)
+        st.diagRevealed   = true
+        if (diag.brokenBones or 0) > 0 or (diag.shatteredBones or 0) > 0 then
+            return "Scan complete. Bone injuries confirmed. Splint and Pins are now available."
+        else
+            return "Scan complete. Diagnosis confirmed. Proceed with treatment."
+        end
 
     elseif toolId == T.PINS then
         if st.shatteredBones > 0 then
@@ -269,26 +290,20 @@ function M.applySkillFailEffect(session, toolId)
     local st = session
 
     if toolId == T.ANTIBIOTICS then
-        st.temperature = st.temperature + 1.5
-        return "Wrong medication! Bacteria liked it. Temperature rises."
+        return SD.TOOL_FAIL_MSG[T.ANTIBIOTICS]
 
     elseif toolId == T.TRANSFUSION then
-        st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, 1)
-        return "You spilled blood everywhere! Site is dirtier."
+        return SD.TOOL_FAIL_MSG[T.TRANSFUSION]
 
     elseif toolId == T.ANESTHETIC then
         st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
         return "You inhaled the anesthetic. Visibility worsens."
 
     elseif toolId == T.SPLINT then
-        st.bleeding   = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
-        st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
         return SD.TOOL_FAIL_MSG[T.SPLINT]
 
     elseif toolId == T.PINS then
-        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 2)
-        st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
-        -- Ecto-Bones: pin phased through → shatter an extra bone
+        -- Ecto-Bones special event: pin phases through → extra shattered bone
         local diag = SD.DIAG[st.diagKey]
         if diag and diag.specialEvent == "ecto_pins_fail" then
             st.shatteredBones = st.shatteredBones + 1
@@ -327,6 +342,19 @@ function M.applyPassiveEffects(session)
     local st   = session
     local diag = SD.DIAG[st.diagKey]
 
+    -- Antibiotics 2-turn passive effect (1-3°F drop per turn, floor 98.6)
+    if st.abxTurnsLeft and st.abxTurnsLeft > 0 then
+        local drop
+        if st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT then
+            drop = 0.3 + math.random(0, 3) * 0.1  -- 0.3–0.6°F
+        else
+            drop = 1 + math.random(0, 2)  -- 1–3°F
+        end
+        st.temperature  = math.max(98.6, st.temperature - drop)
+        if st.temperature <= 98.6 then st.tempRising = false end
+        st.abxTurnsLeft = st.abxTurnsLeft - 1
+    end
+
     -- Anesthetic countdown + consciousness state
     if st.anesthTurns > 0 then
         st.anesthTurns = st.anesthTurns - 1
@@ -354,12 +382,22 @@ function M.applyPassiveEffects(session)
         st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, 1)
     end
 
-    -- Infection: dirty + any bleeding → temp rises
-    if SD.CLEAN_INDEX[st.siteClean] and SD.CLEAN_INDEX[st.siteClean] >= 3
-    and SD.BLEED_INDEX[st.bleeding] and SD.BLEED_INDEX[st.bleeding] > 1 then
-        st.temperature = st.temperature + 0.5
-    elseif st.tempRising then
-        st.temperature = st.temperature + 0.3
+    -- Dirtiness: chance per turn to trigger fever climbing (if not already rising)
+    if not st.tempRising then
+        local cleanIdx      = SD.CLEAN_INDEX[st.siteClean] or 1
+        local triggerChance = 0
+        if     cleanIdx >= 4 then triggerChance = 0.30   -- UNSANITARY
+        elseif cleanIdx >= 3 then triggerChance = 0.15   -- DIRTY
+        elseif cleanIdx >= 2 then triggerChance = 0.05   -- SLIGHTLY_DIRTY
+        end
+        if triggerChance > 0 and math.random() < triggerChance then
+            st.tempRising = true
+        end
+    end
+
+    -- Fever climbing: temp rises 0.5–2°F per turn
+    if st.tempRising then
+        st.temperature = st.temperature + (0.5 + math.random(0, 3) * 0.5)
     end
 
     -- Patient screams/flails if AWAKE with open incisions
