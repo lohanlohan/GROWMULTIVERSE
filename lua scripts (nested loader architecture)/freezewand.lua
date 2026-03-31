@@ -39,7 +39,7 @@ local freezeWandModData = {
     onAddMessage = "You have been frozen! You cannot move.",
     onRemoveMessage = "You have thawed out and can move again.",
     iconID = FREEZE_WAND_ID,
-    changeSkin = {180, 255, 255, 255},
+    changeSkin = {0, 175, 255, 255},
     modState = {StateFlags.STATE_FROZEN}
 }
 

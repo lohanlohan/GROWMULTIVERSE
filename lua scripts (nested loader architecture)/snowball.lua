@@ -4,6 +4,8 @@
 local M = {}
 
 local SNOWBALL_ID = 1368
+local FREEZE_DURATION_SECONDS = 2
+local NINJA_STEALTH_MOD_ID = 290
 
 local StateFlags = {
     STATE_NO_CLIP = 0,
@@ -39,7 +41,7 @@ local snowballModData = {
     onAddMessage = "Your body has turned to ice. You can't move!",
     onRemoveMessage = "You've thawed out.",
     iconID = SNOWBALL_ID,
-    changeSkin = {180, 255, 255, 255},
+    changeSkin = {0, 175, 255, 255},
     modState = {StateFlags.STATE_FROZEN}
 }
 
@@ -54,7 +56,8 @@ onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
     end
 
     if player:changeItem(itemID, -1, 0) then
-        clickedPlayer:addMod(snowballModID, 2)
+        clickedPlayer:addMod(snowballModID, FREEZE_DURATION_SECONDS)
+        clickedPlayer:addMod(NINJA_STEALTH_MOD_ID, FREEZE_DURATION_SECONDS)
         world:useItemEffect(player:getNetID(), itemID, clickedPlayer:getNetID(), 0)
         world:updateClothing(clickedPlayer)
         clickedPlayer:playAudio("freeze.wav")
