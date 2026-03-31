@@ -3,16 +3,10 @@
 
 local M = {}
 
-local Roles = {
-    ROLE_NONE = 0,
-    ROLE_VIP = 1,
-    ROLE_SUPER_VIP = 2,
-    ROLE_MODERATOR = 3,
-    ROLE_ADMIN = 4,
-    ROLE_COMMUNITY_MANAGER = 5,
-    ROLE_CREATOR = 6,
-    ROLE_GOD = 7,
-    ROLE_DEVELOPER = 51,
+local ROLE_NONE = 0
+local ROLE_DEVELOPER = 51
+local PlayerSubscriptions = {
+    TYPE_SUPER_SUPPORTER = 1,
 }
 
 local TELEPORT_COOLDOWN_SECONDS = 25
@@ -53,15 +47,7 @@ local function ensureHistory(player)
     return worldHistory[uid]
 end
 
-local function hasCooldownBypassRole(player)
-    return player:hasRole(Roles.ROLE_DEVELOPER)
-end
-
 local function getCooldownRemaining(player, cooldownStore)
-    if hasCooldownBypassRole(player) then
-        return 0
-    end
-
     local uid = getUID(player)
     if uid < 0 then
         return 0
@@ -77,10 +63,6 @@ local function getCooldownRemaining(player, cooldownStore)
 end
 
 local function startCooldown(player, cooldownStore)
-    if hasCooldownBypassRole(player) then
-        return
-    end
-
     local uid = getUID(player)
     if uid < 0 then
         return
@@ -90,7 +72,11 @@ local function startCooldown(player, cooldownStore)
 end
 
 local function canUseFeatureCommands(player)
-    return player:hasRole(Roles.ROLE_VIP) or player:hasRole(Roles.ROLE_DEVELOPER)
+    return player:getSubscription(PlayerSubscriptions.TYPE_SUPER_SUPPORTER) ~= nil
+end
+
+local function isDeveloper(player)
+    return player ~= nil and player.hasRole ~= nil and player:hasRole(ROLE_DEVELOPER)
 end
 
 local function forceRespawn(world, player)
@@ -123,10 +109,10 @@ local function warpPlayer(player, worldName, doorID)
     return true
 end
 
-registerLuaCommand({ command = "warp", roleRequired = Roles.ROLE_VIP, description = "Warp to another world." })
-registerLuaCommand({ command = "back", roleRequired = Roles.ROLE_VIP, description = "Return to your previous world." })
-registerLuaCommand({ command = "res", roleRequired = Roles.ROLE_VIP, description = "Respawn your character instantly." })
-registerLuaCommand({ command = "respawn", roleRequired = Roles.ROLE_VIP, description = "Respawn your character instantly." })
+registerLuaCommand({ command = "warp", roleRequired = ROLE_NONE, description = "Warp to another world." })
+registerLuaCommand({ command = "back", roleRequired = ROLE_NONE, description = "Return to your previous world." })
+registerLuaCommand({ command = "res", roleRequired = ROLE_NONE, description = "Respawn your character instantly." })
+registerLuaCommand({ command = "respawn", roleRequired = ROLE_NONE, description = "Respawn your character instantly." })
 
 onPlayerEnterWorldCallback(function(world, player)
     local history = ensureHistory(player)
@@ -172,17 +158,19 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     end
 
     if not canUseFeatureCommands(player) then
-        player:onConsoleMessage("`4You do not have permission to use this command.")
+        player:onConsoleMessage("`oThis command is only available for`$ Super Supporter`o players.")
         player:playAudio("bleep_fail.wav")
         return true
     end
 
     if cmd == "warp" then
-        local remaining = getCooldownRemaining(player, warpCooldownUntil)
-        if remaining > 0 then
-            player:onConsoleMessage("`4Please wait `w" .. tostring(remaining) .. "s`4 before using /warp again.")
-            player:playAudio("bleep_fail.wav")
-            return true
+        if not isDeveloper(player) then
+            local remaining = getCooldownRemaining(player, warpCooldownUntil)
+            if remaining > 0 then
+                player:onConsoleMessage("`oPlease wait `w" .. tostring(remaining) .. "s`o before using`$ /warp`o again.")
+                player:playAudio("bleep_fail.wav")
+                return true
+            end
         end
 
         local worldName, doorID = args:match("^(%S+)%s*(%S*)$")
@@ -192,28 +180,30 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             return true
         end
 
-        if warpPlayer(player, worldName, doorID) then
+        if warpPlayer(player, worldName, doorID) and not isDeveloper(player) then
             startCooldown(player, warpCooldownUntil)
         end
         return true
     end
 
     if cmd == "back" then
-        local remaining = getCooldownRemaining(player, backCooldownUntil)
-        if remaining > 0 then
-            player:onConsoleMessage("`4Please wait `w" .. tostring(remaining) .. "s`4 before using /back again.")
-            player:playAudio("bleep_fail.wav")
-            return true
+        if not isDeveloper(player) then
+            local remaining = getCooldownRemaining(player, backCooldownUntil)
+            if remaining > 0 then
+                player:onConsoleMessage("`oPlease wait `w" .. tostring(remaining) .. "s`o before using`$ /back`o again.")
+                player:playAudio("bleep_fail.wav")
+                return true
+            end
         end
 
         local history = ensureHistory(player)
         if history == nil or history.previous == "" then
-            player:onConsoleMessage("`4No previous world found for /back.")
+            player:onConsoleMessage("`oNo previous world found for`$ /back`o.")
             player:playAudio("bleep_fail.wav")
             return true
         end
 
-        if warpPlayer(player, history.previous, "") then
+        if warpPlayer(player, history.previous, "") and not isDeveloper(player) then
             startCooldown(player, backCooldownUntil)
         end
         return true
@@ -226,8 +216,5 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     end
     return true
 end)
-
-M.Roles = Roles
-_G.RolesExample = Roles
 
 return M
