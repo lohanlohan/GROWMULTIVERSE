@@ -41,7 +41,7 @@ end
 
 local function canUseOnSelf(player, clickedPlayer)
     if clickedPlayer == nil or clickedPlayer.getUserID == nil then
-        player:onTalkBubble(player:getNetID(), "Must be used on a person", 1)
+        player:onTalkBubble(player:getNetID(), "Must be used on a person.", 1)
         return false
     end
 

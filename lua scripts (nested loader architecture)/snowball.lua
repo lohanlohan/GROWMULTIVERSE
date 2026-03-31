@@ -3,14 +3,14 @@
 
 local M = {}
 
-local FREEZE_WAND_ID = 274
+local FREEZE_WAND_ID = 1368
 
 -- StateFlags.STATE_FROZEN not available in new arch, modState omitted
 local freezeWandModID = registerLuaPlaymod({
     modID          = 4454,
     modName        = "Frozen!",
-    onAddMessage   = "You have been frozen! You cannot move.",
-    onRemoveMessage= "You have thawed out and can move again.",
+    onAddMessage   = "Your body has turned to ice. You can't move!",
+    onRemoveMessage= "You've thawed out.",
     iconID         = FREEZE_WAND_ID,
     changeSkin     = {180, 255, 255, 255},
     modState       = {274},
@@ -25,7 +25,7 @@ onPlayerConsumableCallback(function(world, player, tile, clickedPlayer, itemID)
     end
 
     if player:changeItem(itemID, -1, 0) then
-        clickedPlayer:addMod(freezeWandModID, 10)
+        clickedPlayer:addMod(freezeWandModID, 2)
         world:useItemEffect(player:getNetID(), itemID, clickedPlayer:getNetID(), 0)
         world:updateClothing(clickedPlayer)
         clickedPlayer:playAudio("freeze.wav")
