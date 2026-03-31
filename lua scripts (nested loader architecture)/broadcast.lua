@@ -74,6 +74,20 @@ local function playSfx(player, soundFile)
     end
 end
 
+local function sendConsole(player, message, channelTag)
+    if not player or type(message) ~= "string" or message == "" then
+        return
+    end
+
+    if player.sendVariant then
+        local tag = channelTag or "SB"
+        player:sendVariant({ "OnConsoleMessage", "CT:[" .. tag .. "] " .. message })
+        return
+    end
+
+    player:onConsoleMessage(message)
+end
+
 local function calcCost(cmd, onlineCount)
     local cfg = BROADCAST_COST[cmd]
     if not cfg then return 0 end
@@ -114,17 +128,11 @@ local function broadcastAll(sender, tag, msg, soundFile, usedGems, world)
     local currentGems = sender:getGems() or 0
     local senderMsg = string.format(
         ">> %s-Broadcast `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems)
-    
-    if sender and sender.sendVariant then
-        sender:onConsoleMessage(senderMsg)
-    end
+
+    sender:onConsoleMessage(senderMsg)
 
     for _, p in ipairs(allPlayers()) do
-        if p and p.sendVariant then
-            p:onConsoleMessage("CT:[SB] " .. text)
-        else
-            p:onConsoleMessage(text)
-        end
+        sendConsole(p, text)
         playSfx(p, soundFile)
     end
 end
@@ -134,11 +142,7 @@ local function atomicNoticeAll(sender, tag, msg)
     local title = string.format("`0[%s]`w %s\n`w%s", tag, sname, msg)
 
     local senderMsg = ">> " .. tag .. " sent."
-    if sender and sender.sendVariant then
-        sender:onConsoleMessage("CT:[SB] " .. text)
-    else
-        sender:onConsoleMessage(senderMsg)
-    end
+    sender:onConsoleMessage(senderMsg)
 
     for _, p in ipairs(allPlayers()) do
         if p and p.sendVariant then
