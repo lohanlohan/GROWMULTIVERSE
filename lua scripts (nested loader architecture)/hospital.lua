@@ -755,11 +755,13 @@ end
 local function safeHasRole(player, role)
     if type(player) ~= "userdata" then return false end
     return player:hasRole(role) == true
-end
-
-local function safeBubble(player, text)
+local function safeBubble(player, text, bubbleType)
+    -- bubbleType parameter:
+    -- 0 = append/stack mode (multiple bubbles bertumpuk)
+    -- 1 = replace/update mode (bubble di-replace, tidak bertumpuk) — DEFAULT
     if player and player.onTalkBubble and player.getNetID then
-        player:onTalkBubble(player:getNetID(), text, 1)
+        local mode = (bubbleType == 0) and 0 or 1
+        player:onTalkBubble(player:getNetID(), text, mode)
     end
 end
 
@@ -1388,35 +1390,35 @@ end
 local function tryDepositToolToStation(player, worldName, x, y, toolID)
     local current = _G.AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
     if current >= MAX_TOOL_STORAGE then
-        safeBubble(player, "`4This tool storage is already full.")
+        safeBubble(player, "`4This tool storage is already full.", 0)
         return false
     end
     local haveTool = getPlayerItemAmount(player, toolID)
     if haveTool <= 0 then
-        safeBubble(player, "`4You do not have this tool in inventory.")
+        safeBubble(player, "`4You do not have this tool in inventory.", 0)
         return false
     end
     local freeSpace     = MAX_TOOL_STORAGE - current
     local depositAmount = math.min(haveTool, freeSpace)
     if depositAmount <= 0 then
-        safeBubble(player, "`4This tool storage is already full.")
+        safeBubble(player, "`4This tool storage is already full.", 0)
         return false
     end
     player:changeItem(toolID, -depositAmount, 0)
     _G.AutoSurgeon.addStationTool(worldName, x, y, toolID, depositAmount)
-    safeBubble(player, "`2Deposited " .. tostring(depositAmount) .. "x tool ID " .. tostring(toolID) .. ".")
+    safeBubble(player, "`2Deposited " .. tostring(depositAmount) .. "x tool ID " .. tostring(toolID) .. ".", 1)
     return true
 end
 
 local function tryWithdrawToolFromStation(player, worldName, x, y, toolID)
     local current = _G.AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
     if current <= 0 then
-        safeBubble(player, "`4There is no stock for this tool.")
+        safeBubble(player, "`4There is no stock for this tool.", 0)
         return false
     end
     player:changeItem(toolID, current, 0)
     _G.AutoSurgeon.removeStationTool(worldName, x, y, toolID, current)
-    safeBubble(player, "`2Withdrew " .. tostring(current) .. "x tool ID " .. tostring(toolID) .. ".")
+    safeBubble(player, "`2Withdrew " .. tostring(current) .. "x tool ID " .. tostring(toolID) .. ".", 1)
     return true
 end
 
@@ -1432,23 +1434,23 @@ local function tryUpgradeHospital(player, world)
     local levelData = HOSPITAL_LEVELS[level]
 
     if not levelData or not levelData.next_level then
-        safeBubble(player, "`4Hospital is already at max level.")
+        safeBubble(player, "`4Hospital is already at max level.", 0)
         return
     end
     if progress < tonumber(levelData.required_surgeries) then
-        safeBubble(player, "`4Not enough surgery progress to upgrade yet.")
+        safeBubble(player, "`4Not enough surgery progress to upgrade yet.", 0)
         return
     end
     if (tonumber(player:getGems()) or 0) < tonumber(levelData.upgrade_gems) then
-        safeBubble(player, "`4Not enough Gems to upgrade the hospital.")
+        safeBubble(player, "`4Not enough Gems to upgrade the hospital.", 0)
         return
     end
 
-    safeBubble(player, "`oWL upgrade check is not connected yet in this build.")
+    safeBubble(player, "`oWL upgrade check is not connected yet in this build.", 0)
 
     player:removeGems(tonumber(levelData.upgrade_gems), 1, 1)
     setHospitalState(worldName, tonumber(levelData.next_level), 0)
-    safeBubble(player, "`2Hospital upgraded to level " .. tostring(levelData.next_level) .. "!")
+    safeBubble(player, "`2Hospital upgraded to level " .. tostring(levelData.next_level) .. "!", 1)
 end
 
 -- Bridge shared locals so sub-modules can access hospital helpers via _G.HospitalSystem
@@ -1543,7 +1545,7 @@ onTileWrenchCallback(function(world, player, tile)
         elseif _G.ReceptionDesk.isDoctor(worldName, uid) then
             _G.ReceptionDesk.showDoctorReceptionPanel(world, player, worldName)
         else
-            safeBubble(player, "`4You are not registered as a doctor at this hospital!")
+            safeBubble(player, "`4You are not registered as a doctor at this hospital!", 0)
         end
         return true
     end
@@ -1561,7 +1563,7 @@ onTileWrenchCallback(function(world, player, tile)
         local closeAsPixels = (pxTile - x) >= -8 and (pxTile - x) <= 17 and math.abs(pyTile - y) <= 6
         local closeAsTiles  = (pxRaw - x) >= -8 and (pxRaw - x) <= 17 and math.abs(pyRaw - y) <= 6
         if not closeAsPixels and not closeAsTiles then
-            safeBubble(player, "Get closer!")
+            safeBubble(player, "Get closer!", 0)
             return true
         end
         _G.AutoSurgeon.ensureStation(worldName, x, y)
@@ -1580,32 +1582,32 @@ onTilePlaceCallback(function(world, player, tile, placingID)
 
     if itemID == RECEPTION_DESK_ID then
         if countReceptionDesks(world) >= 1 then
-            safeBubble(player, "`4Only one Reception Desk can exist in a world.")
+            safeBubble(player, "`4Only one Reception Desk can exist in a world.", 0)
             return true
         end
     end
 
     if itemID == AUTO_SURGEON_ID then
         if countReceptionDesks(world) < 1 then
-            safeBubble(player, "`4A Reception Desk must be placed first before adding Auto Surgeon Stations.")
+            safeBubble(player, "`4A Reception Desk must be placed first before adding Auto Surgeon Stations.", 0)
             return true
         end
         if countAutoSurgeons(world) >= 12 then
-            safeBubble(player, "`4Maximum 12 Auto Surgeon Stations allowed per world.")
+            safeBubble(player, "`4Maximum 12 Auto Surgeon Stations allowed per world.", 0)
             return true
         end
     end
 
     if itemID == OPERATING_TABLE_ID then
         if countReceptionDesks(world) < 1 then
-            safeBubble(player, "`4A Reception Desk must be placed first before adding Operating Tables.")
+            safeBubble(player, "`4A Reception Desk must be placed first before adding Operating Tables.", 0)
             return true
         end
         local worldName = getWorldName(world, player)
         local hospitalLevel = tonumber((getHospitalState(worldName) or {}).level) or 1
         local capacity = getOperatingTableCapacityByLevel(hospitalLevel)
         if countOperatingTables(world) >= capacity then
-            safeBubble(player, "`4Operating Table capacity reached: `o" .. tostring(capacity) .. "`4. Upgrade hospital level to unlock more.")
+            safeBubble(player, "`4Operating Table capacity reached: `o" .. tostring(capacity) .. "`4. Upgrade hospital level to unlock more.", 0)
             return true
         end
     end
@@ -1632,7 +1634,7 @@ onTilePunchCallback(function(world, player, tile)
     -- Reception Desk: block if auto surgeons exist
     if tileID == RECEPTION_DESK_ID then
         if countAutoSurgeons(world) > 0 then
-            safeBubble(player, "`8WARNING!`0 Breaking the Reception Desk will reset all Hospital Stats!")
+            safeBubble(player, "`8WARNING!`0 Breaking the Reception Desk will reset all Hospital Stats!", 1)
             return true
         end
         return false
@@ -1641,7 +1643,7 @@ onTilePunchCallback(function(world, player, tile)
     -- Auto Surgeon: block if storage not empty or has pending earnings
     if tileID == AUTO_SURGEON_ID then
         if not _G.AutoSurgeon.canBreakAutoSurgeon(worldName, x, y) then
-            safeBubble(player, "`4Empty the Auto Surgeon storage and withdraw earnings before breaking.")
+            safeBubble(player, "`4Empty the Auto Surgeon storage and withdraw earnings before breaking.", 1)
             return true
         end
         return false
@@ -1650,7 +1652,7 @@ onTilePunchCallback(function(world, player, tile)
     -- World Lock: block if hospital exists in world
     if tileID == WORLD_LOCK_ID then
         if hasHospitalInWorld(world) then
-            safeBubble(player, "`0Can't smash the `$World Lock`0 while a Reception Desk exists in the world!")
+            safeBubble(player, "`0Can't smash the `$World Lock`0 while a Reception Desk exists in the world!", 1)
             return true
         end
         return false
@@ -1690,8 +1692,8 @@ onPlayerTradeCallback(function(world, player1, player2, items1, items2)
         return false
     end
     if hasWL(items1) or hasWL(items2) then
-        safeBubble(player1, "`4Cannot trade the World Key while a hospital is active in this world.")
-        safeBubble(player2, "`4Cannot trade the World Key while a hospital is active in this world.")
+        safeBubble(player1, "`4Cannot trade the World Key while a hospital is active in this world.", 1)
+        safeBubble(player2, "`4Cannot trade the World Key while a hospital is active in this world.", 1)
         return true
     end
 end)
@@ -1761,7 +1763,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             if world.setPlayerPosition then
                 world:setPlayerPosition(player, tile:getPosX(), tile:getPosY())
             end
-            safeBubble(player, "`2You lay on the Operating Table and wait for a doctor.")
+            safeBubble(player, "`2You lay on the Operating Table and wait for a doctor.", 0)
             return false
         end
     end
@@ -1770,7 +1772,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         return false
     end
     if not safeHasRole(player, ROLE_DEVELOPER) then
-        safeBubble(player, "`4Developer only test command.")
+        safeBubble(player, "`4Developer only test command.", 0)
         return true
     end
 
@@ -1821,7 +1823,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         local py   = math.floor((player:getPosY() or 0) / 32)
         local tile = world:getTile(px, py)
         if not tile or tile:getTileID() ~= AUTO_SURGEON_ID then
-            safeBubble(player, "`4Stand on an Auto Surgeon Station first.")
+            safeBubble(player, "`4Stand on an Auto Surgeon Station first.", 0)
             return true
         end
         local worldName = getWorldName(world)
@@ -1868,9 +1870,9 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     if sub == "addprogress" then
         local added = addHospitalProgressIfPossible(getWorldName(world, player), 1)
         if added then
-            safeBubble(player, "`2Added hospital progress by 1.")
+            safeBubble(player, "`2Added hospital progress by 1.", 0)
         else
-            safeBubble(player, "`4Could not add progress. Maybe hospital is full or max level.")
+            safeBubble(player, "`4Could not add progress. Maybe hospital is full or max level.", 0)
         end
         return true
     end
@@ -1880,12 +1882,12 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         local py   = math.floor((player:getPosY() or 0) / 32)
         local tile = world:getTile(px, py)
         if not tile or tile:getTileID() ~= AUTO_SURGEON_ID then
-            safeBubble(player, "`4Stand on an Auto Surgeon Station first.")
+            safeBubble(player, "`4Stand on an Auto Surgeon Station first.", 0)
             return true
         end
         local station = getStation(getWorldName(world), tile:getPosX(), tile:getPosY())
         if not station then
-            safeBubble(player, "`4Station data not found.")
+            safeBubble(player, "`4Station data not found.", 0)
             return true
         end
         safeConsole(player, "`wStation Malady: `o" .. tostring(station.malady_type))
@@ -1900,7 +1902,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         local py   = math.floor((player:getPosY() or 0) / 32)
         local tile = world:getTile(px, py)
         if not tile or tile:getTileID() ~= AUTO_SURGEON_ID then
-            safeBubble(player, "`4Stand on an Auto Surgeon Station first.")
+            safeBubble(player, "`4Stand on an Auto Surgeon Station first.", 0)
             return true
         end
 
@@ -1908,7 +1910,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         if mode == "id" then
             local raw = tonumber(parts[4])
             if not raw then
-                safeBubble(player, "`4Usage: /hospitaltest tileextra id <0-255>")
+                safeBubble(player, "`4Usage: /hospitaltest tileextra id <0-255>", 0)
                 return true
             end
             _G.__HOSPITAL_FORCE_ILLNESS_ID = math.max(0, math.min(255, math.floor(raw)))
@@ -1923,7 +1925,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         elseif mode == "wl" then
             local raw = tonumber(parts[4])
             if raw == nil then
-                safeBubble(player, "`4Usage: /hospitaltest tileextra wl 0|1")
+                safeBubble(player, "`4Usage: /hospitaltest tileextra wl 0|1", 0)
                 return true
             end
             _G.__HOSPITAL_FORCE_WL_VISUAL = raw > 0 and 1 or 0
@@ -1934,7 +1936,7 @@ onPlayerCommandCallback(function(world, player, fullCommand)
 
         local station = getStation(getWorldName(world), tile:getPosX(), tile:getPosY())
         if not station then
-            safeBubble(player, "`4Station data not found.")
+            safeBubble(player, "`4Station data not found.", 0)
             return true
         end
 
