@@ -175,13 +175,13 @@ onPlayerCommandCallback(function(world, player, full)
     end
 
     if not hasAny(player, meta.roles) then
-        player:onConsoleMessage("`4Unknown command. `oEnter `$/help `ofor a list of valid commands.")
+        player:onConsoleMessage("`4Unknown command.`o Enter`$ /?`o for a list of valid commands.")
         return true
     end
 
     local tag = tagFor(cmd, player)
     if not tag then
-        player:onConsoleMessage("`4Unknown command. `oEnter `$/help `ofor a list of valid commands.")
+        player:onConsoleMessage("`4Unknown command.`o Enter`$ /?`o for a list of valid commands.")
         return true
     end
 
