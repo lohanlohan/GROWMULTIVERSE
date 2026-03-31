@@ -72,7 +72,10 @@ local function endSurgery(world, player, session, success, failReason)
         giveSuccessPrizes(world, player, cfg)
     end
 
-    -- Notify caller first (tile swap back to empty bed happens here, before panel shows)
+    -- Clear session FIRST — so even if onEnd crashes, next surgery can start cleanly
+    SE.clearSession(worldName, x, y)
+
+    -- Notify caller (tile swap back to empty bed)
     if type(cfg.onEnd) == "function" then
         cfg.onEnd(world, player, success)
     end
@@ -80,9 +83,6 @@ local function endSurgery(world, player, session, success, failReason)
     -- Show result panel
     local resultDlg = SU.buildResultPanel(success, failReason, diagName, skill, newSkill, x, y)
     player:onDialogRequest(resultDlg, 0)
-
-    -- Clear session
-    SE.clearSession(worldName, x, y)
 end
 
 -- =======================================================
@@ -93,10 +93,10 @@ local function processTool(world, player, session, toolId)
     local T  = SD.TOOL
     local st = session
 
-    -- Special: Scalpel on awake patient → instant fail
+    -- Special: Scalpel on non-unconscious patient → instant fail
     if toolId == T.SCALPEL and st.consciousness ~= "UNCONSCIOUS" then
-        st.lastMsg = "You stabbed an awake patient! YOUR MEDICAL LICENSE IS REVOKED!"
-        endSurgery(world, player, session, false, "You just stabbed someone who was fully awake!")
+        endSurgery(world, player, session, false,
+            "You just stabbed someone who was fully awake! YOUR MEDICAL LICENSE IS REVOKED!")
         return
     end
 
@@ -120,7 +120,13 @@ local function processTool(world, player, session, toolId)
         msg = SE.applyToolEffect(session, toolId)
     end
 
-    -- <<RETRY>> marker = Fix It failed but retryable (not a real fail)
+    -- <<PERMA_DEATH>> = anesthetic overdose
+    if msg and msg:sub(1, 14) == "<<PERMA_DEATH>>" then
+        endSurgery(world, player, session, false, "You put the patient to sleep. Permanently.")
+        return
+    end
+
+    -- <<RETRY>> = Fix It retryable fail
     local isRetry = false
     if msg and msg:sub(1, 9) == "<<RETRY>>" then
         isRetry = true

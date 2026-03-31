@@ -13,8 +13,17 @@ local EMPTY_TRAY_ITEM_ID = 4320   -- shown for unavailable/missing tool slots
 -- =======================================================
 
 local function pulseLabel(pulse)
-    local color = { STRONG = "`2", STEADY = "`o", WEAK = "`4", EXTREMELY_WEAK = "`4", NONE = "`4" }
-    local text  = { STRONG = "Strong", STEADY = "Steady", WEAK = "Weak", EXTREMELY_WEAK = "Extremely Weak", NONE = "NONE" }
+    local color = {
+        STRONG         = "`2", GOOD           = "`2",
+        STEADY         = "`o", WEAK           = "`o",
+        VERY_WEAK      = "`4", EXTREMELY_WEAK = "`4", NONE = "`4",
+    }
+    local text = {
+        STRONG         = "Strong",        GOOD           = "Good",
+        STEADY         = "Steady",        WEAK           = "Weak",
+        VERY_WEAK      = "Very Weak",     EXTREMELY_WEAK = "Extremely Weak",
+        NONE           = "NONE",
+    }
     return (color[pulse] or "`4") .. (text[pulse] or (pulse or "?"))
 end
 
@@ -52,12 +61,15 @@ local function bleedLabel(bleeding)
 end
 
 local function consLabel(st)
-    if st.consciousness == "UNCONSCIOUS" then
-        if st.anesthTurns > 0 then
-            local c = st.anesthTurns <= 3 and "`4" or "`2"
-            return "`2Unconscious " .. c .. "(" .. st.anesthTurns .. " moves)"
-        end
-        return "`2Unconscious"
+    local c = st.consciousness
+    if c == "UNCONSCIOUS" then
+        return "`2Unconscious `o(" .. st.anesthTurns .. " moves)"
+    elseif c == "COMING_TO" then
+        return "`4Coming To! `o(" .. st.anesthTurns .. " moves)"
+    elseif c == "NEAR_COMA" then
+        return "`4Near Coma!"
+    elseif c == "HEART_STOPPED" then
+        return "`4HEART STOPPED"
     end
     return "`4Awake"
 end
@@ -91,7 +103,9 @@ local function buildUrgentMessages(st)
         msgs[#msgs+1] = "`4Patient is awake with open incisions!"
     end
 
-    if st.consciousness == "UNCONSCIOUS" and st.anesthTurns > 0 and st.anesthTurns <= 3 then
+    if st.consciousness == "NEAR_COMA" then
+        msgs[#msgs+1] = "`4Near Coma! DO NOT use Anesthetic!"
+    elseif st.consciousness == "COMING_TO" then
         msgs[#msgs+1] = "`4Patient waking up in " .. st.anesthTurns .. " move(s)!"
     end
 
@@ -198,6 +212,20 @@ function M.buildPanel(player, session, surgeonSkill)
     end
     d = d .. "add_spacer|small|\n"
 
+    -- Active modifiers (shown once, compact)
+    if st.modifierList and #st.modifierList > 0 then
+        local SD2 = _G.SurgeryData
+        local parts = {}
+        for _, key in ipairs(st.modifierList) do
+            local mod = SD2.MODIFIER[key]
+            if mod then parts[#parts+1] = "`o" .. mod.label end
+        end
+        if #parts > 0 then
+            d = d .. "add_smalltext|`wConditions: " .. table.concat(parts, " `w| ") .. "|\n"
+            d = d .. "add_spacer|small|\n"
+        end
+    end
+
     -- ── Tool grid ────────────────────────────────────────────────────────────
     -- Row 1 (6): Defibrillator, Sponge, Anesthetic, Stitches, Scalpel, Ultrasound
     -- Row 2 (6): Antiseptic, Fix It, Lab Kit, Antibiotics, Transfusion, Splint
@@ -256,7 +284,6 @@ function M.buildResultPanel(success, failReason, diagName, surgeonSkill, newSkil
         d = d .. "add_label_with_icon|big|`4Surgery Failed!|left|" .. INSURGERY_ITEM_ID .. "|\n"
         d = d .. "add_spacer|small|\n"
         d = d .. "add_textbox|`4" .. (failReason or "The surgery failed.") .. "|\n"
-        d = d .. "add_textbox|`oYOUR MEDICAL LICENSE IS REVOKED!|\n"
         d = d .. "add_spacer|small|\n"
         d = d .. "add_textbox|`wNo rewards. Better luck next time.|\n"
     end

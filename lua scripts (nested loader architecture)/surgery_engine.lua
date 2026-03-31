@@ -43,49 +43,64 @@ end
 function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
     local diag = SD.DIAG[diagKey]
     if not diag then return nil end
+
+    -- Roll modifiers
+    local mods     = SD.rollModifiers()
+    local modMap   = {}
+    for _, k in ipairs(mods) do modMap[k] = true end
+
+    -- TOUGH_SKIN adds 1 required scalpel
+    local reqScalpels = (diag.requiredScalpels or 0) + (modMap.TOUGH_SKIN and 1 or 0)
+
     return {
         -- Identity
-        diagKey       = diagKey,
-        surgeonName   = surgeon:getName(),
-        surgeonUID    = surgeon:getUserID(),
-        tileX         = tileX,
-        tileY         = tileY,
-        cfg           = cfg,   -- { prizePool, caduceusId, onEnd }
+        diagKey        = diagKey,
+        surgeonName    = surgeon:getName(),
+        surgeonUID     = surgeon:getUserID(),
+        tileX          = tileX,
+        tileY          = tileY,
+        cfg            = cfg,   -- { prizePool, caduceusId, onEnd }
 
         -- Vital signs
-        temperature   = diag.initialTemp,
-        tempRising    = diag.tempRising,
-        pulse         = diag.initialPulse,
-        heartStopped  = false,
-        heartStopTurns= 0,
+        temperature    = diag.initialTemp,
+        tempRising     = diag.tempRising,
+        pulse          = diag.initialPulse,
+        heartStopped   = false,
+        heartStopTurns = 0,
 
-        -- Consciousness
-        consciousness = "AWAKE",
-        anesthTurns   = 0,
+        -- Consciousness (AWAKE / UNCONSCIOUS / COMING_TO / NEAR_COMA)
+        -- Derived from anesthTurns each turn; anesthTurns = 0 means AWAKE
+        consciousness  = "AWAKE",
+        anesthTurns    = 0,
 
         -- Surgical site
-        incisions     = 0,
-        scalpelCount  = 0,
-        bleeding      = diag.initialBleeding,
-        siteClean     = "CLEAN",
-        visibility    = "CLEAR",
+        incisions      = 0,
+        scalpelCount   = 0,
+        bleeding       = diag.initialBleeding,
+        siteClean      = modMap.FILTHY and "SLIGHTLY_DIRTY" or "CLEAN",
+        visibility     = diag.initialVisibility or "CLEAR",
 
         -- Bones
-        brokenBones   = diag.brokenBones,
-        shatteredBones= diag.shatteredBones,
+        brokenBones    = diag.brokenBones,
+        shatteredBones = diag.shatteredBones,
 
         -- Diagnosis tracking
-        labKitUsed    = false,
-        ultrasoundUsed= false,
-        fixItReady    = (diag.requiredScalpels == 0 and not diag.needsFixIt) and true or false,
-        fixItDone     = false,
-        abxUnlocked   = not diag.needsLabKit,   -- true if no lab kit needed
-        bonesRevealed = not diag.needsUltrasound,
+        labKitUsed     = false,
+        ultrasoundUsed = false,
+        requiredScalpels = reqScalpels,
+        fixItReady     = (reqScalpels == 0 and not diag.needsFixIt),
+        fixItDone      = not diag.needsFixIt,  -- pre-done if not needed
+        abxUnlocked    = not diag.needsLabKit,
+        bonesRevealed  = not diag.needsUltrasound,
+
+        -- Modifiers (map for quick lookup + array for display)
+        modifiers      = modMap,
+        modifierList   = mods,
 
         -- Last action message (shown in UI)
-        lastMsg       = "",
-        failReason    = nil,  -- set on fail before session cleared
-        moveCount     = 0,
+        lastMsg        = "",
+        failReason     = nil,
+        moveCount      = 0,
     }
 end
 
@@ -126,9 +141,9 @@ function M.isToolAvailable(session, toolId)
     -- Fix It: available when objective reached, disappears after use
     if toolId == T.FIX_IT then return st.fixItReady and not st.fixItDone end
 
-    -- Require open incisions + relevant bone state
-    if toolId == T.SPLINT then return st.incisions > 0 and st.brokenBones > 0 end
-    if toolId == T.PINS   then return st.incisions > 0 and st.shatteredBones > 0 end
+    -- Bone tools: require bones revealed (Ultrasound used or needsUltrasound=false)
+    if toolId == T.SPLINT then return st.bonesRevealed and st.brokenBones > 0 end
+    if toolId == T.PINS   then return st.bonesRevealed and st.incisions > 0 and st.shatteredBones > 0 end
     if toolId == T.CLAMP  then return st.incisions > 0 end
 
     return true
@@ -154,9 +169,11 @@ function M.applyToolEffect(session, toolId)
         return "Lab results in. Antibiotics are now unlocked."
 
     elseif toolId == T.ANTIBIOTICS then
-        -- Lower temp by ~1-2°F per use
-        local drop = 1.0 + math.random(0, 10) * 0.1
-        st.temperature  = math.max(97.0, st.temperature - drop)
+        -- Antibiotic-resistant modifier: weaker drop
+        local drop = st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT
+            and (0.3 + math.random(0, 3) * 0.1)
+            or  (0.5 + math.random(0, 10) * 0.1)
+        st.temperature = math.max(98.6, st.temperature - drop)
         if st.temperature <= 98.6 then st.tempRising = false end
         return string.format("Antibiotics administered. Temperature: %.1f°F", st.temperature)
 
@@ -165,16 +182,21 @@ function M.applyToolEffect(session, toolId)
         return "Area disinfected."
 
     elseif toolId == T.ANESTHETIC then
+        -- Overdose check: using on non-awake patient with < 4 turns left = permanent death
+        if st.consciousness ~= "AWAKE" and st.anesthTurns < 4 then
+            return "<<PERMA_DEATH>>"
+        end
+        -- Hyperactive modifier: only 4 moves instead of 10
+        local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 4 or 10
         st.consciousness = "UNCONSCIOUS"
-        st.anesthTurns   = 10
-        return "Patient is now unconscious. You have about 10 moves."
+        st.anesthTurns   = turns
+        return string.format("Patient is now unconscious. You have about %d moves.", turns)
 
     elseif toolId == T.SCALPEL then
-        st.incisions     = st.incisions + 1
-        st.scalpelCount  = st.scalpelCount + 1
-        st.bleeding      = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
-        -- Check if Fix It is now ready
-        if diag.needsFixIt and st.scalpelCount >= diag.requiredScalpels then
+        st.incisions    = st.incisions + 1
+        st.scalpelCount = st.scalpelCount + 1
+        st.bleeding     = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+        if diag.needsFixIt and st.scalpelCount >= st.requiredScalpels then
             st.fixItReady = true
         end
         return "Incision made. Incisions: " .. st.incisions
@@ -221,7 +243,7 @@ function M.applyToolEffect(session, toolId)
         return "Clamped. Bleeding: " .. st.bleeding
 
     elseif toolId == T.TRANSFUSION then
-        st.pulse = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, -1)
+        st.pulse = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, -2)
         return "Transfusion complete. Pulse: " .. st.pulse
 
     elseif toolId == T.DEFIBRILLATOR then
@@ -259,12 +281,20 @@ function M.applySkillFailEffect(session, toolId)
         return "You inhaled the anesthetic. Visibility worsens."
 
     elseif toolId == T.SPLINT then
-        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
-        return "You cut the patient! Bleeding increases."
+        st.bleeding   = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+        st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
+        return SD.TOOL_FAIL_MSG[T.SPLINT]
 
     elseif toolId == T.PINS then
         st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 2)
-        return "Pin through the artery! Bleeding increases rapidly."
+        st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
+        -- Ecto-Bones: pin phased through → shatter an extra bone
+        local diag = SD.DIAG[st.diagKey]
+        if diag and diag.specialEvent == "ecto_pins_fail" then
+            st.shatteredBones = st.shatteredBones + 1
+            return SD.TOOL_FAIL_MSG[T.PINS] .. " The pin phased through, shattering another bone!"
+        end
+        return SD.TOOL_FAIL_MSG[T.PINS]
 
     elseif toolId == T.SCALPEL then
         -- Scalpel skill fail = still cuts, but extra bleeding
@@ -272,10 +302,10 @@ function M.applySkillFailEffect(session, toolId)
         st.scalpelCount = st.scalpelCount + 1
         st.bleeding     = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 2)
         local diag = SD.DIAG[st.diagKey]
-        if diag.needsFixIt and st.scalpelCount >= diag.requiredScalpels then
+        if diag.needsFixIt and st.scalpelCount >= st.requiredScalpels then
             st.fixItReady = true
         end
-        return "Nasty scar, but you cut the right place. Extra bleeding."
+        return SD.TOOL_FAIL_MSG[T.SCALPEL] .. " Extra bleeding."
 
     elseif toolId == T.FIX_IT then
         return "<<RETRY>>You screwed it up! Try again."
@@ -285,15 +315,7 @@ function M.applySkillFailEffect(session, toolId)
 
     else
         -- Harmless fails (Sponge, Stitches, Antiseptic, Lab Kit, Ultrasound, Clamp)
-        local harmless = {
-            [T.SPONGE]     = "You somehow managed to eat the sponge.",
-            [T.STITCHES]   = "You tied yourself in stitches. Embarrassing.",
-            [T.ANTISEPTIC] = "You spilled antiseptic on your shoes. Very clean shoes.",
-            [T.LAB_KIT]    = "You contaminated the sample.",
-            [T.ULTRASOUND] = "You scanned the nurse by accident.",
-            [T.CLAMP]      = "The clamp fell out of your hand, oh well.",
-        }
-        return harmless[toolId] or "Skill fail! No major effect."
+        return SD.TOOL_FAIL_MSG[toolId] or "Skill fail! No major effect."
     end
 end
 
@@ -305,25 +327,34 @@ function M.applyPassiveEffects(session)
     local st   = session
     local diag = SD.DIAG[st.diagKey]
 
-    -- Anesthetic countdown
+    -- Anesthetic countdown + consciousness state
     if st.anesthTurns > 0 then
         st.anesthTurns = st.anesthTurns - 1
-        if st.anesthTurns == 0 then
-            st.consciousness = "AWAKE"
-        end
+    end
+    if st.anesthTurns == 0 then
+        st.consciousness = "AWAKE"
+    elseif st.anesthTurns == 1 then
+        st.consciousness = "NEAR_COMA"
+    elseif st.anesthTurns <= 3 then
+        st.consciousness = "COMING_TO"
+    else
+        st.consciousness = "UNCONSCIOUS"
     end
 
-    -- Bleeding effects
+    -- Bleeding effects (hemophiliac: bleeds 2x faster)
+    local bleedDelta = (st.modifiers and st.modifiers.HEMOPHILIAC) and 2 or 1
     if SD.BLEED_INDEX[st.bleeding] and SD.BLEED_INDEX[st.bleeding] > 1 then
-        -- Pulse degrades
-        st.pulse     = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, 1)
-        -- Visibility worsens
-        st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
-        -- Site gets dirtier
-        st.siteClean  = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, 1)
+        st.pulse      = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, 1)
+        st.visibility = SD.shiftRank(SD.VIS_ORDER,   SD.VIS_INDEX,   st.visibility, bleedDelta)
+        st.siteClean  = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, bleedDelta)
     end
 
-    -- Infection: dirty + bleeding → temp rises
+    -- Filthy modifier: site gets dirtier faster
+    if st.modifiers and st.modifiers.FILTHY and st.incisions > 0 then
+        st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, 1)
+    end
+
+    -- Infection: dirty + any bleeding → temp rises
     if SD.CLEAN_INDEX[st.siteClean] and SD.CLEAN_INDEX[st.siteClean] >= 3
     and SD.BLEED_INDEX[st.bleeding] and SD.BLEED_INDEX[st.bleeding] > 1 then
         st.temperature = st.temperature + 0.5
@@ -331,18 +362,68 @@ function M.applyPassiveEffects(session)
         st.temperature = st.temperature + 0.3
     end
 
-    -- Patient screams/flails if awake with open incisions
+    -- Patient screams/flails if AWAKE with open incisions
     if st.consciousness == "AWAKE" and st.incisions > 0 then
         st.bleeding   = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 2)
         st.visibility = SD.shiftRank(SD.VIS_ORDER,   SD.VIS_INDEX,   st.visibility, 1)
     end
 
-    -- Heart stop (Broken Heart diagnosis)
+    -- Per-diagnosis heart stop chance (while incisions open)
     if diag.heartStopChance and diag.heartStopChance > 0 and st.incisions > 0 then
         if not st.heartStopped and math.random() < diag.heartStopChance then
-            st.heartStopped    = true
-            st.heartStopTurns  = 0
+            st.heartStopped   = true
+            st.heartStopTurns = 0
         end
+    end
+
+    -- Special events (vile vial maladies only)
+    local ev = diag.specialEvent
+    if ev then
+        if ev == "chaos" then
+            -- Random: temp spike, sudden heart stop, or random bleed
+            local roll = math.random(1, 8)
+            if roll == 1 then
+                st.temperature = st.temperature + math.random(2, 5) * 0.5
+            elseif roll == 2 and not st.heartStopped then
+                st.heartStopped   = true
+                st.heartStopTurns = 0
+            elseif roll == 3 then
+                st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+            end
+
+        elseif ev == "howl" then
+            -- ~20% chance patient howls → +1 incision + bleed rises
+            if math.random() < 0.20 then
+                st.incisions = st.incisions + 1
+                st.bleeding  = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+                st.lastMsg   = (st.lastMsg or "") .. " `4The patient howls! An incision opened!"
+            end
+
+        elseif ev == "worms_escape" then
+            -- After fixItDone, ~25% chance worms escape → reset Fix It
+            if st.fixItDone and math.random() < 0.25 then
+                st.fixItDone  = true  -- keep done but reset ready so player must redo
+                st.fixItReady = true
+                st.fixItDone  = false
+                st.lastMsg    = (st.lastMsg or "") .. " `4Worms escaped to the back of the brain! Fix It again!"
+            end
+
+        elseif ev == "guts_burst" then
+            -- Every ~3-4 turns: guts burst → visibility = IMPOSSIBLE
+            if st.moveCount > 0 and st.moveCount % 3 == 0 then
+                st.visibility = "IMPOSSIBLE"
+                st.lastMsg    = (st.lastMsg or "") .. " `4The patient's guts burst! You can't see anything!"
+            end
+
+        elseif ev == "fat_heartstop" then
+            -- Frequent heart stops only while patient is unconscious
+            if st.consciousness ~= "AWAKE" and not st.heartStopped and math.random() < 0.25 then
+                st.heartStopped   = true
+                st.heartStopTurns = 0
+                st.lastMsg        = (st.lastMsg or "") .. " `4Fat build up caused the patient's heart to stop!"
+            end
+        end
+        -- "ecto_pins_fail" is handled directly in applySkillFailEffect
     end
 
     -- Heart stop counter
@@ -364,17 +445,17 @@ function M.checkFail(session)
     -- Scalpel on awake patient (checked before tool effect, handled in callbacks)
     -- Temperature too high
     if st.temperature > 110.0 then
-        return "INFECTION", "The patient has succumbed to infection."
+        return "INFECTION", "The patient has succumbed to infection. YOUR MEDICAL LICENSE IS REVOKED!"
     end
 
     -- Bled out
     if st.pulse == "NONE" then
-        return "BLED_OUT", "The patient has bled out!"
+        return "BLED_OUT", "The patient has bled out! YOUR MEDICAL LICENSE IS REVOKED!"
     end
 
     -- Heart not resuscitated in time
     if st.heartStopped and st.heartStopTurns >= 2 then
-        return "HEART_STOPPED", "The patient was not resuscitated in time."
+        return "HEART_STOPPED", "The patient was not resuscitated in time. YOUR MEDICAL LICENSE IS REVOKED!"
     end
 
     return nil, nil
@@ -384,35 +465,19 @@ end
 -- WIN CONDITION CHECK
 -- =======================================================
 
+-- Unified win check — same conditions for ALL diagnoses.
+-- Note: pulse strength and tempRising do NOT affect win (matches real GT).
 function M.checkWin(session)
     local st   = session
     local diag = SD.DIAG[st.diagKey]
-
-    -- Flu: no scalpel needed, just temp
-    if st.diagKey == "FLU" then
-        return st.temperature <= 98.6 and not st.tempRising
-    end
-
-    -- Broken Arm: no scalpel, just bones and bleeding
-    if st.diagKey == "BROKEN_ARM" then
-        return st.brokenBones == 0
-           and st.shatteredBones == 0
-           and st.bleeding == "NONE"
-    end
-
-    -- Diagnoses that need Fix It
-    if diag.needsFixIt then
-        if not st.fixItDone         then return false end
-        if st.incisions ~= 0        then return false end
-        if st.bleeding ~= "NONE"    then return false end
-        if st.brokenBones ~= 0      then return false end
-        if st.shatteredBones ~= 0   then return false end
-        if st.temperature > 100.4   then return false end
-        if st.heartStopped          then return false end
-        return true
-    end
-
-    return false
+    if diag.needsFixIt and not st.fixItDone  then return false end
+    if st.incisions ~= 0                     then return false end
+    if st.bleeding ~= "NONE"                 then return false end
+    if st.brokenBones ~= 0                   then return false end
+    if st.shatteredBones ~= 0                then return false end
+    if st.temperature > 100.4                then return false end
+    if st.heartStopped                       then return false end
+    return true
 end
 
 return M

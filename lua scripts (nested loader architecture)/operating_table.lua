@@ -5,16 +5,14 @@ local M = {}
 
 local DB = _G.DB
 
--- Bridges from hospital.lua
 local function getWorldName(world)  return world:getName() end
 local function loadHospital(wn)     return _G.loadHospital and _G.loadHospital(wn) or nil end
 
-local OPERATING_TABLE_ID  = 25030   -- empty bed state (plain tile, no extra data dependency)
+local OPERATING_TABLE_ID  = 25030   -- empty bed state
 local SURGBOT_ITEM_ID     = 25026   -- surgbot idle — wrench opens confirm panel
 local INSURGERY_ITEM_ID   = 25028   -- in-surgery animation — active during minigame
 local ROLE_DEV            = 51
-local SURGERY_ANIM_SEC    = 300  -- max surgery duration before auto-fail (seconds, ~5 min)
-local TICK_INTERVAL       = 5    -- onWorldTick check interval (seconds)
+local CACHE_REBUILD_SEC   = 300     -- full tile scan interval (5 min) — stale-insurgery cleanup only
 
 -- =======================================================
 -- DURATION & CAPACITY  (exported — used by hospital.lua)
@@ -41,23 +39,17 @@ end
 
 -- =======================================================
 -- STATE DB
--- =======================================================
--- ot_state.json  → { [worldName] = { [tileKey] = { readyAt, inSurgery, surgeryEndAt, surgeryPlayer } } }
+-- ot_state.json  → { [worldName] = { [tileKey] = { readyAt, inSurgery, surgeryPlayer } } }
 -- ot_prizes.json → { [worldName] = { {itemId, amount, chance}, ... } }
+--
+-- Pattern: always loadAllStates once, modify, saveAllStates once → single DB read per operation
+-- =======================================================
 
 local function loadAllStates()  return DB.loadFeature("ot_state")  or {} end
 local function loadAllPrizes()  return DB.loadFeature("ot_prizes") or {} end
 local function saveAllStates(d) DB.saveFeature("ot_state",  d) end
 local function saveAllPrizes(d) DB.saveFeature("ot_prizes", d) end
 
-local function loadWorldState(worldName)
-    return loadAllStates()[worldName] or {}
-end
-local function saveWorldState(worldName, state)
-    local all = loadAllStates()
-    all[worldName] = state
-    saveAllStates(all)
-end
 local function loadWorldPrizes(worldName)
     return loadAllPrizes()[worldName] or {}
 end
@@ -70,12 +62,11 @@ end
 local function getTileRow(state, x, y)
     local key = M.getOperatingRowKey(x, y)
     if not state[key] then
-        state[key] = { readyAt = 0, inSurgery = false, surgeryEndAt = 0, surgeryPlayer = "" }
+        state[key] = { readyAt = 0, inSurgery = false, surgeryPlayer = "" }
     end
     local row = state[key]
     row.readyAt       = tonumber(row.readyAt) or 0
     row.inSurgery     = (row.inSurgery == true or row.inSurgery == 1)
-    row.surgeryEndAt  = tonumber(row.surgeryEndAt) or 0
     row.surgeryPlayer = tostring(row.surgeryPlayer or "")
     return row, key
 end
@@ -110,21 +101,13 @@ local function swapTile(world, tile, itemId)
     world:updateTile(tile)
 end
 
--- =======================================================
--- PRIZE ROLL
--- =======================================================
-
-local function rollPrizes(prizes)
-    local rewards = {}
-    for _, p in ipairs(prizes) do
-        if math.random(1, 100) <= (tonumber(p.chance) or 0) then
-            rewards[#rewards + 1] = {
-                itemId = tonumber(p.itemId),
-                amount = math.max(1, tonumber(p.amount) or 1)
-            }
-        end
+-- Arm the event scheduler for worldName at time t (keeps the earliest scheduled time)
+local function armEvent(worldName, t)
+    if not _G._OT_nextEvent then _G._OT_nextEvent = {} end
+    local cur = _G._OT_nextEvent[worldName]
+    if not cur or t < cur then
+        _G._OT_nextEvent[worldName] = t
     end
-    return rewards
 end
 
 -- =======================================================
@@ -183,29 +166,12 @@ onPlayerDialogCallback(function(world, player, data)
 end)
 
 -- =======================================================
--- SURGEON SKILL (tracked per player in DB)
--- =======================================================
-
-local function getSurgeonSkill(player)
-    local uid  = player:getUserID()
-    local data = DB.getPlayer("surgeon_skill", uid) or {}
-    return tonumber(data.skill) or 0
-end
-
-local function addSurgeonSkill(player, amount)
-    local uid   = player:getUserID()
-    local data  = DB.getPlayer("surgeon_skill", uid) or {}
-    data.skill  = (tonumber(data.skill) or 0) + (amount or 1)
-    DB.setPlayer("surgeon_skill", uid, data)
-    return data.skill
-end
-
--- =======================================================
--- SURGERY CONFIRMATION PANEL  (replicate native Surg-E panel)
+-- SURGERY CONFIRMATION PANEL
 -- =======================================================
 
 local function showSurgbotConfirmPanel(player, tileX, tileY)
-    local skill = getSurgeonSkill(player)
+    local uid   = player:getUserID()
+    local skill = tonumber((DB.getPlayer("surgeon_skill", uid) or {}).skill) or 0
     local d = ""
     d = d .. "set_default_color|`o\n"
     d = d .. "set_bg_color|54,152,198,180|\n"
@@ -230,9 +196,11 @@ onPlayerDialogCallback(function(world, player, data)
 
     local worldName = getWorldName(world)
     local x, y     = tonumber(tx), tonumber(ty)
-    local now       = os.time()
-    local state     = loadWorldState(worldName)
-    local row, key  = getTileRow(state, x, y)
+
+    -- Single DB read for the whole operation
+    local all   = loadAllStates()
+    local state = all[worldName] or {}
+    local row, key = getTileRow(state, x, y)
 
     if row.inSurgery then
         talkBubble(player, "`4Surgery already in progress.")
@@ -250,30 +218,33 @@ onPlayerDialogCallback(function(world, player, data)
         return true
     end
 
-    -- Mark surgery started, swap visual to insurgery
     row.inSurgery     = true
-    row.surgeryEndAt  = now + SURGERY_ANIM_SEC
     row.surgeryPlayer = player:getName()
     state[key]        = row
-    saveWorldState(worldName, state)
+    all[worldName]    = state
+    saveAllStates(all)  -- single write
 
     swapTile(world, tile, INSURGERY_ITEM_ID)
 
-    -- onEnd: called by SurgerySystem before result panel is shown
     local function onSurgeryEnd(endWorld, endPlayer, success)
-        local state2       = loadWorldState(worldName)
-        local row2, k2     = getTileRow(state2, x, y)
-        row2.inSurgery     = false
-        row2.surgeryEndAt  = 0
+        local readyAt    = os.time() + M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
+        local all2       = loadAllStates()
+        local state2     = all2[worldName] or {}
+        local row2, k2   = getTileRow(state2, x, y)
+        row2.inSurgery   = false
         row2.surgeryPlayer = ""
-        row2.readyAt       = os.time() + M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
-        state2[k2]         = row2
-        saveWorldState(worldName, state2)
-        -- Signal tick to run immediately on next onWorldTick call (bypasses 5s gate)
-        _pendingSwap[worldName] = true
+        row2.readyAt     = readyAt
+        state2[k2]       = row2
+        all2[worldName]  = state2
+        saveAllStates(all2)  -- single write
+        armEvent(worldName, readyAt)
+        local t = endWorld:getTile(math.floor(x / 32), math.floor(y / 32))
+        if t then swapTile(endWorld, t, OPERATING_TABLE_ID) end
     end
 
-    -- Start minigame via SurgerySystem
+    -- Clear any stale in-memory session from a previous crash
+    if _G.SurgeryEngine then _G.SurgeryEngine.clearSession(worldName, x, y) end
+
     local prizes = loadWorldPrizes(worldName)
     _G.SurgerySystem.start(world, player, x, y, {
         prizePool  = prizes,
@@ -285,16 +256,7 @@ end)
 
 -- =======================================================
 -- WRENCH HANDLER
--- 25026 (surgbot)    → surgery confirm panel (all players)
--- 25028 (insurgery)  → re-open minigame for the surgeon
--- 14662 (empty bed)  → no wrench action (use /operatingtableprize)
 -- =======================================================
-
-local function isOwnerOrDev(world, player)
-    if player:hasRole(ROLE_DEV) then return true end
-    if _G.isWorldOwner and _G.isWorldOwner(world, player) then return true end
-    return false
-end
 
 onTileWrenchCallback(function(world, player, tile)
     if type(tile) ~= "userdata" then return false end
@@ -302,7 +264,8 @@ onTileWrenchCallback(function(world, player, tile)
 
     if fg == SURGBOT_ITEM_ID then
         local worldName = getWorldName(world)
-        local state     = loadWorldState(worldName)
+        local all       = loadAllStates()
+        local state     = all[worldName] or {}
         local row       = getTileRow(state, tile:getPosX(), tile:getPosY())
         if row.inSurgery then
             talkBubble(player, "`4Surgery in progress.")
@@ -315,7 +278,8 @@ onTileWrenchCallback(function(world, player, tile)
     if fg == INSURGERY_ITEM_ID then
         local worldName = getWorldName(world)
         local sx, sy    = tile:getPosX(), tile:getPosY()
-        local state     = loadWorldState(worldName)
+        local all       = loadAllStates()
+        local state     = all[worldName] or {}
         local row       = getTileRow(state, sx, sy)
         if row.inSurgery and row.surgeryPlayer == player:getName() then
             _G.SurgerySystem.reopen(world, player, sx, sy)
@@ -336,7 +300,7 @@ onTilePunchCallback(function(world, player, tile)
     if type(tile) ~= "userdata" then return false end
     local fg = tonumber(tile:getTileForeground()) or 0
     if fg ~= SURGBOT_ITEM_ID and fg ~= INSURGERY_ITEM_ID then return false end
-    return true  -- block default toggle behavior
+    return true
 end)
 
 -- =======================================================
@@ -345,67 +309,91 @@ end)
 
 onTilePlaceCallback(function(world, player, tile, placingID)
     local id = tonumber(placingID) or 0
-    if id ~= SURGBOT_ITEM_ID and id ~= INSURGERY_ITEM_ID then return false end
-    talkBubble(player, "`4You can't place that here.")
-    return true  -- prevent placement
+    if id == SURGBOT_ITEM_ID or id == INSURGERY_ITEM_ID then
+        talkBubble(player, "`4You can't place that here.")
+        return true
+    end
+    -- New OT placed → invalidate cache + arm event (readyAt=0 → immediate surgbot spawn)
+    if id == OPERATING_TABLE_ID then
+        local wn = world:getName()
+        if not _G._OT_cacheTime then _G._OT_cacheTime = {} end
+        _G._OT_cacheTime[wn] = 0
+        armEvent(wn, os.time())
+    end
+    return false
 end)
 
 -- =======================================================
--- WORLD TICK — state transitions + tile swaps
+-- WORLD TICK — event-driven state transitions
 -- =======================================================
-
-local _tickGate    = {}
-local _pendingSwap = {}  -- [worldName] = true — bypass tick gate on next tick
 
 onWorldTick(function(world)
     local worldName = getWorldName(world)
     local now       = os.time()
-    local hasPending = _pendingSwap[worldName]
-    if not hasPending and (_tickGate[worldName] or 0) > now then return end
-    _tickGate[worldName]    = now + TICK_INTERVAL
-    _pendingSwap[worldName] = nil
 
-    local state   = loadWorldState(worldName)
-    local changed = false
-    local tiles   = world:getTiles()
+    if not _G._OT_nextEvent then _G._OT_nextEvent = {} end
+    if not _G._OT_posCache  then _G._OT_posCache  = {} end
+    if not _G._OT_cacheTime then _G._OT_cacheTime = {} end
 
-    for _, tile in ipairs(tiles) do
-        local fg  = tonumber(tile:getTileForeground()) or 0
-        local x   = tile:getPosX()
-        local y   = tile:getPosY()
-
-        if fg == OPERATING_TABLE_ID then
-            -- Dead/cooldown state: check if cooldown expired → spawn surgbot
-            local row, key = getTileRow(state, x, y)
-            if row.readyAt <= now and not row.inSurgery then
-                swapTile(world, tile, SURGBOT_ITEM_ID)
-            end
-
-        elseif fg == SURGBOT_ITEM_ID or fg == INSURGERY_ITEM_ID then
-            local row, key = getTileRow(state, x, y)
-            if row.inSurgery then
-                -- Check surgery timeout (auto-fail)
-                if (tonumber(row.surgeryEndAt) or 0) > 0 and now >= row.surgeryEndAt then
-                    local cooldownSec    = M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
-                    row.inSurgery        = false
-                    row.surgeryEndAt     = 0
-                    row.surgeryPlayer    = ""
-                    row.readyAt          = now + cooldownSec
-                    state[key]           = row
-                    changed              = true
-                    if _G.SurgeryEngine then
-                        _G.SurgeryEngine.clearSession(worldName, x, y)
+    -- Periodic full scan: rebuild position cache + fix stale insurgery (crash recovery only)
+    if (_G._OT_cacheTime[worldName] or 0) <= now then
+        local positions = {}
+        local all       = loadAllStates()
+        local state     = all[worldName] or {}
+        local changed   = false
+        for _, tile in ipairs(world:getTiles()) do
+            local fg = tonumber(tile:getTileForeground()) or 0
+            if fg == OPERATING_TABLE_ID or fg == SURGBOT_ITEM_ID or fg == INSURGERY_ITEM_ID then
+                positions[#positions + 1] = { x = tile:getPosX(), y = tile:getPosY() }
+                if fg == INSURGERY_ITEM_ID then
+                    local row = getTileRow(state, tile:getPosX(), tile:getPosY())
+                    if not row.inSurgery then
+                        swapTile(world, tile, OPERATING_TABLE_ID)
+                        changed = true
                     end
-                    swapTile(world, tile, OPERATING_TABLE_ID)
                 end
-            elseif fg == INSURGERY_ITEM_ID then
-                swapTile(world, tile, OPERATING_TABLE_ID)
-                changed = true
+            end
+        end
+        _G._OT_posCache[worldName]  = positions
+        _G._OT_cacheTime[worldName] = now + CACHE_REBUILD_SEC
+        if changed then
+            all[worldName] = state
+            saveAllStates(all)
+        end
+    end
+
+    -- Event-driven: skip until a scheduled readyAt arrives
+    local nextEv = _G._OT_nextEvent[worldName]
+    if not nextEv or now < nextEv then return end
+    _G._OT_nextEvent[worldName] = nil
+
+    local positions = _G._OT_posCache[worldName]
+    if not positions or #positions == 0 then return end
+
+    local all     = loadAllStates()
+    local state   = all[worldName] or {}
+    local nextMin = nil
+
+    for _, pos in ipairs(positions) do
+        local tile = world:getTile(math.floor(pos.x / 32), math.floor(pos.y / 32))
+        if tile then
+            local fg = tonumber(tile:getTileForeground()) or 0
+            if fg == OPERATING_TABLE_ID then
+                local row = getTileRow(state, pos.x, pos.y)
+                if not row.inSurgery then
+                    if row.readyAt <= now then
+                        swapTile(world, tile, SURGBOT_ITEM_ID)
+                    elseif not nextMin or row.readyAt < nextMin then
+                        nextMin = row.readyAt
+                    end
+                end
             end
         end
     end
 
-    if changed then saveWorldState(worldName, state) end
+    if nextMin then
+        _G._OT_nextEvent[worldName] = nextMin
+    end
 end)
 
 -- =======================================================
@@ -418,7 +406,6 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     if not args[1] then return false end
     local cmd = args[1]:lower()
 
-    -- /operatingtable alive|dead
     if cmd == "operatingtable" then
         if not player:hasRole(ROLE_DEV) then
             player:onConsoleMessage("`4No permission.")
@@ -430,34 +417,33 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             return true
         end
 
-        local worldName = getWorldName(world)
-        local now       = os.time()
-        local state     = loadWorldState(worldName)
-        local count     = 0
-        local tiles     = world:getTiles()
+        local worldName   = getWorldName(world)
+        local now         = os.time()
+        local all         = loadAllStates()
+        local state       = all[worldName] or {}
+        local count       = 0
+        local cooldownSec = M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
 
-        for _, tile in ipairs(tiles) do
+        for _, tile in ipairs(world:getTiles()) do
             local fg = tonumber(tile:getTileForeground()) or 0
             if fg == OPERATING_TABLE_ID or fg == SURGBOT_ITEM_ID then
                 local x, y     = tile:getPosX(), tile:getPosY()
                 local row, key = getTileRow(state, x, y)
-
                 if sub == "alive" then
-                    row.readyAt      = 0
-                    row.inSurgery    = false
-                    row.surgeryEndAt = 0
+                    row.readyAt       = 0
+                    row.inSurgery     = false
                     row.surgeryPlayer = ""
-                    state[key]       = row
+                    state[key]        = row
                     if fg ~= SURGBOT_ITEM_ID then
                         swapTile(world, tile, SURGBOT_ITEM_ID)
                     end
-                else  -- dead
-                    local cooldownSec = M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
-                    row.readyAt      = now + cooldownSec
-                    row.inSurgery    = false
-                    row.surgeryEndAt = 0
+                else
+                    local t           = now + cooldownSec
+                    row.readyAt       = t
+                    row.inSurgery     = false
                     row.surgeryPlayer = ""
-                    state[key]       = row
+                    state[key]        = row
+                    armEvent(worldName, t)  -- schedule surgbot spawn
                     if fg ~= OPERATING_TABLE_ID then
                         swapTile(world, tile, OPERATING_TABLE_ID)
                     end
@@ -466,12 +452,12 @@ onPlayerCommandCallback(function(world, player, fullCommand)
             end
         end
 
-        saveWorldState(worldName, state)
+        all[worldName] = state
+        saveAllStates(all)  -- single write
         player:onConsoleMessage("`2[OT] " .. sub .. " — `w" .. count .. " `2table(s).")
         return true
     end
 
-    -- /operatingtableprize
     if cmd == "operatingtableprize" then
         if not player:hasRole(ROLE_DEV) then
             player:onConsoleMessage("`4No permission.")
@@ -485,55 +471,64 @@ onPlayerCommandCallback(function(world, player, fullCommand)
 end)
 
 -- =======================================================
--- HOSPITAL.LUA BRIDGE FUNCTIONS
+-- HOSPITAL.LUA BRIDGE
 -- =======================================================
-
-function M.processOperatingTablesInWorld(world, now) end
-function M.getOperatingStateRow(state, x, y, now) return {} end
 
 function M.resolveOperatingTableSurgery(world, surgeon, targetPlayer)
     local worldName   = getWorldName(world)
     local now         = os.time()
-    local state       = loadWorldState(worldName)
+    local all         = loadAllStates()
+    local state       = all[worldName] or {}
     local surgeonName = surgeon:getName()
     local found       = false
 
     for key, row in pairs(state) do
-        if type(row) == "table" then
-            if (row.inSurgery == true or row.inSurgery == 1)
-               and tostring(row.surgeryPlayer or "") == surgeonName then
-                local cooldownSec = M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
-                row.inSurgery     = false
-                row.surgeryEndAt  = 0
-                row.surgeryPlayer = ""
-                row.readyAt       = now + cooldownSec
-                state[key]        = row
-                found             = true
-                -- Swap tile to dead (empty bed)
-                local px, py = key:match("^(-?%d+):(-?%d+)$")
-                if px then
-                    local tile = world:getTile(math.floor(tonumber(px) / 32), math.floor(tonumber(py) / 32))
-                    if tile then
-                        local tfg = tonumber(tile:getTileForeground()) or 0
-                        if tfg == SURGBOT_ITEM_ID or tfg == INSURGERY_ITEM_ID then
-                            swapTile(world, tile, OPERATING_TABLE_ID)
-                        end
+        if type(row) == "table"
+        and (row.inSurgery == true or row.inSurgery == 1)
+        and tostring(row.surgeryPlayer or "") == surgeonName then
+            local cooldownSec   = M.getOperatingPatientDurationByLevel(getHospitalLevel(worldName))
+            local readyAt       = now + cooldownSec
+            row.inSurgery       = false
+            row.surgeryPlayer   = ""
+            row.readyAt         = readyAt
+            state[key]          = row
+            armEvent(worldName, readyAt)  -- schedule surgbot spawn
+            found = true
+            local px, py = key:match("^(-?%d+):(-?%d+)$")
+            if px then
+                local tile = world:getTile(math.floor(tonumber(px) / 32), math.floor(tonumber(py) / 32))
+                if tile then
+                    local tfg = tonumber(tile:getTileForeground()) or 0
+                    if tfg == SURGBOT_ITEM_ID or tfg == INSURGERY_ITEM_ID then
+                        swapTile(world, tile, OPERATING_TABLE_ID)
                     end
                 end
             end
         end
     end
 
-    if found then saveWorldState(worldName, state) end
+    if found then
+        all[worldName] = state
+        saveAllStates(all)  -- single write
+    end
     return found
 end
 
 function M.clearOperatingTable(world, worldName, x, y)
-    local state = loadWorldState(worldName)
+    local all   = loadAllStates()
+    local state = all[worldName] or {}
     local key   = M.getOperatingRowKey(x, y)
     state[key]  = nil
-    saveWorldState(worldName, state)
+    all[worldName] = state
+    saveAllStates(all)
 end
+
+-- =======================================================
+-- HOSPITAL.LUA LEGACY STUBS  (hospital.lua calls these — kept for compatibility)
+-- =======================================================
+
+function M.processOperatingTablesInWorld(world, now) end
+function M.getOperatingStateRow(state, x, y, now) return {} end
 
 -- =======================================================
 -- EXPORTS

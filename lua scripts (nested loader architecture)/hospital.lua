@@ -28,8 +28,6 @@ local MAX_HOSPITAL_RATING = 5
 local RATING_STEP_CURES = 100
 
 local MAX_HOSPITAL_LEVEL = 52
-local SURGBOT_SPAWN_INTERVAL_SEC = 24 * 60 * 60
-local OPERATING_PROCESS_INTERVAL_SEC = 5
 local OPERATING_TABLE_DURATION_MIN_SEC = (24 * 60 + 5) * 60
 local OPERATING_TABLE_DURATION_MAX_SEC = (28 * 60 + 10) * 60
 local OPERATING_STATUS_BUBBLE_INTERVAL_SEC = 5
@@ -932,9 +930,6 @@ local function getSurgBotNameForTable(x, y)
     return "Surg-Bot " .. tostring(math.floor(tonumber(x) or 0)) .. ":" .. tostring(math.floor(tonumber(y) or 0))
 end
 
-local function getOperatingStateRow(state, x, y, now)
-    return _G.OperatingTable.getOperatingStateRow(state, x, y, now)
-end
 
 local function findOperatingTileByPlayer(world, target)
     if type(world) ~= "userdata" or type(target) ~= "userdata" then return nil end
@@ -945,9 +940,6 @@ local function findOperatingTileByPlayer(world, target)
     return tile
 end
 
-local function processOperatingTablesInWorld(world, now)
-    _G.OperatingTable.processOperatingTablesInWorld(world, now)
-end
 
 local function resolveOperatingTableSurgery(world, surgeon, targetPlayer)
     return _G.OperatingTable.resolveOperatingTableSurgery(world, surgeon, targetPlayer)
@@ -1502,8 +1494,6 @@ _G.HOSPITAL_STATS_MALADY_ROWS = HOSPITAL_STATS_MALADY_ROWS
 _G.HOSPITAL_LEVELS = HOSPITAL_LEVELS
 _G.LEVEL_UP_RULES = LEVEL_UP_RULES
 _G.REQUIRED_OPERATING_TABLES = REQUIRED_OPERATING_TABLES
-_G.SURGBOT_SPAWN_INTERVAL_SEC = SURGBOT_SPAWN_INTERVAL_SEC
-_G.OPERATING_PROCESS_INTERVAL_SEC = OPERATING_PROCESS_INTERVAL_SEC
 _G.OPERATING_TABLE_DURATION_MIN_SEC = OPERATING_TABLE_DURATION_MIN_SEC
 _G.OPERATING_TABLE_DURATION_MAX_SEC = OPERATING_TABLE_DURATION_MAX_SEC
 _G.OPERATING_STATUS_BUBBLE_INTERVAL_SEC = OPERATING_STATUS_BUBBLE_INTERVAL_SEC
@@ -1671,26 +1661,6 @@ onTileBreakCallback(function(world, player, tile)
     end
 end)
 
-if type(onWorldTick) == "function" then
-    onWorldTick(function(world)
-        if type(world) ~= "userdata" then return end
-        local worldName = getWorldName(world)
-        if worldName == "" then return end
-
-        local now = os.time()
-        local gate = rawget(_G, "__HOSPITAL_OPERATING_WORLD_TICK_GATE")
-        if type(gate) ~= "table" then
-            gate = {}
-            _G.__HOSPITAL_OPERATING_WORLD_TICK_GATE = gate
-        end
-
-        local nextAllowed = tonumber(gate[worldName]) or 0
-        if now < nextAllowed then return end
-        gate[worldName] = now + OPERATING_PROCESS_INTERVAL_SEC
-
-        processOperatingTablesInWorld(world, now)
-    end)
-end
 
 -- (Nperma only) Block trading World Lock out of a hospital world
 onPlayerTradeCallback(function(world, player1, player2, items1, items2)
