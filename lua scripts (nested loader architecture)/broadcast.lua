@@ -112,11 +112,21 @@ local function broadcastAll(sender, tag, msg, soundFile, usedGems, world)
         tag, sname, displayWorld, msg)
 
     local currentGems = sender:getGems() or 0
-    sender:onConsoleMessage(string.format(
-        ">> %s `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems))
+    local senderMsg = string.format(
+        ">> %s `osent. Used `$%d Gems`o. `o(%d left)", tag, usedGems, currentGems)
+    
+    if sender and sender.sendVariant then
+        sender:sendVariant({"OnConsoleMessage", "CT:[SB]_ " .. senderMsg}, 0, sender:getNetID())
+    else
+        sender:onConsoleMessage(senderMsg)
+    end
 
     for _, p in ipairs(allPlayers()) do
-        p:onConsoleMessage(text)
+        if p and p.sendVariant then
+            p:sendVariant({"OnConsoleMessage", "CT:[SB]_ " .. text}, 0, p:getNetID())
+        else
+            p:onConsoleMessage(text)
+        end
         playSfx(p, soundFile)
     end
 end
@@ -125,7 +135,12 @@ local function atomicNoticeAll(sender, tag, msg)
     local sname = sender:getName()
     local title = string.format("`0[%s]`w %s\n`w%s", tag, sname, msg)
 
-    sender:onConsoleMessage(">> " .. tag .. " sent.")
+    local senderMsg = ">> " .. tag .. " sent."
+    if sender and sender.sendVariant then
+        sender:sendVariant({"OnConsoleMessage", "CT:[SB]_ " .. senderMsg}, 0, sender:getNetID())
+    else
+        sender:onConsoleMessage(senderMsg)
+    end
 
     for _, p in ipairs(allPlayers()) do
         if p and p.sendVariant then
