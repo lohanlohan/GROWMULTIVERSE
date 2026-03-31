@@ -215,7 +215,6 @@ end
 local function showAutoSurgeonWarning(player, x, y, title, message)
     local warnDlg = "autosurgeon_warn_v5m_" .. tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(os.time())
     local warn = "set_default_color|`o\n"
-    warn = warn .. "set_bg_color|54,152,198,180|\n"
     warn = warn .. "add_label_with_icon|big|" .. tostring(title) .. "|left||image:game/tiles_page4.rttex;frame:12,9;frameSize:32;|\n"
     warn = warn .. "add_spacer|small|\n"
     warn = warn .. "add_smalltext|" .. tostring(message) .. "|\n"
@@ -443,7 +442,6 @@ function AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, to
     local isDeveloper = player:hasRole(ROLE_DEVELOPER) == true
 
     local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|" .. tostring(toolName) .. "|left|" .. tostring(toolID) .. "|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_smalltext|`oYou have `$" .. tostring(inBag) .. "`2 " .. tostring(toolName) .. "`o in your backpack.|\n"
@@ -486,7 +484,6 @@ function AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
 
     local d = "set_default_color|`o\n"
     d = d .. "text_scaling_string|aaaaaaaaaa|\n"
-    d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Storage|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
     d = d .. "add_smalltext|`oClick a tool to withdraw all stock for that tool.|\n"
     d = d .. "add_spacer|small|\n"
@@ -525,7 +522,6 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
     local hospitalLevel = tonumber(hospitalState.level) or 1
 
     local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
     d = d .. "add_smalltext|`oPick which illness this Auto Surgeon Station can cure:|\n"
     d = d .. "add_spacer|small|\n"
@@ -592,7 +588,6 @@ function AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
     end
 
     local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|54,152,198,180|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_smalltext|`oThis humanoid can cure:|\n"
@@ -699,7 +694,6 @@ function AutoSurgeon.showAutoSurgeonPlayerPanel(world, player, worldName, x, y)
 
     local dialog = {
         "set_default_color|`o",
-        "set_bg_color|54,152,198,180|",
         "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|",
         "add_smalltext|This friendly humanoid can cure:|",
         "add_label_with_icon|small|Cost: `2" .. tostring(priceWL) .. "``|left|" .. tostring(WORLD_LOCK_ID) .. "|",

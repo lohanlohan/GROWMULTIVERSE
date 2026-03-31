@@ -16,6 +16,8 @@ local RATING_STEP_CURES = _G.RATING_STEP_CURES
 
 local BTN_SHOW_STATS = _G.BTN_SHOW_STATS
 local BTN_LEVEL_UP = _G.BTN_LEVEL_UP
+local BTN_MANAGE_DOCTORS = _G.BTN_MANAGE_DOCTORS or "v5m_manage_doctors"
+local BTN_REMOVE_DOCTORS_MAIN = _G.BTN_REMOVE_DOCTORS_MAIN or "v5m_remove_doctors_main"
 local BTN_BACK_STATS = _G.BTN_BACK_STATS
 local BTN_LEVEL_UP_BACK = _G.BTN_LEVEL_UP_BACK
 local BTN_LEVEL_UP_NEW_CONFIRM = _G.BTN_LEVEL_UP_NEW_CONFIRM
@@ -231,6 +233,7 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     local ratingStep = tonumber(RATING_STEP_CURES) or 100
     local playerName = tostring(player.getName and player:getName() or "Player")
     local doctorCount = ReceptionDesk.countDoctors(worldName)
+    local doctorCap = 1
 
     local d = "set_default_color|`o\n"
     d = d .. "add_label_with_icon|big|`wReception Desk|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
@@ -251,7 +254,15 @@ function ReceptionDesk.showReceptionDeskPanel(world, player)
     d = d .. "add_custom_button|" .. BTN_LEVEL_UP .. "|textLabel:Level Up Hospital;middle_colour:431888895;border_colour:431888895;display:block;|\n"
     d = d .. "reset_placement_x|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_player_picker|playerNetID|`wAdd Doctors " .. tostring(doctorCount) .. "/1``|\n"
+    if doctorCount < doctorCap then
+        d = d .. "add_player_picker|playerNetID|`wAdd Doctors " .. tostring(doctorCount) .. "/" .. tostring(doctorCap) .. "``|\n"
+    else
+        d = d .. "add_custom_button|btn_add_doctor_disabled|textLabel:Add Doctors " .. tostring(doctorCount) .. "/" .. tostring(doctorCap) .. ";middle_colour:2526451450;border_colour:2526451450;display:block;state:disabled;|\n"
+    end
+    if doctorCount > 0 then
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_custom_button|" .. BTN_REMOVE_DOCTORS_MAIN .. "|textLabel:Remove Doctors " .. tostring(doctorCount) .. "/" .. tostring(doctorCap) .. ";middle_colour:33854463;border_colour:33854463;display:block;|\n"
+    end
     d = d .. "add_spacer|small|\n"
     d = d .. "add_smalltext|Auto Surgeon Stations in this Hospital can cure (Lv " .. tostring(level) .. ") :|\n"
     d = d .. "add_spacer|small|\n"
@@ -462,7 +473,6 @@ function ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
     local doctors = state.doctors or {}
 
     local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
     d = d .. "add_label_with_icon|big|Manage Doctors|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
     d = d .. "add_smalltext|`wWorld Owner is always a doctor.|\n"
     d = d .. "add_spacer|small|\n"
@@ -520,7 +530,6 @@ function ReceptionDesk.showDoctorReceptionPanel(world, player, worldName)
     local leaderboard = ReceptionDesk.getDoctorLeaderboard(worldName)
 
     local d = "set_default_color|`o\n"
-    d = d .. "set_bg_color|0,0,0,180|\n"
     d = d .. "add_label_with_icon|big|Doctor Panel|left|" .. tostring(RECEPTION_DESK_ID) .. "|\n"
     d = d .. "add_smalltext|`wWorld: `o" .. worldName .. "|\n"
     d = d .. "add_spacer|small|\n"

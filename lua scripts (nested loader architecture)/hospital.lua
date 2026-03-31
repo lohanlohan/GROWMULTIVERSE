@@ -562,6 +562,7 @@
     local BTN_REMOVE_DOCTOR_PREFIX = "v5m_rm_dr_"
 
     local BTN_MANAGE_DOCTORS     = "v5m_manage_doctors"
+    local BTN_REMOVE_DOCTORS_MAIN = "v5m_remove_doctors_main"
     local BTN_UPGRADE_HOSPITAL   = "v5m_upgrade_hospital"
     local BTN_LEADERBOARD        = "v5m_leaderboard"
     local BTN_CLOSE_RECEPTION    = "v5m_close_reception"
@@ -1508,6 +1509,8 @@
     _G.BTN_WITHDRAW_TOOL_PREFIX = BTN_WITHDRAW_TOOL_PREFIX
     _G.BTN_ADD_DOCTOR_PREFIX = BTN_ADD_DOCTOR_PREFIX
     _G.BTN_REMOVE_DOCTOR_PREFIX = BTN_REMOVE_DOCTOR_PREFIX
+    _G.BTN_MANAGE_DOCTORS = BTN_MANAGE_DOCTORS
+    _G.BTN_REMOVE_DOCTORS_MAIN = BTN_REMOVE_DOCTORS_MAIN
     _G.BTN_DOCTORS_BACK = BTN_DOCTORS_BACK
     _G.BTN_OPEN_STORAGE = BTN_OPEN_STORAGE
     _G.BTN_STORAGE_BACK = BTN_STORAGE_BACK
@@ -1589,7 +1592,7 @@
 
         if itemID == AUTO_SURGEON_ID then
             if countReceptionDesks(world) < 1 then
-                safeBubble(player, "`4A Reception Desk must be placed first before adding Auto Surgeon Stations.", 0)
+                safeBubble(player, "A Reception Desk must be placed first before adding Auto Surgeon Stations.", 1)
                 return true
             end
             if countAutoSurgeons(world) >= 12 then
@@ -1600,7 +1603,7 @@
 
         if itemID == OPERATING_TABLE_ID then
             if countReceptionDesks(world) < 1 then
-                safeBubble(player, "`4A Reception Desk must be placed first before adding Operating Tables.", 0)
+                safeBubble(player, "A Reception Desk must be placed first before adding Operating Tables.", 0)
                 return true
             end
             local worldName = getWorldName(world, player)
@@ -2087,6 +2090,60 @@
                 _G.ReceptionDesk.showHospitalStatsPanel(world, player)
             elseif buttonClicked == BTN_LEVEL_UP then
                 _G.ReceptionDesk.showLevelUpPanel(world, player)
+            elseif buttonClicked == BTN_MANAGE_DOCTORS then
+                _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+            elseif buttonClicked == BTN_REMOVE_DOCTORS_MAIN then
+                _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+            else
+                local pickedNetID = tonumber(data["playerNetID"]) or 0
+                if pickedNetID > 0 then
+                    local targetPlayer = nil
+                    local players = world:getPlayers()
+                    if type(players) == "table" then
+                        for _, p in pairs(players) do
+                            if p and p.getNetID and (tonumber(p:getNetID()) or 0) == pickedNetID then
+                                targetPlayer = p
+                                break
+                            end
+                        end
+                    end
+
+                    if not targetPlayer then
+                        safeBubble(player, "`4Selected player is no longer in this world.", 1)
+                    else
+                        local targetUID = getUserID(targetPlayer)
+                        local targetName = tostring(targetPlayer.getName and targetPlayer:getName() or targetUID)
+
+                        if targetUID <= 0 then
+                            safeBubble(player, "`4Failed to resolve selected player UID.", 1)
+                        elseif isWorldOwner(world, targetPlayer) then
+                            safeBubble(player, "`9World Owner is always a doctor.", 1)
+                        else
+                            local totalDoctors = _G.ReceptionDesk.countDoctors(worldName)
+                            if totalDoctors >= 1 then
+                                safeBubble(player, "`4Doctor slot is full (`w1/1``). Remove current doctor first.", 1)
+                                _G.ReceptionDesk.showReceptionDeskPanel(world, player)
+                                return true
+                            end
+
+                            local stateNow = getHospitalState(worldName)
+                            local doctorsNow = stateNow.doctors or {}
+                            local key = "u" .. tostring(targetUID)
+                            if doctorsNow[key] then
+                                safeBubble(player, "`9" .. tostring(targetName) .. " is already registered as doctor.", 1)
+                            else
+                                _G.ReceptionDesk.addDoctor(worldName, targetUID, targetName)
+                                safeBubble(player, "`2Successfully added `w" .. tostring(targetName) .. "`` as doctor in your hospital.", 1)
+                                safeConsole(player, "`2Added `w" .. tostring(targetName) .. "`` as Hospital Doctor.")
+                                if targetPlayer.onConsoleMessage then
+                                    targetPlayer:onConsoleMessage("`2You have been added as a Hospital Doctor in world `w" .. tostring(worldName) .. "``.")
+                                end
+                            end
+                        end
+                    end
+
+                    _G.ReceptionDesk.showReceptionDeskPanel(world, player)
+                end
             end
             return true
         end
@@ -2098,18 +2155,66 @@
                 return true
             end
 
+            local addUID = nil
+            local removeUID = nil
+
             if buttonClicked and buttonClicked:match("^" .. BTN_ADD_DOCTOR_PREFIX) then
-                local uid = tonumber(buttonClicked:gsub("^" .. BTN_ADD_DOCTOR_PREFIX, ""))
-                if uid and uid > 0 then
-                    _G.ReceptionDesk.addDoctor(worldName, uid)
-                    _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
-                end
+                addUID = tonumber(extractButtonSuffix(buttonClicked, BTN_ADD_DOCTOR_PREFIX))
             elseif buttonClicked and buttonClicked:match("^" .. BTN_REMOVE_DOCTOR_PREFIX) then
-                local uid = tonumber(buttonClicked:gsub("^" .. BTN_REMOVE_DOCTOR_PREFIX, ""))
-                if uid and uid > 0 then
-                    _G.ReceptionDesk.removeDoctor(worldName, uid)
-                    _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+                removeUID = tonumber(extractButtonSuffix(buttonClicked, BTN_REMOVE_DOCTOR_PREFIX))
+            end
+
+            if type(data) == "table" and not addUID and not removeUID then
+                for k, v in pairs(data) do
+                    local keyName = tostring(k)
+                    local raw = string.lower(tostring(v or ""))
+                    local isPressed = raw ~= "" and raw ~= "0" and raw ~= "false" and raw ~= "off" and raw ~= "no" and raw ~= "nil"
+                    if isPressed then
+                        if keyName:match("^" .. BTN_ADD_DOCTOR_PREFIX) then
+                            addUID = tonumber(extractButtonSuffix(keyName, BTN_ADD_DOCTOR_PREFIX))
+                            break
+                        elseif keyName:match("^" .. BTN_REMOVE_DOCTOR_PREFIX) then
+                            removeUID = tonumber(extractButtonSuffix(keyName, BTN_REMOVE_DOCTOR_PREFIX))
+                            break
+                        end
+                    end
                 end
+            end
+
+            if addUID and addUID > 0 then
+                if _G.ReceptionDesk.countDoctors(worldName) >= 1 then
+                    safeBubble(player, "`4Doctor slot is full (`w1/1``). Remove current doctor first.", 1)
+                    _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+                    return true
+                end
+
+                local targetPlayer = nil
+                local targetName = "Unknown"
+                local players = world:getPlayers()
+                if type(players) == "table" then
+                    for _, p in pairs(players) do
+                        if getUserID(p) == addUID then
+                            targetPlayer = p
+                            if p.getName then
+                                targetName = tostring(p:getName() or targetName)
+                            end
+                            break
+                        end
+                    end
+                end
+
+                _G.ReceptionDesk.addDoctor(worldName, addUID, targetName)
+
+                if targetPlayer and targetPlayer.onConsoleMessage then
+                    targetPlayer:onConsoleMessage("`2You have been added as a Hospital Doctor in world `w" .. tostring(worldName) .. "``.")
+                end
+
+                safeBubble(player, "`2Successfully added `w" .. tostring(targetName) .. "`` as doctor in your hospital.", 1)
+                safeConsole(player, "`2Added `w" .. tostring(targetName) .. "`` as Hospital Doctor.")
+                _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
+            elseif removeUID and removeUID > 0 then
+                _G.ReceptionDesk.removeDoctor(worldName, removeUID)
+                _G.ReceptionDesk.showManageDoctorsPanel(world, player, worldName)
             end
 
             return true
