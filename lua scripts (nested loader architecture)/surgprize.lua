@@ -1,11 +1,13 @@
 -- MODULE
--- surgprize.lua — /surgprize: manage per-disease surgery prize pools
+-- surgprize.lua — /surgprize: manage per-disease surgery prize pools (panel UI)
 
 local M = {}
-local DB     = _G.DB
-local SD     = _G.SurgeryData
-local ROLE   = 51
-local DB_KEY = "surg_prize"
+local DB   = _G.DB
+local SD   = _G.SurgeryData
+local ROLE = 51
+
+local DB_KEY    = "surg_prize"
+local MAX_SLOTS = 5   -- prize slots per diagnosis
 
 -- =======================================================
 -- HELPERS
@@ -14,22 +16,75 @@ local DB_KEY = "surg_prize"
 local function load() return DB.loadFeature(DB_KEY) or {} end
 local function save(t) DB.saveFeature(DB_KEY, t) end
 
-local function getDiagPrizes(data, key)
+local function getSlots(data, key)
     if not data[key] then data[key] = { prizes = {} } end
-    return data[key].prizes
+    local prizes = data[key].prizes
+    -- Pad to MAX_SLOTS
+    for i = #prizes + 1, MAX_SLOTS do
+        prizes[i] = { itemId = 0, amount = 1, chance = 0 }
+    end
+    return prizes
 end
 
-local function diagExists(key)
-    return SD.DIAG[key] ~= nil
+-- =======================================================
+-- PANEL BUILDERS
+-- =======================================================
+
+local function openMainPanel(player)
+    local data = load()
+    local d = ""
+    d = d .. "set_default_color|`o\n"
+    d = d .. "add_label|big|`wSurgery Prizes|left|\n"
+    d = d .. "add_textbox|Select a diagnosis to configure its prize pool:|\n"
+    d = d .. "add_spacer|small|\n"
+
+    for _, key in ipairs(SD.DIAG_KEYS) do
+        local diagName  = (SD.DIAG[key] or {}).name or key
+        local prizes    = (data[key] and data[key].prizes) or {}
+        local active    = 0
+        for _, p in ipairs(prizes) do
+            if (tonumber(p.chance) or 0) > 0 and (tonumber(p.itemId) or 0) > 0 then
+                active = active + 1
+            end
+        end
+        local countStr = active > 0 and ("`2" .. active .. " prize(s)") or "`7empty"
+        local btnID    = "diag_" .. key
+        d = d .. "add_button|" .. btnID .. "|`o" .. diagName .. " `7(" .. key .. ") — " .. countStr .. "|noflags|0|0|\n"
+    end
+
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_button|btn_close|`7Close|noflags|0|0|\n"
+    d = d .. "end_dialog|surg_prize_main|||"
+    player:onDialogRequest(d)
 end
 
-local function usage(player)
-    player:onConsoleMessage("`oUsage:")
-    player:onConsoleMessage("`o  /surgprize list [diagKey]")
-    player:onConsoleMessage("`o  /surgprize add <diagKey> <itemId> <amount> <chance%>")
-    player:onConsoleMessage("`o  /surgprize remove <diagKey> <index>")
-    player:onConsoleMessage("`o  /surgprize clear <diagKey>")
-    player:onConsoleMessage("`oDiag keys: " .. table.concat(SD.DIAG_KEYS, ", "))
+local function openEditPanel(player, diagKey, delay)
+    local diagName = (SD.DIAG[diagKey] or {}).name or diagKey
+    local data     = load()
+    local slots    = getSlots(data, diagKey)
+
+    local d = ""
+    d = d .. "set_default_color|`o\n"
+    d = d .. "add_label|big|`w" .. diagName .. "|left|\n"
+    d = d .. "add_textbox|`7Set item, amount, and chance (0-100) for each slot. Chance 0 = disabled.|\n"
+    d = d .. "embed_data|diag|" .. diagKey .. "|\n"
+
+    for i = 1, MAX_SLOTS do
+        local p    = slots[i] or { itemId = 0, amount = 1, chance = 0 }
+        local item = (tonumber(p.itemId) or 0) > 0 and getItemById(tonumber(p.itemId)) or nil
+        local name = item and item:getName() or "Empty"
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_label|small|`wSlot " .. i .. "|left|\n"
+        d = d .. "add_item_picker|slot_item_" .. i .. "|`w" .. name .. "`7:|Select Prize Item|\n"
+        d = d .. "add_text_input|slot_amt_" .. i .. "|Amount:|" .. (p.amount or 1) .. "|6|\n"
+        d = d .. "add_text_input|slot_chance_" .. i .. "|Chance (%):|" .. (p.chance or 0) .. "|4|\n"
+    end
+
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_button|btn_save|`2Save Prizes|noflags|0|0|\n"
+    d = d .. "add_button|btn_back|`oBack|noflags|0|0|\n"
+    d = d .. "end_dialog|surg_prize_edit|||"
+    player:onDialogRequest(d, delay or 0)
 end
 
 -- =======================================================
@@ -43,111 +98,85 @@ registerLuaCommand({
 })
 
 onPlayerCommandCallback(function(world, player, full)
-    local cmd, rest = full:match("^(%S+)%s*(.*)")
+    local cmd = full:match("^(%S+)")
     if not cmd or cmd:lower() ~= "surgprize" then return false end
-    if not player:hasRole(ROLE) then return false end
-
-    local args = {}
-    for w in rest:gmatch("%S+") do args[#args+1] = w end
-    local sub = (args[1] or ""):lower()
-
-    -- /surgprize  or  /surgprize list
-    if sub == "" or sub == "list" then
-        local key = args[2] and args[2]:upper()
-        local data = load()
-        if key then
-            if not diagExists(key) then
-                player:onConsoleMessage("`4Unknown diagnosis: " .. key)
-                return true
-            end
-            local prizes = getDiagPrizes(data, key)
-            if #prizes == 0 then
-                player:onConsoleMessage("`o[" .. key .. "] No prizes set.")
-                return true
-            end
-            player:onConsoleMessage("`w[" .. key .. "] Prizes:")
-            for i, p in ipairs(prizes) do
-                local item = getItemById(tonumber(p.itemId))
-                local name = item and item:getName() or ("ID:" .. tostring(p.itemId))
-                player:onConsoleMessage("`o  " .. i .. ". " .. name .. " x" .. p.amount .. " (" .. p.chance .. "%)")
-            end
-        else
-            player:onConsoleMessage("`wSurgery Prize Pools:")
-            for _, k in ipairs(SD.DIAG_KEYS) do
-                local prizes = (data[k] and data[k].prizes) or {}
-                local diagName = (SD.DIAG[k] or {}).name or k
-                player:onConsoleMessage("`o  " .. k .. " `w(" .. diagName .. ")`o: " .. #prizes .. " prize(s)")
-            end
-        end
+    if not player:hasRole(ROLE) then
+        player:onConsoleMessage("`4Access denied!")
         return true
     end
-
-    -- /surgprize add <diagKey> <itemId> <amount> <chance>
-    if sub == "add" then
-        local key     = args[2] and args[2]:upper()
-        local itemId  = tonumber(args[3])
-        local amount  = tonumber(args[4])
-        local chance  = tonumber(args[5])
-        if not key or not itemId or not amount or not chance then
-            usage(player)
-            return true
-        end
-        if not diagExists(key) then
-            player:onConsoleMessage("`4Unknown diagnosis: " .. key)
-            return true
-        end
-        if chance < 1 or chance > 100 then
-            player:onConsoleMessage("`4Chance must be 1-100.")
-            return true
-        end
-        local data   = load()
-        local prizes = getDiagPrizes(data, key)
-        prizes[#prizes+1] = { itemId = itemId, amount = math.max(1, amount), chance = chance }
-        save(data)
-        local item = getItemById(itemId)
-        local name = item and item:getName() or ("ID:" .. itemId)
-        player:onConsoleMessage("`2Added to [" .. key .. "]: " .. name .. " x" .. amount .. " at " .. chance .. "% chance.")
-        return true
-    end
-
-    -- /surgprize remove <diagKey> <index>
-    if sub == "remove" then
-        local key = args[2] and args[2]:upper()
-        local idx = tonumber(args[3])
-        if not key or not idx then usage(player); return true end
-        if not diagExists(key) then
-            player:onConsoleMessage("`4Unknown diagnosis: " .. key)
-            return true
-        end
-        local data   = load()
-        local prizes = getDiagPrizes(data, key)
-        if idx < 1 or idx > #prizes then
-            player:onConsoleMessage("`4Index out of range (1-" .. #prizes .. ").")
-            return true
-        end
-        table.remove(prizes, idx)
-        save(data)
-        player:onConsoleMessage("`2Removed prize #" .. idx .. " from [" .. key .. "].")
-        return true
-    end
-
-    -- /surgprize clear <diagKey>
-    if sub == "clear" then
-        local key = args[2] and args[2]:upper()
-        if not key then usage(player); return true end
-        if not diagExists(key) then
-            player:onConsoleMessage("`4Unknown diagnosis: " .. key)
-            return true
-        end
-        local data = load()
-        data[key]  = { prizes = {} }
-        save(data)
-        player:onConsoleMessage("`2Cleared all prizes for [" .. key .. "].")
-        return true
-    end
-
-    usage(player)
+    openMainPanel(player)
     return true
+end)
+
+-- =======================================================
+-- DIALOG CALLBACKS
+-- =======================================================
+
+onPlayerDialogCallback(function(world, player, data)
+    local dname = data["dialog_name"] or ""
+
+    -- Main panel
+    if dname == "surg_prize_main" then
+        if not player:hasRole(ROLE) then return true end
+        local btn = data["buttonClicked"] or ""
+        if btn == "btn_close" then return true end
+        for _, key in ipairs(SD.DIAG_KEYS) do
+            if btn == "diag_" .. key then
+                openEditPanel(player, key)
+                return true
+            end
+        end
+        return true
+    end
+
+    -- Edit panel
+    if dname == "surg_prize_edit" then
+        if not player:hasRole(ROLE) then return true end
+        local btn      = data["buttonClicked"] or ""
+        local diagKey  = data["diag"] or ""
+
+        if btn == "btn_back" then
+            openMainPanel(player)
+            return true
+        end
+
+        if diagKey == "" then return true end
+
+        -- Read current data, preserve existing slots for items not changed
+        local dbData = load()
+        local slots  = getSlots(dbData, diagKey)
+
+        for i = 1, MAX_SLOTS do
+            local itemId = tonumber(data["slot_item_"   .. i])
+            local amount = tonumber(data["slot_amt_"    .. i])
+            local chance = tonumber(data["slot_chance_" .. i])
+
+            -- item picker returns 0 if unchanged — keep existing
+            if itemId and itemId > 0 then
+                slots[i].itemId = itemId
+            end
+            if amount and amount > 0 then
+                slots[i].amount = math.max(1, amount)
+            end
+            if chance then
+                slots[i].chance = math.min(100, math.max(0, chance))
+            end
+        end
+
+        dbData[diagKey].prizes = slots
+
+        if btn == "btn_save" then
+            save(dbData)
+            local diagName = (SD.DIAG[diagKey] or {}).name or diagKey
+            player:onConsoleMessage("`2Prizes for `w" .. diagName .. "`2 saved!")
+        end
+
+        -- Reopen edit panel with updated data
+        openEditPanel(player, diagKey, 300)
+        return true
+    end
+
+    return false
 end)
 
 return M
