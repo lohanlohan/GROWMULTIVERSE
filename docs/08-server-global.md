@@ -182,6 +182,21 @@ end)
 
 ---
 
+## Server Config Files
+
+File konfigurasi server di `localStorage/config/` — bisa di-edit langsung tanpa Lua:
+
+| File | Isi |
+|------|-----|
+| `localStorage/config/ances.json` | Konfigurasi Ancestral: riddles (harian & biasa), ancestral upgrades, custom upgrades |
+
+**Catatan `ances.json`:**
+- Bisa tambah/ubah riddles custom (termasuk daily riddles)
+- Bisa tambah custom ancestral upgrades (bahkan non-ancestral)
+- Edit langsung file JSON, tidak perlu Lua script
+
+---
+
 ## File System
 
 ```lua

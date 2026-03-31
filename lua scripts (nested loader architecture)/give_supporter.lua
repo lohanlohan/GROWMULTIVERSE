@@ -127,7 +127,57 @@ local function findPlayerByUID(uid)
     return nil
 end
 
+-- =======================================================
+-- HIDESTATUS TRACKER
+-- count even = visual showing, count odd = visual hidden
+-- internalUID: flag to skip counting when WE trigger /hidestatus
+-- pendingResets: delay removeSubscription by 1 tick after doAction
+-- =======================================================
+
+local pendingResets  = {}  -- uid → true
+local internalUID    = {}  -- uid → true (our doAction, skip callback count)
+
+local function getHideCount(player)
+    local data = DB.getPlayer("hidestatus_v2", tostring(player:getUserID())) or {}
+    return tonumber(data.count) or 0
+end
+
+local function setHideCount(player, count)
+    DB.setPlayer("hidestatus_v2", tostring(player:getUserID()), { count = count })
+end
+
+local function doReset(target)
+    target:removeSubscription(SUB_SUPPORTER)
+    target:removeSubscription(SUB_SUPER_SUPP)
+    resetSupporterPersonalization(target)
+    savePlayer(target)
+    pendingResets[target:getUserID()] = nil
+end
+
+local function ensureHiddenThenReset(target)
+    local count = getHideCount(target)
+    if count % 2 == 0 then
+        -- Visual showing → /hidestatus first, doReset on next tick
+        internalUID[target:getUserID()] = true
+        target:doAction("action|input\n|text|/hidestatus")
+        setHideCount(target, count + 1)
+        pendingResets[target:getUserID()] = true
+    else
+        -- Already hidden → reset immediately
+        doReset(target)
+    end
+end
+
+onPlayerTick(function(world, player)
+    local uid = player:getUserID()
+    if pendingResets[uid] then
+        doReset(player)
+    end
+end)
+
 local function applySupporterSubscription(target, tier)
+    -- Reset hidestatus counter: subscription baru = visual showing dari awal
+    setHideCount(target, 0)
     if tier == "sup" then
         target:removeSubscription(SUB_SUPER_SUPP)
         target:addSubscription(SUB_SUPPORTER, 0)
@@ -182,9 +232,7 @@ local function resetSupporterPersonalization(target)
 end
 
 local function resetSupporterSubscription(target)
-    target:removeSubscription(SUB_SUPPORTER)
-    target:removeSubscription(SUB_SUPER_SUPP)
-    resetSupporterPersonalization(target)
+    ensureHiddenThenReset(target)
 end
 
 local function openGiveSuppDialog(requester, target)
@@ -216,18 +264,18 @@ local function openGiveSuppDialog(requester, target)
             end
 
             if btn == "grant_default" then
+                if liveTarget:getUserID() == player:getUserID() then
+                    liveTarget:onConsoleMessage("`2Your subscription has been reset to Default Player. You will be disconnected to refresh visuals.")
+                else
+                    liveTarget:onConsoleMessage("`2Your subscription has been reset to Default Player by a Developer. You will be disconnected to refresh visuals.")
+                end
+                liveTarget:sendVariant({ "OnAddNotification", "", "`wYour subscription is now `oDefault Player`w.", "audio/success.wav", 0 })
                 resetSupporterSubscription(liveTarget)
                 player:onConsoleMessage("`2Reset subscription of " .. liveTarget:getName() .. " to Default Player.")
                 player:playAudio("piano_nice.wav")
-                if liveTarget:getUserID() == player:getUserID() then
-                    liveTarget:onConsoleMessage("`2Your subscription has been reset to Default Player.")
-                else
-                    liveTarget:onConsoleMessage("`2Your subscription has been reset to Default Player by a Developer.")
-                end
-                liveTarget:sendVariant({ "OnAddNotification", "", "`wYour subscription is now `oDefault Player`w.", "audio/success.wav", 0 })
             else
                 local roleName = applySupporterSubscription(liveTarget, btn == "grant_sup" and "sup" or "ssup")
-                player:onConsoleMessage("`2Granted " .. roleName .. " subscription to " .. liveTarget:getName() .. ".")
+                player:onConsoleMessage("`2Granted " .. roleName .. " subscription to `w" .. liveTarget:getCleanName() .. "``.")
                 player:playAudio("piano_nice.wav")
 
                 if liveTarget:getUserID() == player:getUserID() then
@@ -240,6 +288,14 @@ local function openGiveSuppDialog(requester, target)
         end
     )
 end
+
+-- Track /hidestatus toggles to maintain accurate parity
+onPlayerCommandCallback(function(world, player, full)
+    if (full or ""):lower() == "/hidestatus" then
+        setHideCount(player, getHideCount(player) + 1)
+    end
+    return false
+end)
 
 onPlayerCommandCallback(function(world, player, full)
     local cmd, args = full:match("^(%S+)%s*(.*)$")
@@ -331,20 +387,20 @@ onPlayerCommandCallback(function(world, player, full)
         end
 
         if tier == "default" then
+            if target:getUserID() == player:getUserID() then
+                target:onConsoleMessage("`2Your subscription has been reset to Default Player. You will be disconnected to refresh visuals.")
+            else
+                target:onConsoleMessage("`2Your subscription has been reset to Default Player by a Developer. You will be disconnected to refresh visuals.")
+            end
+            target:sendVariant({ "OnAddNotification", "", "`wYour subscription is now `oDefault Player`w.", "audio/success.wav", 0 })
             resetSupporterSubscription(target)
             player:onConsoleMessage("`2Reset subscription of " .. target:getName() .. " to Default Player.")
             player:playAudio("piano_nice.wav")
-            if target:getUserID() == player:getUserID() then
-                target:onConsoleMessage("`2Your subscription has been reset to Default Player.")
-            else
-                target:onConsoleMessage("`2Your subscription has been reset to Default Player by a Developer.")
-            end
-            target:sendVariant({ "OnAddNotification", "", "`wYour subscription is now `oDefault Player`w.", "audio/success.wav", 0 })
             return true
         end
 
         local roleName = applySupporterSubscription(target, tier)
-        player:onConsoleMessage("`2Granted " .. roleName .. " subscription to " .. target:getName() .. ".")
+        player:onConsoleMessage("`2Granted " .. roleName .. " subscription to `w" .. target:getCleanName() .. "``.")
         player:playAudio("piano_nice.wav")
         if target:getUserID() == player:getUserID() then
             target:onConsoleMessage("`2Your " .. roleName .. " subscription is now active.")
