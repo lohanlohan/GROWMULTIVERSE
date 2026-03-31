@@ -1615,30 +1615,45 @@ end)
 
 -- onTilePunchCallback: prevent punching to completion when tiles are protected
 -- (return true = prevent break/damage accumulation, tile stays intact)
+-- Pattern: early world validation → efficient tile check → verify condition → bubble only on action
 onTilePunchCallback(function(world, player, tile)
+    local tileID = tile:getTileID()
+
+    -- Early exit: not a protected tile — no action needed
+    if tileID ~= RECEPTION_DESK_ID and tileID ~= AUTO_SURGEON_ID and tileID ~= WORLD_LOCK_ID then
+        return false
+    end
+
+    -- All checks below require world/player validation
     local worldName = getWorldName(world, player)
     local x = tile:getPosX()
     local y = tile:getPosY()
 
-    if tile:getTileID() == RECEPTION_DESK_ID then
+    -- Reception Desk: block if auto surgeons exist
+    if tileID == RECEPTION_DESK_ID then
         if countAutoSurgeons(world) > 0 then
-            safeBubble(player, "`8WARNING!`o Breaking the Reception Desk will reset all Hospital Stats!")
+            safeBubble(player, "`8WARNING!`0 Breaking the Reception Desk will reset all Hospital Stats!")
             return true
         end
+        return false
     end
 
-    if tile:getTileID() == AUTO_SURGEON_ID then
+    -- Auto Surgeon: block if storage not empty or has pending earnings
+    if tileID == AUTO_SURGEON_ID then
         if not _G.AutoSurgeon.canBreakAutoSurgeon(worldName, x, y) then
             safeBubble(player, "`4Empty the Auto Surgeon storage and withdraw earnings before breaking.")
             return true
         end
+        return false
     end
 
-    if tile:getTileID() == WORLD_LOCK_ID then
+    -- World Lock: block if hospital exists in world
+    if tileID == WORLD_LOCK_ID then
         if hasHospitalInWorld(world) then
-            safeBubble(player, "`oCan't smash the `$World Lock`o while a Reception Desk exists in the world!")
+            safeBubble(player, "`0Can't smash the `$World Lock`0 while a Reception Desk exists in the world!")
             return true
         end
+        return false
     end
 
     return false
