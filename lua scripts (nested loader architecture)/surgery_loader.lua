@@ -1,12 +1,13 @@
 -- MODULE
 -- surgery_loader.lua — Surgery minigame system loader
--- Load order: surgery_data → surgery_engine → surgery_ui → surgery_callbacks
+-- Load order: surgery_data → surgery_engine → surgery_ui → surgery_callbacks → surgprize
 
 local modules = {
     "surgery_data",
     "surgery_engine",
     "surgery_ui",
     "surgery_callbacks",
+    "surgprize",
 }
 
 -- Each module sets its _G global immediately after load so the next

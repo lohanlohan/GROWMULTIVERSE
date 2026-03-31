@@ -180,8 +180,8 @@ local function showSurgbotConfirmPanel(player, tileX, tileY)
     d = d .. "add_smalltext|`oSurgeon Skill: " .. skill .. "|\n"
     d = d .. "add_textbox|`oAre you sure you want to perform surgery on this robot? Whether you succeed or fail, the robot will be destroyed in the process.|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_button|btn_cancel|`wCancel|noflags|0|0|\n"
-    d = d .. "add_button|btn_okay|`wOkay!|noflags|0|0|\n"
+    d = d .. "add_custom_button|btn_cancel|textLabel:Cancel;middle_colour:80543231;border_colour:80543231;|\n"
+    d = d .. "add_custom_button|btn_okay|textLabel:Okay!;anchor:btn_cancel;left:1;margin:40,0;|\n"
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|ot_surgery_" .. tileX .. "_" .. tileY .. "|||\n"
     player:onDialogRequest(d, 0)

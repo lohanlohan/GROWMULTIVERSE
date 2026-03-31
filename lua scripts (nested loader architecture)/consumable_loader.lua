@@ -17,6 +17,7 @@ local modules = {
     "challenge_fenrir",
     "clash_finale",
     "wolf_whistle",
+    "role_inject",
 }
 
 local M = {}

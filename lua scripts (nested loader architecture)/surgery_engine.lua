@@ -92,8 +92,11 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         fixItDone      = not diag.needsFixIt,  -- pre-done if not needed
         abxUnlocked    = not diag.needsLabKit,
         bonesRevealed  = not diag.needsUltrasound,
-        -- Diagnosis name hidden until diagnostic tool is used
-        diagRevealed   = not (diag.needsUltrasound or diag.needsLabKit),
+        diagRevealed   = false,  -- always hidden until ultrasound
+
+        -- Story headline + persistent context message
+        storyHeadline  = "`4The patient has not been diagnosed.",
+        contextMsg     = "",
 
         -- Modifiers (map for quick lookup + array for display)
         modifiers      = modMap,
@@ -171,7 +174,6 @@ function M.applyToolEffect(session, toolId)
     elseif toolId == T.LAB_KIT then
         st.labKitUsed    = true
         st.abxUnlocked   = true
-        st.diagRevealed  = true
         return "Lab results in. Antibiotics are now unlocked."
 
     elseif toolId == T.ANTIBIOTICS then
@@ -186,7 +188,6 @@ function M.applyToolEffect(session, toolId)
         st.temperature  = math.max(98.6, st.temperature - drop)
         st.tempRising   = false
         st.abxTurnsLeft = 2
-        st.diagRevealed = true
         return string.format("Antibiotics administered. Temperature: %.1f°F. Treatment active for 2 more turns.", st.temperature)
 
     elseif toolId == T.ANTISEPTIC then
@@ -215,6 +216,12 @@ function M.applyToolEffect(session, toolId)
         st.bleeding     = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
         if diag.needsFixIt and st.scalpelCount >= st.requiredScalpels then
             st.fixItReady = true
+            if diag.scalpelHeadline then
+                st.storyHeadline = diag.scalpelHeadline
+            end
+            if diag.scalpelContextMsg then
+                st.contextMsg = diag.scalpelContextMsg
+            end
         end
         return "Incision made. Incisions: " .. st.incisions
 
@@ -227,6 +234,9 @@ function M.applyToolEffect(session, toolId)
         end
         st.fixItDone  = true
         st.fixItReady = false
+        if diag.fixItHeadline then
+            st.storyHeadline = diag.fixItHeadline
+        end
         return "Fix It! The procedure is complete. Now close up the incisions."
 
     elseif toolId == T.STITCHES then
@@ -246,11 +256,8 @@ function M.applyToolEffect(session, toolId)
         st.ultrasoundUsed = true
         st.bonesRevealed  = true
         st.diagRevealed   = true
-        if (diag.brokenBones or 0) > 0 or (diag.shatteredBones or 0) > 0 then
-            return "Scan complete. Bone injuries confirmed. Splint and Pins are now available."
-        else
-            return "Scan complete. Diagnosis confirmed. Proceed with treatment."
-        end
+        st.storyHeadline  = diag.headline or ("Patient suffers from " .. (diag.name or "?") .. ".")
+        return ""
 
     elseif toolId == T.PINS then
         if st.shatteredBones > 0 then
@@ -265,7 +272,7 @@ function M.applyToolEffect(session, toolId)
 
     elseif toolId == T.TRANSFUSION then
         st.pulse = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, -2)
-        return "Transfusion complete. Pulse: " .. st.pulse
+        return ""
 
     elseif toolId == T.DEFIBRILLATOR then
         if st.heartStopped then

@@ -30,15 +30,13 @@ end
 -- HELPER: give prizes on success
 -- =======================================================
 
-local function giveSuccessPrizes(world, player, cfg)
-    -- 1. Always give 1 Caduceus
-    local cadId = cfg.caduceusId or SD.TOOL.CADUCEUS
-    player:changeItem(cadId, 1, 0)
+local function giveSuccessPrizes(world, player, diagKey)
+    -- Load prize pool from DB
+    local prizeData  = DB.loadFeature("surg_prize") or {}
+    local diagPrizes = prizeData[diagKey] or {}
+    local prizes     = diagPrizes.prizes or {}
 
-    -- 2. Roll one random prize from prize pool
-    local prizes = cfg.prizePool or {}
-    if #prizes == 0 then return end
-    -- Collect prizes that win their chance roll
+    -- Roll one random prize
     local winners = {}
     for _, p in ipairs(prizes) do
         if p and tonumber(p.itemId) and tonumber(p.chance) then
@@ -47,11 +45,34 @@ local function giveSuccessPrizes(world, player, cfg)
             end
         end
     end
-    -- Give first winner (or pick random)
-    if #winners > 0 then
-        local pick = winners[math.random(1, #winners)]
-        player:changeItem(tonumber(pick.itemId), math.max(1, tonumber(pick.amount) or 1), 0)
+
+    local prizeItem   = #winners > 0 and winners[math.random(1, #winners)] or nil
+    local prizeId     = prizeItem and tonumber(prizeItem.itemId)
+    local prizeAmt    = prizeItem and math.max(1, tonumber(prizeItem.amount) or 1) or 0
+
+    -- 1. Give 1 Caduceus
+    player:changeItem(SD.TOOL.CADUCEUS, 1, 0)
+
+    -- 2. Give random prize (if any)
+    if prizeId and prizeAmt > 0 then
+        player:changeItem(prizeId, prizeAmt, 0)
     end
+
+    -- 3. Reward messages (GT style)
+    local cadItem  = getItemById(SD.TOOL.CADUCEUS)
+    local cadName  = cadItem and cadItem:getName() or "Caduceus"
+
+    if prizeId then
+        local pItem    = getItemById(prizeId)
+        local pName    = pItem and pItem:getName() or "item"
+        local deserve  = "After surgery like that, you decide you deserve " .. prizeAmt .. " " .. pName .. "."
+        player:onConsoleMessage(deserve)
+        player:onTalkBubble(player:getNetID(), deserve, 0)
+        player:onConsoleMessage("You got " .. prizeAmt .. " `2" .. pName .. "`` and a `3" .. cadName .. "``!")
+    else
+        player:onConsoleMessage("You got a `3" .. cadName .. "``!")
+    end
+    player:onConsoleMessage("`2Hospital progress increased by 1.")
 end
 
 -- =======================================================
@@ -69,7 +90,7 @@ local function endSurgery(world, player, session, success, failReason)
 
     if success then
         newSkill = addSurgeonSkill(player, 1)
-        giveSuccessPrizes(world, player, cfg)
+        giveSuccessPrizes(world, player, session.diagKey)
     end
 
     -- Clear session FIRST — so even if onEnd crashes, next surgery can start cleanly
@@ -80,9 +101,11 @@ local function endSurgery(world, player, session, success, failReason)
         cfg.onEnd(world, player, success)
     end
 
-    -- Show result panel
-    local resultDlg = SU.buildResultPanel(success, failReason, diagName, skill, newSkill, x, y)
-    player:onDialogRequest(resultDlg, 0)
+    -- Show result: success = console only, fail = panel
+    if not success then
+        local resultDlg = SU.buildResultPanel(false, failReason, diagName, skill, newSkill, x, y)
+        player:onDialogRequest(resultDlg, 0)
+    end
 end
 
 -- =======================================================
@@ -115,7 +138,14 @@ local function processTool(world, player, session, toolId)
 
     local msg
     if isFail then
-        msg = SE.applySkillFailEffect(session, toolId)
+        local rawMsg = SE.applySkillFailEffect(session, toolId)
+        -- Wrap in GT skill fail format (skip special prefixes)
+        if rawMsg and rawMsg ~= "" and rawMsg:sub(1, 9) ~= "<<RETRY>>" then
+            local pct = math.floor(failChance * 100 + 0.5)
+            msg = "`3[`4Skill Fail (" .. pct .. "%)`3] `6" .. rawMsg
+        else
+            msg = rawMsg
+        end
     else
         msg = SE.applyToolEffect(session, toolId)
     end

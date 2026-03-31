@@ -174,6 +174,7 @@ M.DIAG = {
         needsFixIt       = false,
         requiredScalpels = 1,
         heartStopChance  = 0,
+        headline         = "Patient broke his leg.",
     },
 
     NOSE_JOB = {
@@ -293,6 +294,10 @@ M.DIAG = {
         needsFixIt       = true,
         requiredScalpels = 3,
         heartStopChance  = 0,
+        headline         = "Patient suffers from appendicitis.",
+        scalpelHeadline  = "You now have access to the appendix.",
+        scalpelContextMsg= "You now have access to the appendix.",
+        fixItHeadline    = "You yanked out the appendix!",
     },
 
     SWALLOWED_WL = {

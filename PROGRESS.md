@@ -149,16 +149,28 @@ social → admin → standalones
 | `surgery_callbacks.lua` | — | ✅ dialog callbacks + public SurgerySystem API |
 | `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
 
-**Surgery Minigame — Status 2026-03-31 ✅ COMPLETE:**
+**Surgery Minigame — Status 2026-03-31 ✅ COMPLETE, updated 2026-03-31:**
 - 27 diagnoses: 16 standard + 5 malady + 6 vile vial ✅
 - 7-level pulse: STRONG→GOOD→STEADY→WEAK→VERY_WEAK→EXTREMELY_WEAK→NONE ✅
-- Consciousness states: AWAKE/UNCONSCIOUS/COMING_TO/NEAR_COMA/HEART_STOPPED ✅
-- Anesthetic overdose death (anesthTurns < 4) ✅
+- Consciousness states: AWAKE/UNCONSCIOUS/COMING_TO/NEAR_COMA ✅
+- Anesthetic 3-tier logic: COMING_TO=safe re-dose, UNCONSCIOUS=overdose→NEAR_COMA (anesthTurns=2), NEAR_COMA=PERMA_DEATH ✅
+- Antibiotics: immediate drop + 2-turn passive (1-3°F/turn), clears tempRising, skill fail = rip tools only ✅
+- Antibiotics require labKitUsed (bukan abxUnlocked) — selalu terkunci sampai Lab Kit dipakai ✅
+- Skill fail rip-tools-only: Pins, Splint, Transfusion (tidak ada side effect) ✅
+- Site dirtiness: chance per turn trigger tempRising (SLIGHTLY_DIRTY=5%, DIRTY=15%, UNSANITARY=30%) — tidak direct naikkan temp ✅
+- tempRising: temp naik 0.5/1.0/1.5/2.0°F per turn, dihilangkan oleh Antibiotics ✅
 - Special events per vile vial (chaos/howl/worms_escape/guts_burst/ecto_pins_fail/fat_heartstop) ✅
 - Modifiers: HYPERACTIVE/HEMOPHILIAC/ANTIBIOTIC_RESISTANT/FILTHY/TOUGH_SKIN (random roll semua diagnosis) ✅
 - Unified win check — tempRising & pulse tidak memblok win ✅
 - Exact GT skill fail messages per tool ✅
-- UI: NEAR_COMA warning, COMING_TO label, modifier display ✅
+
+**Surgery UI — Updated 2026-03-31:**
+- Panel header: [icon] Surg-E → modifier (`9 color) → nama diagnosis (`$) atau "not diagnosed" (`4) ✅
+- diagRevealed: false sampai Lab Kit/Antibiotics/Ultrasound dipakai. Diagnoses tanpa lab+ultrasound = langsung revealed ✅
+- Ultrasound message: reveal diagnosis/bones confirmed (bukan bone count) ✅
+- X button dihapus dari panel surgery — hanya Give Up button ✅
+- Give Up flow: tombol Give Up → konfirmasi panel (Ya/Tidak) → balik ke surgery kalau cancel ✅
+- Surgbot confirm dialog: Cancel (kiri, dark red) | Okay! (kanan, default) — side-by-side via add_custom_button + anchor ✅
 
 **Operating Table Tick — Status 2026-03-31 ✅ OPTIMIZED:**
 - Event-driven: tick fire tepat saat `readyAt` tiba via `_G._OT_nextEvent` ✅
