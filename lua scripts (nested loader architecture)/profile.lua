@@ -24,6 +24,9 @@ local PlayerSubscriptions = {
     TYPE_TIKTOK           = 5,
     TYPE_BOOST            = 6,
     TYPE_STAFF            = 7,
+    TYPE_FREE_DAY_SUBSCRIPTION = 8,
+    TYPE_FREE_3_DAY_SUBSCRIPTION = 9,
+    TYPE_FREE_14_DAY_SUBSCRIPTION = 10,
 }
 
 local PlayerClothes = { HAND_ITEM = 5 }

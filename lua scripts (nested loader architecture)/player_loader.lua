@@ -9,6 +9,7 @@ local modules = {
     "set_slots",
     "custom_titles",
     "custom_help",
+    "commands",
 }
 
 local M = {}
