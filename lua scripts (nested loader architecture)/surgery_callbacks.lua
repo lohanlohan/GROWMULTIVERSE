@@ -59,11 +59,11 @@ local function giveSuccessPrizes(world, player, diagKey)
     end
 
     -- 3. Reward messages (GT style)
-    local cadItem  = getItemById(SD.TOOL.CADUCEUS)
+    local cadItem  = getItem(SD.TOOL.CADUCEUS)
     local cadName  = cadItem and cadItem:getName() or "Caduceus"
 
     if prizeId then
-        local pItem    = getItemById(prizeId)
+        local pItem    = getItem(prizeId)
         local pName    = pItem and pItem:getName() or "item"
         local deserve  = "After surgery like that, you decide you deserve " .. prizeAmt .. " " .. pName .. "."
         player:onConsoleMessage(deserve)
@@ -307,8 +307,9 @@ function M.start(world, player, tileX, tileY, cfg)
         return false
     end
 
-    -- Pick random diagnosis
-    local diagKey = SD.DIAG_KEYS[math.random(1, #SD.DIAG_KEYS)]
+    -- Pick random diagnosis (use allowedDiags if provided, else all)
+    local pool    = (cfg.allowedDiags and #cfg.allowedDiags > 0) and cfg.allowedDiags or SD.DIAG_KEYS
+    local diagKey = pool[math.random(1, #pool)]
 
     -- Store surgeon skill snapshot for Fix It internal use
     local skill = getSurgeonSkill(player)

@@ -71,7 +71,7 @@ local function openEditPanel(player, diagKey, delay)
 
     for i = 1, MAX_SLOTS do
         local p    = slots[i] or { itemId = 0, amount = 1, chance = 0 }
-        local item = (tonumber(p.itemId) or 0) > 0 and getItemById(tonumber(p.itemId)) or nil
+        local item = (tonumber(p.itemId) or 0) > 0 and getItem(tonumber(p.itemId)) or nil
         local name = item and item:getName() or "Empty"
         d = d .. "add_spacer|small|\n"
         d = d .. "add_label|small|`wSlot " .. i .. "|left|\n"
