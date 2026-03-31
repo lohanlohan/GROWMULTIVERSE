@@ -422,16 +422,14 @@
         AUTOMATION_CURSE     = 999
     }
 
-    -- Icon per malady di owner panel
-    -- Vile Vial maladies pakai icon vial mereka sendiri
-    -- RNG maladies pakai placeholder (ganti iconID sesuai kebutuhan)
+    -- Icon per malady (numeric fallback for button-with-icon dialogs)
     local MALADY_ICON = {
-        CHICKEN_FEET         = 2,
+        CHICKEN_FEET         = 872,
         GRUMBLETEETH         = 2,
         TORN_PUNCHING_MUSCLE = 2,
         GEMS_CUTS            = 2,
         AUTOMATION_CURSE     = 20704,
-        BROKEN_HEARTS        = 2,
+        BROKEN_HEARTS        = 5810,
         CHAOS_INFECTION      = 8538,
         LUPUS                = 8544,
         BRAINWORMS           = 8542,
@@ -445,13 +443,14 @@
         [MaladySystem.MALADY.GEMS_CUTS] = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;",
         [MaladySystem.MALADY.CHICKEN_FEET] = "image:game/tiles_page2.rttex;frame:20,0;frameSize:32;",
         [MaladySystem.MALADY.GRUMBLETEETH] = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;",
+        [MaladySystem.MALADY.BROKEN_HEARTS] = "image:game/tiles_page10.rttex;frame:12,10;frameSize:32;",
+        [MaladySystem.MALADY.CHAOS_INFECTION] = "image:game/tiles_page14.rttex;frame:26,0;frameSize:32;",
+        [MaladySystem.MALADY.MOLDY_GUTS] = "image:game/tiles_page14.rttex;frame:27,0;frameSize:32;",
         [MaladySystem.MALADY.BRAINWORMS] = "image:game/tiles_page14.rttex;frame:29,0;frameSize:32;",
-        [MaladySystem.MALADY.CHAOS_INFECTION] = "image:game/tiles_page14.rttex;frame:31,1;frameSize:32;",
-        [MaladySystem.MALADY.LUPUS] = "image:game/tiles_page14.rttex;frame:31,2;frameSize:32;",
-        [MaladySystem.MALADY.MOLDY_GUTS] = "image:game/tiles_page14.rttex;frame:31,3;frameSize:32;",
-        [MaladySystem.MALADY.ECTO_BONES] = "image:game/tiles_page14.rttex;frame:31,4;frameSize:32;",
-        [MaladySystem.MALADY.FATTY_LIVER] = "image:game/tiles_page14.rttex;frame:31,5;frameSize:32;",
-        [MaladySystem.MALADY.BROKEN_HEARTS] = "image:game/player_cosmetics1_icon.rttex;frame:31,31;frameSize:32;"
+        [MaladySystem.MALADY.LUPUS] = "image:game/tiles_page14.rttex;frame:30,0;frameSize:32;",
+        [MaladySystem.MALADY.ECTO_BONES] = "image:game/tiles_page14.rttex;frame:28,0;frameSize:32;",
+        [MaladySystem.MALADY.FATTY_LIVER] = "image:game/tiles_page14.rttex;frame:31,0;frameSize:32;",
+        [MaladySystem.MALADY.AUTOMATION_CURSE] = "image:game/tiles_page14.rttex;frame:26,0;frameSize:32;"
     }
 
     -- Urutan tampil di UI: vile vial dulu, RNG di bawahnya
@@ -474,38 +473,37 @@
     }
 
     -- Auto Surgeon tile-extra selectedIllness mapping (Growtopia client visual IDs).
-    -- Note: On this runtime/client build, Torn and Gems visual IDs are reversed
-    -- compared to some public examples.
+    -- Illness visual IDs sourced from client XML (tile.extra.autoSurgeonIllness).
+    -- AutomationCurse has no client visual state; map to ChaosInfection (25).
     local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
-        [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 21,
-        [MaladySystem.MALADY.GEMS_CUTS] = 20,
-        [MaladySystem.MALADY.GRUMBLETEETH] = 22,
-        [MaladySystem.MALADY.CHICKEN_FEET] = 23,
-        [MaladySystem.MALADY.BROKEN_HEARTS] = 24,
-        [MaladySystem.MALADY.AUTOMATION_CURSE] = 25,
-        -- Map Vile Vial maladies into the closest supported visual buckets
-        -- so selected illness no longer falls back to Gem Cuts visual.
-        [MaladySystem.MALADY.CHAOS_INFECTION] = 26,
-        [MaladySystem.MALADY.LUPUS] = 27,
-        [MaladySystem.MALADY.BRAINWORMS] = 28,
-        [MaladySystem.MALADY.MOLDY_GUTS] = 29,
-        [MaladySystem.MALADY.ECTO_BONES] = 30,
-        [MaladySystem.MALADY.FATTY_LIVER] = 31
+        [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 20,
+        [MaladySystem.MALADY.GEMS_CUTS]            = 21,
+        [MaladySystem.MALADY.CHICKEN_FEET]         = 22,
+        [MaladySystem.MALADY.GRUMBLETEETH]         = 23,
+        [MaladySystem.MALADY.BROKEN_HEARTS]        = 24,
+        [MaladySystem.MALADY.CHAOS_INFECTION]      = 25,
+        [MaladySystem.MALADY.MOLDY_GUTS]           = 26,
+        [MaladySystem.MALADY.BRAINWORMS]           = 27,
+        [MaladySystem.MALADY.LUPUS]                = 28,
+        [MaladySystem.MALADY.ECTO_BONES]           = 29,
+        [MaladySystem.MALADY.FATTY_LIVER]          = 30,
+        [MaladySystem.MALADY.AUTOMATION_CURSE]     = 25
     }
 
     local function resolveAutoSurgeonIllnessVisualID(maladyType)
         local key = tostring(maladyType or "")
+        if key == "" then return 0 end
         local mapped = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[key])
         if mapped then return mapped end
 
         -- Defensive fallback for any custom malady string variants.
         local upper = string.upper(key)
-        if upper:find("AUTOMATION", 1, true) or upper:find("CHAOS", 1, true) then return 25 end
-        if upper:find("BROKEN", 1, true) or upper:find("LUPUS", 1, true) then return 24 end
-        if upper:find("CHICKEN", 1, true) or upper:find("FATTY", 1, true) then return 23 end
-        if upper:find("GRUMBLE", 1, true) or upper:find("BRAIN", 1, true) then return 22 end
-        if upper:find("GEMS", 1, true) or upper:find("MOLD", 1, true) then return 20 end
-        if upper:find("TORN", 1, true) or upper:find("ECTO", 1, true) then return 21 end
+        if upper:find("TORN",       1, true) or upper:find("ECTO",  1, true)  then return 20 end
+        if upper:find("GEMS",       1, true) or upper:find("MOLD",  1, true)  then return 21 end
+        if upper:find("CHICKEN",    1, true) or upper:find("FATTY", 1, true)  then return 22 end
+        if upper:find("GRUMBLE",    1, true) or upper:find("BRAIN", 1, true)  then return 23 end
+        if upper:find("BROKEN",     1, true) or upper:find("LUPUS", 1, true)  then return 24 end
+        if upper:find("CHAOS",      1, true) or upper:find("AUTOMATION", 1, true) then return 25 end
 
         return 20
     end
@@ -1547,7 +1545,7 @@
             elseif _G.ReceptionDesk.isDoctor(worldName, uid) then
                 _G.ReceptionDesk.showDoctorReceptionPanel(world, player, worldName)
             else
-                safeBubble(player, "`4You are not registered as a doctor at this hospital!", 0)
+                safeBubble(player, "`4You are not registered as a doctor at this hospital!", 1)
             end
             return true
         end
@@ -1617,9 +1615,17 @@
         return false
     end)
 
+    -- Auto Surgeon punch-gate:
+    -- - If station has data: warning starts at hit #6, then repeats every continued hit.
+    -- - If player stops punching for a short period, counter resets (starts from hit #1 again).
+    -- - If station becomes empty, gate is cleared and normal break flow resumes.
+    local AUTO_SURGEON_BREAK_CHECK_HIT = 6
+    local AUTO_SURGEON_PUNCH_RESET_SEC = 1.2
+    local autoSurgeonPunchState = {}
+
     -- onTilePunchCallback: prevent punching to completion when tiles are protected
     -- (return true = prevent break/damage accumulation, tile stays intact)
-    -- Pattern: early world validation → efficient tile check → verify condition → bubble only on action
+    -- Pattern: early world validation -> efficient tile check -> verify condition -> bubble only on action
     onTilePunchCallback(function(world, player, tile)
         local tileID = tile:getTileID()
 
@@ -1642,12 +1648,49 @@
             return false
         end
 
-        -- Auto Surgeon: block if storage not empty or has pending earnings
+        -- Auto Surgeon:
+        -- - If station has data, keep punch FX but never allow destruction.
+        -- - If station is empty, let default break behavior run (6 hits).
         if tileID == AUTO_SURGEON_ID then
-            if not _G.AutoSurgeon.canBreakAutoSurgeon(worldName, x, y) then
-                safeBubble(player, "`4Empty the Auto Surgeon storage and withdraw earnings before breaking.", 1)
-                return true
+            local uid = getUserID(player)
+            if type(autoSurgeonPunchState[uid]) ~= "table" then
+                autoSurgeonPunchState[uid] = {}
             end
+
+            local tileKey = tostring(worldName) .. ":" .. tostring(x) .. ":" .. tostring(y)
+            local stateByUid = autoSurgeonPunchState[uid]
+            local canBreak = _G.AutoSurgeon.canBreakAutoSurgeon(worldName, x, y)
+
+            if canBreak then
+                -- Clear lock state and restore normal break pacing once station is empty.
+                if stateByUid[tileKey] then
+                    stateByUid[tileKey] = nil
+                    if player.adjustBlockHitCount then player:adjustBlockHitCount(0) end
+                end
+                return false
+            end
+
+            local now = (type(os.clock) == "function") and os.clock() or tonumber(os.time()) or 0
+            local st = stateByUid[tileKey]
+            if not st or (now - (tonumber(st.lastTs) or 0)) > AUTO_SURGEON_PUNCH_RESET_SEC then
+                -- Player stopped punching: reset sequence so warning starts again at hit #6.
+                st = { count = 0, lastTs = now }
+                stateByUid[tileKey] = st
+                if player.adjustBlockHitCount then player:adjustBlockHitCount(0) end
+            end
+
+            st.count = (tonumber(st.count) or 0) + 1
+            st.lastTs = now
+
+            -- Keep tile in pre-break state while still allowing punch visual feedback.
+            if st.count >= (AUTO_SURGEON_BREAK_CHECK_HIT - 1) and player.adjustBlockHitCount then
+                player:adjustBlockHitCount(math.max(0, AUTO_SURGEON_BREAK_CHECK_HIT - 2))
+            end
+
+            if st.count >= AUTO_SURGEON_BREAK_CHECK_HIT then
+                safeBubble(player, "Empty the Auto Surgeon storage before smashing!", 1)
+            end
+
             return false
         end
 
@@ -1672,6 +1715,14 @@
         end
 
         if tile:getTileID() == AUTO_SURGEON_ID then
+            local brokenKey = tostring(worldName) .. ":" .. tostring(tile:getPosX()) .. ":" .. tostring(tile:getPosY())
+            for uid, stateByUid in pairs(autoSurgeonPunchState) do
+                if type(stateByUid) == "table" then
+                    stateByUid[brokenKey] = nil
+                else
+                    autoSurgeonPunchState[uid] = nil
+                end
+            end
             deleteStation(worldName, tile:getPosX(), tile:getPosY())
         end
 

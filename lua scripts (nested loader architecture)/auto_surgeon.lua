@@ -44,6 +44,9 @@ local BTN_PICKER_BACK          = "v5m_picker_back"
 local BTN_TOOL_PANEL_ADD       = "v5m_tool_panel_add"
 local BTN_TOOL_PANEL_REMOVE    = "v5m_tool_panel_remove"
 local BTN_TOOL_PANEL_BACK      = "v5m_tool_panel_back"
+local BTN_TOOL_PANEL_FULL      = "v5m_tool_panel_full"      -- Developer only
+local BTN_TOOL_PANEL_CLEAR     = "v5m_tool_panel_clear"     -- Developer only
+local ROLE_DEVELOPER           = 51
 
 -- Illness visual IDs for the Auto Surgeon tile (Growtopia client numeric IDs).
 -- Note: On this runtime/client build, Torn and Gems visual IDs are reversed
@@ -67,6 +70,7 @@ local AUTO_SURGEON_ILLNESS_VISUAL_ID = {
 
 local function resolveAutoSurgeonIllnessVisualID(maladyType)
     local key    = tostring(maladyType or "")
+    if key == "" then return 0 end
     local mapped = tonumber(AUTO_SURGEON_ILLNESS_VISUAL_ID[key])
     if mapped then return mapped end
     local upper = string.upper(key)
@@ -139,14 +143,40 @@ local function getUnlockedAutoSurgeonMaladies(level)
     return _G.getUnlockedAutoSurgeonMaladies(level)
 end
 
+-- Per-malady icon override: can be visual string or numeric item/icon ID.
+local LOCAL_MALADY_ICON_OVERRIDE = {
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;",
+    [MaladySystem.MALADY.GEMS_CUTS]            = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;",
+    [MaladySystem.MALADY.CHICKEN_FEET]         = 872,
+    [MaladySystem.MALADY.GRUMBLETEETH]         = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;",
+    [MaladySystem.MALADY.BROKEN_HEARTS]        = 5810,
+    [MaladySystem.MALADY.CHAOS_INFECTION]      = 8538,
+    [MaladySystem.MALADY.MOLDY_GUTS]           = 8540,
+    [MaladySystem.MALADY.BRAINWORMS]           = 8542,
+    [MaladySystem.MALADY.LUPUS]                = 8544,
+    [MaladySystem.MALADY.ECTO_BONES]           = 8546,
+    [MaladySystem.MALADY.FATTY_LIVER]          = 8548,
+    [MaladySystem.MALADY.AUTOMATION_CURSE]     = "image:game/tiles_page14.rttex;frame:26,0;frameSize:32;"
+}
+
 local function getVisualIconString(maladyType)
-    local visual = MALADY_ICON_VISUAL[maladyType]
+    local visual = LOCAL_MALADY_ICON_OVERRIDE[maladyType]
     if type(visual) == "string" and visual ~= "" then return visual end
+
+    local visualMap = MALADY_ICON_VISUAL or {}
+    local mapped = visualMap[maladyType]
+    if type(mapped) == "string" and mapped ~= "" then return mapped end
     return nil
 end
 
 local function getMaladyIconID(maladyType)
-    return tonumber(MALADY_ICON[maladyType]) or AUTO_SURGEON_ID
+    local localIcon = LOCAL_MALADY_ICON_OVERRIDE[maladyType]
+    if type(localIcon) == "number" then
+        return math.max(0, math.floor(localIcon))
+    end
+
+    local iconMap = MALADY_ICON or {}
+    return tonumber(iconMap[maladyType]) or AUTO_SURGEON_ID
 end
 
 local function getItemNameByID(itemID)
@@ -186,7 +216,7 @@ local function showAutoSurgeonWarning(player, x, y, title, message)
     local warnDlg = "autosurgeon_warn_v5m_" .. tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(os.time())
     local warn = "set_default_color|`o\n"
     warn = warn .. "set_bg_color|54,152,198,180|\n"
-    warn = warn .. "add_label_with_icon|big|" .. tostring(title) .. "|left|2946|\n"
+    warn = warn .. "add_label_with_icon|big|" .. tostring(title) .. "|left||image:game/tiles_page4.rttex;frame:12,9;frameSize:32;|\n"
     warn = warn .. "add_spacer|small|\n"
     warn = warn .. "add_smalltext|" .. tostring(message) .. "|\n"
     warn = warn .. "add_spacer|small|\n"
@@ -410,6 +440,7 @@ function AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, to
     local toolName = getItemNameByID(toolID)
     local inBag    = getPlayerItemAmount(player, toolID)
     local inStation = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+    local isDeveloper = player:hasRole(ROLE_DEVELOPER) == true
 
     local d = "set_default_color|`o\n"
     d = d .. "set_bg_color|54,152,198,180|\n"
@@ -418,11 +449,23 @@ function AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, to
     d = d .. "add_smalltext|`oYou have `$" .. tostring(inBag) .. "`2 " .. tostring(toolName) .. "`o in your backpack.|\n"
     d = d .. "add_text_input|tool_add_amount|Amount to add:|" .. tostring(math.max(0, inBag)) .. "|3|\n"
     d = d .. "add_custom_button|" .. BTN_TOOL_PANEL_ADD .. "|textLabel:Add;middle_colour:431888895;border_colour:431888895;display:block;|\n"
+    
+    -- Developer: Stock Fully button beside Add
+    if isDeveloper then
+        d = d .. "add_custom_button|" .. BTN_TOOL_PANEL_FULL .. "|textLabel:Stock Fully;middle_colour:7372287;border_colour:7372287;anchor:" .. BTN_TOOL_PANEL_ADD .. ";left:1;margin:10,0;|\n"
+    end
+    
     d = d .. "reset_placement_x|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_smalltext|`oYou have `$" .. tostring(inStation) .. "/1k`2 " .. tostring(toolName) .. "`o stored in the machine.|\n"
     d = d .. "add_text_input|tool_remove_amount|Amount to remove:|" .. tostring(math.max(0, inStation)) .. "|3|\n"
     d = d .. "add_custom_button|" .. BTN_TOOL_PANEL_REMOVE .. "|textLabel:Remove;middle_colour:80543231;border_colour:80543231;display:block;|\n"
+    
+    -- Developer: Clear Stock button beside Remove
+    if isDeveloper then
+        d = d .. "add_custom_button|" .. BTN_TOOL_PANEL_CLEAR .. "|textLabel:Clear Stock;middle_colour:13369519;border_colour:13369519;anchor:" .. BTN_TOOL_PANEL_REMOVE .. ";left:1;margin:10,0;|\n"
+    end
+    
     d = d .. "reset_placement_x|\n"
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|" .. BTN_TOOL_PANEL_BACK .. "|Back|noflags|0|0|\n"
@@ -489,17 +532,24 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
 
     local unlockedMaladies = getUnlockedAutoSurgeonMaladies(hospitalLevel)
 
-    for i = 1, #unlockedMaladies do
-        local m           = unlockedMaladies[i]
-        local btnName     = BTN_BIND_PREFIX .. tostring(m)
-        local displayName = tostring(MALADY_PICKER_LABEL[m] or MaladySystem.MALADY_DISPLAY[m] or m)
-        local labelColor  = selected == m and "`2" or "`o"
-        local iconID      = getMaladyIconID(m)
-        d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|noflag|" .. tostring(iconID) .. "||\n"
+    for rowStart = 1, #unlockedMaladies, 2 do
+        local rowEnd = math.min(rowStart + 1, #unlockedMaladies)
+        for i = rowStart, rowEnd do
+            local m           = unlockedMaladies[i]
+            local btnName     = BTN_BIND_PREFIX .. tostring(m)
+            local displayName = tostring(MALADY_PICKER_LABEL[m] or MaladySystem.MALADY_DISPLAY[m] or m)
+            local labelColor  = selected == m and "`2" or "`o"
+            local iconID      = tonumber(getMaladyIconID(m)) or AUTO_SURGEON_ID
+
+            d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|noflags|" .. tostring(iconID) .. "|0|left|\n"
+        end
+        d = d .. "add_custom_break|\n"
         d = d .. "add_spacer|small|\n"
     end
+
+    d = d .. "reset_placement_x|\n"
     d = d .. "add_spacer|small|\n"
-    d = d .. "add_button|" .. BTN_PICKER_BACK .. "|Back|noflags|0|0|\n"
+    d = d .. "add_custom_button|" .. BTN_PICKER_BACK .. "|textLabel:Back;middle_colour:80543231;border_colour:80543231;display:block;|\n"
     d = d .. "add_quick_exit|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
@@ -687,9 +737,13 @@ local function buildAutoSurgeonTileExtraData(world, tile, game_version)
     local station    = getStation(worldName, x, y)
 
     local maladyType = tostring(station and station.malady_type or "")
-    local illnessID  = resolveAutoSurgeonIllnessVisualID(maladyType)
+    local hasMalady  = maladyType ~= ""
+    local illnessID  = 0
+    if hasMalady then
+        illnessID = resolveAutoSurgeonIllnessVisualID(maladyType)
+    end
     local forcedIllnessID = tonumber(_G.__HOSPITAL_FORCE_ILLNESS_ID)
-    if forcedIllnessID then
+    if hasMalady and forcedIllnessID then
         illnessID = math.max(0, math.min(255, math.floor(forcedIllnessID)))
     end
 
@@ -701,6 +755,7 @@ local function buildAutoSurgeonTileExtraData(world, tile, game_version)
     -- 1. Station does not exist
     -- 2. Malady is not configured (empty string)
     -- 3. Station does not have enough tools to perform cure
+    -- 4. Station is not enabled
     local outOfOrder = 0
     if not station or maladyType == "" then
         outOfOrder = 1
@@ -716,6 +771,14 @@ local function buildAutoSurgeonTileExtraData(world, tile, game_version)
                     outOfOrder = 1
                     break
                 end
+            end
+        end
+        
+        -- Station must be enabled to be operational
+        if outOfOrder == 0 then
+            local enabled = tonumber(station.enabled) == 1
+            if not enabled then
+                outOfOrder = 1
             end
         end
     end
@@ -814,6 +877,50 @@ onPlayerDialogCallback(function(world, player, data)
                 AutoSurgeon.removeStationTool(worldName, x, y, toolID, withdrawAmount)
                 AutoSurgeon.refreshStationOperationalState(worldName, x, y)
                 safeBubble(player, "`2Removed " .. tostring(withdrawAmount) .. "x " .. tostring(toolName) .. ".")
+            end
+
+            AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+            return true
+        end
+
+        if btn == BTN_TOOL_PANEL_FULL then
+            -- Developer only: fill storage to max for this tool
+            if player:hasRole(ROLE_DEVELOPER) ~= true then
+                safeBubble(player, "`4Developer only command.")
+                AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+                return true
+            end
+
+            local current = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+            if current >= MAX_TOOL_STORAGE then
+                safeBubble(player, "`8This tool storage is already full.")
+            else
+                AutoSurgeon.addStationTool(worldName, x, y, toolID, MAX_TOOL_STORAGE - current)
+                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                refreshAutoSurgeonTileVisual(world, x, y)
+                safeBubble(player, "`2Storage filled to capacity (1000/1k).")
+            end
+
+            AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+            return true
+        end
+
+        if btn == BTN_TOOL_PANEL_CLEAR then
+            -- Developer only: clear all stock for this tool
+            if player:hasRole(ROLE_DEVELOPER) ~= true then
+                safeBubble(player, "`4Developer only command.")
+                AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
+                return true
+            end
+
+            local current = AutoSurgeon.getStationToolAmount(worldName, x, y, toolID)
+            if current <= 0 then
+                safeBubble(player, "`8There is no stock to clear.")
+            else
+                AutoSurgeon.removeStationTool(worldName, x, y, toolID, current)
+                AutoSurgeon.refreshStationOperationalState(worldName, x, y)
+                refreshAutoSurgeonTileVisual(world, x, y)
+                safeBubble(player, "`2Cleared " .. tostring(current) .. "x " .. tostring(toolName) .. " from storage.")
             end
 
             AutoSurgeon.showAutoSurgeonToolPanel(world, player, worldName, x, y, toolID)
@@ -978,6 +1085,19 @@ onPlayerDialogCallback(function(world, player, data)
         end
 
         if newMalady and newMalady ~= "" then
+            local stationNow = getStation(worldName, x, y) or AutoSurgeon.ensureStation(worldName, x, y)
+            local currentMalady = tostring(stationNow.malady_type or "")
+
+            -- Toggle behavior: clicking selected malady again will unbind and disable station.
+            if currentMalady == newMalady then
+                AutoSurgeon.setStationMalady(worldName, x, y, "")
+                AutoSurgeon.setStationEnabled(worldName, x, y, false)
+                safeBubble(player, "`8Station unbound and disabled.")
+                AutoSurgeon.showAutoSurgeonOwnerPanel(world, player, worldName, x, y)
+                refreshAutoSurgeonTileVisual(world, x, y)
+                return true
+            end
+
             local requiredLevel = tonumber(MALADY_UNLOCK_LEVEL[newMalady]) or 1
             local currentLevel  = tonumber((getHospitalState(worldName) or {}).level) or 1
             if currentLevel < requiredLevel then
