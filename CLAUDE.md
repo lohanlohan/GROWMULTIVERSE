@@ -13,7 +13,7 @@ Membantu user membuat **Growtopia Multiverse Private Server** menggunakan GTPS C
 1. **Akurat** — Selalu rujuk API documentation yang tersedia di project ini. Jangan mengarang fungsi atau parameter yang tidak ada.
 2. **Efisien** — Tulis kode yang clean, tidak redundant, dan performant. Perhatikan warning tentang `onWorldTick` (100ms) dan `onPlayerTick` (1000ms).
 3. **Jujur** — Jika kode user jelek, bilang jelek dan jelaskan kenapa. Jika bagus, bilang bagus. Jangan basa-basi.
-4. **Deep Search API** — Sebelum menjawab pertanyaan coding, selalu cek file API documentation yang relevan di folder `api-docs/` dalam project ini.
+4. **Deep Search API** — Sebelum menjawab pertanyaan coding, selalu cek file API documentation yang relevan di folder `docs/` dalam project ini.
 
 ## Sumber Dokumentasi
 
@@ -27,6 +27,8 @@ Jika ada perbedaan antara kedua sumber, prioritaskan **Skoobz Docs** sebagai ref
 
 ```
 GROWMULTIVERSE/
+├── .github/                            ← Customizations: prompts/, instructions/, hooks/, agents/
+├── .claude/                            ← Claude workspace customizations (optional)
 ├── audio/                              ← File audio real Growtopia (.wav + ogg/)
 ├── cache/                              ← File tambahan GTPS (bukan file GT asli)
 ├── game/                               ← Asset real Growtopia
@@ -36,18 +38,19 @@ GROWMULTIVERSE/
 │   ├── carnival.lua                    ← Contoh: semua script lama ada di sini
 │   └── ...
 ├── lua scripts (nested loader architecture)/  ← TARGET — tempat kita mulai Phase 1
-│   └── (kosong, akan diisi saat migrasi)
+│   └── (akan diisi saat migrasi)
 ├── docs/                               ← API docs + struktur
-├── scripts/                            ← Mirror lama (deprecated, akan dihapus)
 ├── CLAUDE.md                           ← Instruksi AI (file ini)
 ├── PROGRESS.md                         ← Progress tracker per fitur
 └── PROJECT.md                          ← Visi & overview server
 ```
 
 **Aturan folder:**
+- `.github/` & `.claude/` = Customizations & prompts — jangan edit kecuali update konteks
 - `lua scripts (old architecture)/` = **hanya referensi** — jangan edit, jangan hapus
 - `lua scripts (nested loader architecture)/` = **tempat kerja aktif** — semua file baru dibuat di sini
 - `audio/`, `game/`, `GameData/`, `interface/` = **jangan disentuh** — file asli Growtopia
+- `docs/` = **jangan edit secara sembarangan** — update hanya jika ada dokumentasi API baru dari Skoobz atau Nperma
 
 ## File API Documentation (Deep Search di sini)
 
@@ -73,7 +76,7 @@ Semua file ada di folder `docs/`:
 Ketika user bertanya tentang coding:
 
 1. **Identifikasi topik** — Tentukan API mana yang relevan
-2. **Buka file API** — Cek dokumentasi yang sesuai di `api-docs/`
+2. **Buka file API** — Cek dokumentasi yang sesuai di folder `docs/`
 3. **Tulis kode** — Berdasarkan API yang benar
 4. **Review** — Pastikan tidak ada fungsi yang tidak exist, parameter yang salah, atau logic yang buruk
 5. **Berikan feedback** — Jika ada cara yang lebih baik, sarankan
@@ -117,27 +120,58 @@ main.lua → sys_[system].lua → [module].lua
 - **Feature** = topik utama / domain (contoh: hospital, carnival, player)
 - **System** = kumpulan module di dalam sebuah feature
 
-### Lua Sandbox GTPS Cloud — PENTING
-GTPS Cloud menggunakan Lua sandbox yang stripped. Fungsi-fungsi berikut **TIDAK TERSEDIA**:
-- ❌ `pcall` — tidak ada, jangan pernah pakai
-- ❌ `package` / `package.loaded` — tidak ada, jangan pernah pakai
-- ❌ Module/loader yang return `nil` (tidak ada `return`) — crash "attempt to index a nil value" di caller
+### Lua Sandbox GTPS Cloud — PENTING (CONFIRMED 2026-03-27)
+
+GTPS Cloud menggunakan Lua sandbox yang stripped. Limitations berikut **SUDAH DIKONFIRMASI** dan HARUS dipatuhi:
+
+**TIDAK TERSEDIA — JANGAN PERNAH PAKAI:**
+- ❌ `pcall` — tidak ada, akan crash
+- ❌ `package` / `package.loaded` — tidak ada, akan crash
+- ❌ `os.execute()` — sangat berbahaya, jangan pakai di production
+
+**TERSEDIA & DIDUKUNG:**
 - ✅ `require()` — tersedia (versi custom GTPS Cloud)
-- ✅ Nested require didukung (loader require module, dari main yang require loader)
-- ✅ Stub loader (belum diimplementasi) WAJIB `return {}` — bukan hanya `print` lalu selesai
+- ✅ Nested `require()` didukung — loader bisa `require()` module, main bisa `require()` loader
+- ✅ Coroutine (`coroutine.wrap`, `coroutine.resume`) — tersedia untuk async HTTP requests
+
+**CRASHED PATTERNS — PASTI ERROR:**
+- ❌ Module/loader yang `return nil` (tidak ada `return`) → crash "attempt to index a nil value" di caller
+- ❌ Single direct `require("module")` di loader → CRASH, selalu pakai loop pattern meski hanya 1 modul
+- ❌ Path folder di require: `require("lua scripts .../carnival_shared")` → error, gunakan nama file saja: `require("carnival_shared")`
+- ❌ Loader yang hanya print/skip tanpa `return {}` → crash, stub loader HARUS return table
+
+**LOADER PATTERN YANG BENAR (WAJIB):**
+```lua
+local M = {}
+local modules = { "module1", "module2", "module3" }
+for _, name in ipairs(modules) do
+    M[name] = require(name)
+end
+return M
+```
+Selalu pakai loop, bahkan untuk 1 modul. Jangan pernah direct `require()` di loader.
 
 ### Aturan Kunci
-1. **`main.lua`** = satu-satunya entry point, tanpa `-- MODULE`
-2. **`[feature]_loader.lua`** = loader per feature, pakai loop pattern — **tanpa pcall, tanpa single require**
-3. **`[object].lua`** = module di dalam feature, nama = topik/objek utama (bukan `[feature]_[object]`)
+
+1. **`main.lua`** = satu-satunya entry point, tanpa `-- MODULE`. Direct `require()` logger, lalu loop require semua loader
+2. **`[feature]_loader.lua`** = loader per feature, **WAJIB pakai loop pattern**, tanpa `pcall`, tanpa single direct require
+3. **`[object].lua`** = module di dalam feature, nama = topik/objek utama (bukan `[feature]_[object]`). WAJIB mulai dengan `-- MODULE`
 4. **Utils global**: `_G.Utils`, `_G.Config`, `_G.DB` — tersedia di semua module
 5. **JANGAN gunakan `package.loaded`** — `package` adalah nil di GTPS Cloud
-6. **Load order penting**: security → economy → player → world → items → carnival → hospital → events → social → admin
-7. **>500 baris → pecah** menjadi sub-module
-8. **Max 3 level nesting** — jangan bikin level 4
-9. **Cross-feature** via `_G.[FeatureName]`
-10. **File naming**: lowercase underscore — loader: `hospital_loader.lua`, module: `reception_desk.lua`
-11. **logger.lua** di-require langsung dari `main.lua` (bukan lewat logger_loader) karena logger_loader menyebabkan crash
+6. **Load order di main.lua (CONFIRMED di PROGRESS.md)**: 
+   ```
+   logger → security → economy → player → machine → item_info →
+   consumable → backpack → carnival → hospital → events →
+   social → admin → standalones
+   ```
+   Urutan ini penting untuk dependency resolution dan cross-feature access via `_G`
+7. **>500 baris → pecah** menjadi sub-module di folder feature yang sama
+8. **Max 3 level nesting** — jangan bikin level 4+ (main → loader → modules only)
+9. **Cross-feature access** via `_G.[FeatureName]` — contoh: `_G.Carnival.getRewardInfo()`
+10. **File naming**: lowercase underscore
+    - Loader: `[feature]_loader.lua` — contoh: `hospital_loader.lua`
+    - Module: `[object].lua` — contoh: `reception_desk.lua` (bukan `hospital_reception_desk.lua`)
+11. **`logger.lua` di-require langsung** dari `main.lua` (bukan via loader) karena loader menyebabkan crash di early initialization
 
 ### Contoh Struktur Feature
 ```
