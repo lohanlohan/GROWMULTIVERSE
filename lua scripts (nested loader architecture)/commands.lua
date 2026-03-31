@@ -4,7 +4,10 @@
 local M = {}
 
 local ROLE_NONE = 0
-local ROLE_DEVELOPER = 51
+local Config = _G.Config or {}
+local Roles = Config.ROLES or {}
+local ROLE_STAFF = Roles.STAFF or 51
+local ROLE_DEVELOPER = Roles.DEV or 52
 local PlayerSubscriptions = {
     TYPE_SUPER_SUPPORTER = 1,
 }
@@ -76,7 +79,11 @@ local function canUseFeatureCommands(player)
 end
 
 local function isDeveloper(player)
-    return player ~= nil and player.hasRole ~= nil and player:hasRole(ROLE_DEVELOPER)
+    if player == nil or player.hasRole == nil then
+        return false
+    end
+
+    return player:hasRole(ROLE_DEVELOPER) == true or player:hasRole(ROLE_STAFF) == true
 end
 
 local function forceRespawn(world, player)
@@ -157,8 +164,8 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         return false
     end
 
-    if not canUseFeatureCommands(player) then
-        player:onConsoleMessage("`oThis command is only available for`$ Super Supporter`o players.")
+    if not isDeveloper(player) and not canUseFeatureCommands(player) then
+        player:onConsoleMessage("`oThis command is only available for`$ Supporter`o or`$ Super Supporter`o players.")
         player:playAudio("bleep_fail.wav")
         return true
     end
