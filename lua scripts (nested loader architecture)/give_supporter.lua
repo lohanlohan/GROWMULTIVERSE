@@ -3,14 +3,109 @@
 
 local M = {}
 local DB = _G.DB
+local Utils = _G.Utils
 
 local ROLE_DEV        = 51
 local MAX_INVENTORY   = 396
 local SUB_SUPPORTER   = 0
 local SUB_SUPER_SUPP  = 1
 
+local KNOWN_SUBSCRIPTIONS = {
+    { id = 0,  name = "TYPE_SUPPORTER" },
+    { id = 1,  name = "TYPE_SUPER_SUPPORTER" },
+    { id = 2,  name = "TYPE_YEAR_SUBSCRIPTION" },
+    { id = 3,  name = "TYPE_MONTH_SUBSCRIPTION" },
+    { id = 4,  name = "TYPE_GROWPASS" },
+    { id = 5,  name = "TYPE_TIKTOK" },
+    { id = 6,  name = "TYPE_BOOST" },
+    { id = 7,  name = "TYPE_STAFF" },
+    { id = 8,  name = "TYPE_FREE_DAY_SUBSCRIPTION" },
+    { id = 9,  name = "TYPE_FREE_3_DAY_SUBSCRIPTION" },
+    { id = 10, name = "TYPE_FREE_14_DAY_SUBSCRIPTION" },
+}
+
 registerLuaCommand({ command = "givesupp", roleRequired = ROLE_DEV, description = "Grant Supporter/Super Supporter subscription." })
 registerLuaCommand({ command = "giveinv",  roleRequired = ROLE_DEV, description = "Give inventory space to a player." })
+registerLuaCommand({ command = "sublist",  roleRequired = ROLE_DEV, description = "Show active subscriptions of self/target." })
+
+local function uidKey(player)
+    if Utils and Utils.uid then
+        return Utils.uid(player)
+    end
+    return tostring(player:getUserID())
+end
+
+local function normalizeBaseName(raw)
+    local s = tostring(raw or "")
+    s = s:gsub("`.", ""):gsub("^@+", ""):gsub("^%s+", ""):gsub("%s+$", "")
+    s = s:gsub("^Dr%.", ""):gsub(" of Legend$", ""):gsub(" Mentor$", "")
+    return s
+end
+
+local function getDefaultDisplayName(target)
+    local base = ""
+    if target.getRealCleanName then
+        base = normalizeBaseName(target:getRealCleanName())
+    end
+    if base == "" and target.getCleanName then
+        base = normalizeBaseName(target:getCleanName())
+    end
+    if base == "" then
+        base = normalizeBaseName(target:getName())
+    end
+    if base == "" then
+        base = "Player"
+    end
+    return "`0" .. base .. "``"
+end
+
+local function formatSubscriptionStatus(sub)
+    if not sub then
+        return "inactive"
+    end
+    if sub.isPermanent and sub:isPermanent() then
+        return "active (permanent)"
+    end
+    if sub.getExpireTime then
+        local exp = sub:getExpireTime()
+        if exp and exp > 0 then
+            return "active (expires=" .. exp .. ")"
+        end
+    end
+    return "active"
+end
+
+local function showSubscriptionList(requester, target)
+    requester:onConsoleMessage("`w[SubList] Target: `2" .. target:getName() .. "`` (UID: " .. target:getUserID() .. ")")
+
+    local knownSet = {}
+    local activeKnown = 0
+    for _, entry in ipairs(KNOWN_SUBSCRIPTIONS) do
+        knownSet[entry.id] = true
+        local sub = target:getSubscription(entry.id)
+        local status = formatSubscriptionStatus(sub)
+        requester:onConsoleMessage("`o- " .. entry.name .. " (" .. entry.id .. "): `w" .. status)
+        if sub ~= nil then
+            activeKnown = activeKnown + 1
+        end
+    end
+
+    local foundUnknown = false
+    for id = 11, 64 do
+        local sub = target:getSubscription(id)
+        if sub ~= nil then
+            if not foundUnknown then
+                requester:onConsoleMessage("`w[SubList] Non-standard active IDs detected:")
+                foundUnknown = true
+            end
+            requester:onConsoleMessage("`o- ID " .. id .. ": `w" .. formatSubscriptionStatus(sub))
+        end
+    end
+
+    if activeKnown == 0 and not foundUnknown then
+        requester:onConsoleMessage("`4[SubList] No active subscriptions.")
+    end
+end
 
 local function findPlayer(name)
     local needle = (name or ""):lower()
@@ -58,7 +153,7 @@ local function resetSupporterPersonalization(target)
     end
 
     if DB and DB.updatePlayer then
-        DB.updatePlayer("player", target:getUserID(), {
+        DB.updatePlayer("player", uidKey(target), {
             titles = {
                 useIcon = false,
                 prefixDr = false,
@@ -68,12 +163,21 @@ local function resetSupporterPersonalization(target)
         })
     end
 
+    if _G.PlayerSystem
+        and _G.PlayerSystem.custom_titles
+        and _G.PlayerSystem.custom_titles.resetProfile
+    then
+        _G.PlayerSystem.custom_titles.resetProfile(target)
+        return
+    end
+
     if target.sendVariant then
+        local displayName = getDefaultDisplayName(target)
         local payload = string.format(
             "{\"PlayerWorldID\":%d,\"TitleTexture\":\"\",\"TitleTextureCoordinates\":\"0,0\",\"WrenchCustomization\":{\"WrenchForegroundCanRotate\":false,\"WrenchForegroundID\":-1,\"WrenchIconID\":-1}}",
             target:getNetID()
         )
-        target:sendVariant({ "OnNameChanged", target:getName(), payload }, 0, target:getNetID())
+        target:sendVariant({ "OnNameChanged", displayName, payload }, 0, target:getNetID())
     end
 end
 
@@ -139,7 +243,7 @@ end
 
 onPlayerCommandCallback(function(world, player, full)
     local cmd, args = full:match("^(%S+)%s*(.*)$")
-    if cmd ~= "givesupp" and cmd ~= "giveinv" then return false end
+    if cmd ~= "givesupp" and cmd ~= "giveinv" and cmd ~= "sublist" then return false end
 
     if not player:hasRole(ROLE_DEV) then
         player:onConsoleMessage("`4Unknown command. `oEnter /? for a list of valid commands.")
@@ -148,6 +252,23 @@ onPlayerCommandCallback(function(world, player, full)
     end
 
     local targetName, param = args:match("^(%S+)%s*(%S*)$")
+
+    if cmd == "sublist" then
+        if args == "" then
+            showSubscriptionList(player, player)
+            return true
+        end
+
+        local target = findPlayer(targetName or "")
+        if not target then
+            player:onConsoleMessage("Player '" .. (targetName or "") .. "' not found or not online.")
+            player:playAudio("bleep_fail.wav")
+            return true
+        end
+
+        showSubscriptionList(player, target)
+        return true
+    end
 
     if cmd == "giveinv" then
         if args == "" then

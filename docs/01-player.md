@@ -359,6 +359,11 @@ sub:setNextRewardTime(timestamp)
 | TYPE_FREE_3_DAY_SUBSCRIPTION | 9 |
 | TYPE_FREE_14_DAY_SUBSCRIPTION | 10 |
 
+**Catatan penting:**
+- Tidak ada API `player:getSubscriptions()` untuk mengambil semua type yang tersedia dari engine.
+- `player:getSubscription(type)` hanya mengecek 1 type ID per panggilan.
+- Untuk debugging, lakukan probe range ID (contoh `0..64`) dan tampilkan hanya ID yang return object (active).
+
 > **PENTING:** Setelah modify subscription offline player, panggil `savePlayer(player)`
 
 ---
