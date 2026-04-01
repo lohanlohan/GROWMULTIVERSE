@@ -21,7 +21,7 @@ end
 local function addSurgeonSkill(player, amount)
     local uid  = player:getUserID()
     local data = DB.getPlayer("surgeon_skill", uid) or {}
-    data.skill = (tonumber(data.skill) or 0) + (amount or 1)
+    data.skill = math.min(100, (tonumber(data.skill) or 0) + (amount or 1))
     DB.setPlayer("surgeon_skill", uid, data)
     return data.skill
 end
@@ -146,10 +146,14 @@ local function processTool(world, player, session, toolId)
     local msg
     if isFail then
         local rawMsg = SE.applySkillFailEffect(session, toolId)
-        -- Wrap in GT skill fail format (skip special prefixes)
-        if rawMsg and rawMsg ~= "" and rawMsg:sub(1, 9) ~= "<<RETRY>>" then
-            local pct = math.floor(failChance * 100 + 0.5)
-            msg = "`3[`4Skill Fail (" .. pct .. "%)`3] `6" .. rawMsg
+        local pct    = math.floor(failChance * 100 + 0.5)
+        if rawMsg and rawMsg ~= "" then
+            if rawMsg:sub(1, 9) == "<<RETRY>>" then
+                -- Fix It skill fail: keep RETRY flag, add skill fail format to the message
+                msg = "<<RETRY>>`3[`4Skill Fail (" .. pct .. "%)`3] `6" .. rawMsg:sub(10)
+            else
+                msg = "`3[`4Skill Fail (" .. pct .. "%)`3] `6" .. rawMsg
+            end
         else
             msg = rawMsg
         end

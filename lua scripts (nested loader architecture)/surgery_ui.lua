@@ -57,17 +57,11 @@ end
 
 local function consLabel(st)
     local c = st.consciousness
-    if c == "UNCONSCIOUS" then
-        return "`2Unconscious"
-    elseif c == "COMING_TO" then
-        return "`6Coming to"
-    elseif c == "NEAR_COMA" then
-        return "`4Near Coma!"
-    end
-    if st.heartStopped then
-        return "`4Heart `4stopped!"
-    end
-    return "`4Awake"
+    if c == "UNCONSCIOUS" then return "`2Unconscious" end
+    if c == "COMING_TO"   then return "`6Coming To" end
+    if c == "NEAR_COMA"   then return "`4Near Coma!" end
+    -- AWAKE: yellow = safe (no open incisions), red = dangerous (incisions open)
+    return st.incisions > 0 and "`4Awake" or "`3Awake"
 end
 
 -- =======================================================

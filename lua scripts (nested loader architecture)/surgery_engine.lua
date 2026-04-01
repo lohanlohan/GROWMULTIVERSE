@@ -90,7 +90,7 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         requiredScalpels = reqScalpels,
         fixItReady     = (reqScalpels == 0 and not diag.needsFixIt),
         fixItDone      = not diag.needsFixIt,  -- pre-done if not needed
-        abxUnlocked    = not diag.needsLabKit,
+        abxUnlocked    = false,  -- always locked until Lab Kit is used
         bonesRevealed  = not diag.needsUltrasound,
         diagRevealed   = (not diag.needsUltrasound and not diag.needsLabKit and diag.headline ~= nil),
 
@@ -141,15 +141,25 @@ function M.isToolAvailable(session, toolId)
     if toolId == T.ANTISEPTIC  then return true end
     if toolId == T.TRANSFUSION then return true end
 
-    -- Single-use: available until successfully used
-    if toolId == T.ULTRASOUND  then return not st.ultrasoundUsed end
-    if toolId == T.LAB_KIT     then return not st.labKitUsed end
+    local diag = SD.DIAG[st.diagKey]
 
-    -- Available when diagnosis allows it (either needsLabKit=false, or Lab Kit was used)
+    -- Ultrasound: only shown for diagnoses that require it, single-use
+    if toolId == T.ULTRASOUND then
+        if not diag.needsUltrasound then return false end
+        return not st.ultrasoundUsed
+    end
+
+    -- Lab Kit: always available (single-use) for all diagnoses
+    if toolId == T.LAB_KIT then return not st.labKitUsed end
+
+    -- Antibiotics: always locked until Lab Kit is used first
     if toolId == T.ANTIBIOTICS then return st.abxUnlocked end
 
-    -- Fix It: available when objective reached, disappears after use
-    if toolId == T.FIX_IT then return st.fixItReady and not st.fixItDone end
+    -- Fix It: objective must be reached; also requires ultrasound first if diagnosis needs it
+    if toolId == T.FIX_IT then
+        if diag.needsUltrasound and not st.ultrasoundUsed then return false end
+        return st.fixItReady and not st.fixItDone
+    end
 
     -- Bone tools: Splint available whenever bones exist (GT shows Splint before ultrasound for trauma)
     if toolId == T.SPLINT then return st.brokenBones > 0 end
@@ -205,7 +215,8 @@ function M.applyToolEffect(session, toolId)
             return "<<PERMA_DEATH>>"
         end
         if st.consciousness == "UNCONSCIOUS" then
-            st.anesthTurns = 2
+            st.consciousness = "NEAR_COMA"
+            st.anesthTurns   = 2
             return "Overdose! The patient is dangerously close to a coma!"
         end
         local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 4 or 10
@@ -233,7 +244,8 @@ function M.applyToolEffect(session, toolId)
         local failChance = 0.30 - (tonumber(session.surgeonSkillSnapshot) or 0) * 0.002
         failChance = math.max(0.05, failChance)
         if math.random() < failChance then
-            return "<<RETRY>>You screwed it up! Try again."
+            local pct = math.floor(failChance * 100 + 0.5)
+            return "<<RETRY>>`3[`4Fix It Fail (" .. pct .. "%)`3] `6You screwed it up! Try again."
         end
         st.fixItDone  = true
         st.fixItReady = false
@@ -276,10 +288,10 @@ function M.applyToolEffect(session, toolId)
             end
             boneInfo = " You found " .. table.concat(parts, " and ") .. "."
         end
-        local msg = "You scanned the patient with ultrasound, discovering they are suffering from "
-                    .. string.lower(diag.name or "?") .. "!" .. boneInfo
-        st.contextMsg = msg
-        return msg
+        -- Return as lastMsg only — storyHeadline already shows diagnosis persistently.
+        -- Do NOT set contextMsg: would appear alongside lastMsg on same turn, causing duplicates.
+        return "You scanned the patient with ultrasound, discovering they are suffering from "
+               .. string.lower(diag.name or "?") .. "!" .. boneInfo
 
     elseif toolId == T.PINS then
         if st.shatteredBones > 0 then
@@ -394,24 +406,35 @@ function M.applyPassiveEffects(session)
     if st.anesthTurns > 0 then
         st.anesthTurns = st.anesthTurns - 1
     end
+    -- NEAR_COMA is only set by explicit overdose (applyToolEffect), never by passive countdown.
+    -- Normal wakeup sequence: UNCONSCIOUS → COMING_TO → AWAKE
     if st.anesthTurns == 0 then
         st.consciousness = "AWAKE"
-    elseif st.anesthTurns == 1 then
-        st.consciousness = "NEAR_COMA"
-    elseif st.anesthTurns <= 3 then
-        st.consciousness = "COMING_TO"
-    else
-        st.consciousness = "UNCONSCIOUS"
+    elseif st.consciousness ~= "NEAR_COMA" then
+        if st.anesthTurns <= 3 then
+            st.consciousness = "COMING_TO"
+        else
+            st.consciousness = "UNCONSCIOUS"
+        end
     end
 
     -- Bleeding effects (hemophiliac: bleeds 2x faster)
-    -- Pulse is NOT passively worsened by bleeding (confirmed GT debug: SLIGHT/MODERATE
-    -- bleeding over many turns, pulse stayed constant without Transfusion).
-    -- Only visibility and site worsen passively from active bleeding.
+    -- Pulse is NOT passively worsened by bleeding (confirmed GT debug).
+    -- Site always worsens with any bleeding (>NONE).
+    -- Visibility: probability-based per tier (not guaranteed every turn).
+    --   MODERATE=40%, RAPID=65%, INTENSE=100%
+    local bleedIdx   = SD.BLEED_INDEX[st.bleeding] or 1
     local bleedDelta = (st.modifiers and st.modifiers.HEMOPHILIAC) and 2 or 1
-    if SD.BLEED_INDEX[st.bleeding] and SD.BLEED_INDEX[st.bleeding] > 1 then
-        st.visibility = SD.shiftRank(SD.VIS_ORDER,   SD.VIS_INDEX,   st.visibility, bleedDelta)
-        st.siteClean  = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, bleedDelta)
+    if bleedIdx > 1 then
+        st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, bleedDelta)
+        local visChance = 0
+        if     bleedIdx >= (SD.BLEED_INDEX["INTENSE"]   or 5) then visChance = 1.00
+        elseif bleedIdx >= (SD.BLEED_INDEX["RAPID"]     or 4) then visChance = 0.65
+        elseif bleedIdx >= (SD.BLEED_INDEX["MODERATE"]  or 3) then visChance = 0.40
+        end
+        if visChance > 0 and math.random() < visChance then
+            st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, bleedDelta)
+        end
     end
 
     -- Filthy modifier: site gets dirtier faster
@@ -432,15 +455,25 @@ function M.applyPassiveEffects(session)
         end
     end
 
-    -- Fever climbing: temp rises 0.5–2°F per turn
+    -- Fever climbing: reduced rates to avoid insta-death on all diagnoses
+    --   tempRiseFast (FLU, MONKEY_FLU): 0.3–0.7°F per turn
+    --   regular tempRising:             0.1–0.3°F per turn
     if st.tempRising then
-        st.temperature = st.temperature + (0.5 + math.random(0, 3) * 0.5)
+        if diag.tempRiseFast then
+            st.temperature = st.temperature + (0.3 + math.random(0, 2) * 0.2)
+        else
+            st.temperature = st.temperature + (0.1 + math.random(0, 2) * 0.1)
+        end
     end
 
     -- Patient screams/flails if AWAKE with open incisions
+    -- Bleeding penalty kept (+2) — that's the dangerous consequence.
+    -- Visibility only worsens 40% of the time (flailing is chaotic, not always blood in eyes).
     if st.consciousness == "AWAKE" and st.incisions > 0 then
-        st.bleeding   = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 2)
-        st.visibility = SD.shiftRank(SD.VIS_ORDER,   SD.VIS_INDEX,   st.visibility, 1)
+        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 2)
+        if math.random() < 0.40 then
+            st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
+        end
     end
 
     -- Per-diagnosis heart stop chance (while incisions open)

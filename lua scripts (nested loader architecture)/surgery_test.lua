@@ -95,7 +95,7 @@ onPlayerCommandCallback(function(world, player, full)
             return true
         end
 
-        amount = math.min(100, math.max(0, math.floor(amount)))
+        amount = math.max(0, math.floor(amount))
 
         -- getPlayerByName returns a table of matching players (Nperma API)
         local found = getPlayerByName(targetName)
