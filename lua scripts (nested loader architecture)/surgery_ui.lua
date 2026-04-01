@@ -36,10 +36,12 @@ local function tempLabel(temp)
 end
 
 local function cleanLabel(clean)
+    -- Confirmed from GT debug (HEART_ATTACK + SERIOUS_HEAD 2026-04-01):
+    -- SLIGHTLY_DIRTY = `3Not sanitized (yellow), DIRTY = `6Unclean (orange)
     return ({
         CLEAN          = "`2Clean",
-        SLIGHTLY_DIRTY = "`6Unclean",
-        DIRTY          = "`3Not Sanitized",
+        SLIGHTLY_DIRTY = "`3Not sanitized",
+        DIRTY          = "`6Unclean",
         UNSANITARY     = "`4Unsanitary",
     })[clean] or ("`4" .. (clean or "?"))
 end
@@ -53,29 +55,19 @@ local function visRow(vis)
     return nil
 end
 
-local function bleedLabel(bleeding)
-    return ({
-        NONE     = "`2None",
-        SLIGHT   = "`oSlight",
-        MODERATE = "`4Moderate",
-        RAPID    = "`4Rapid",
-        INTENSE  = "`4INTENSE",
-    })[bleeding] or ("`4" .. (bleeding or "?"))
-end
-
 local function consLabel(st)
     local c = st.consciousness
     if c == "UNCONSCIOUS" then
-        return "`2Unconscious `o(" .. st.anesthTurns .. " moves)"
+        return "`2Unconscious"
     elseif c == "COMING_TO" then
-        return "`4Coming To! `o(" .. st.anesthTurns .. " moves)"
+        return "`6Coming to"
     elseif c == "NEAR_COMA" then
         return "`4Near Coma!"
     end
     if st.heartStopped then
         return "`4Heart `4stopped!"
     end
-    return "`3Awake"
+    return "`4Awake"
 end
 
 -- =======================================================
@@ -84,7 +76,7 @@ end
 
 -- Bleeding row: between incisions and spacer
 local function bleedingRow(bleeding)
-    if bleeding == "INTENSE"  then return "`4Patient is losing blood intensely!" end
+    if bleeding == "INTENSE"  then return "Patient is losing blood `4Extremely `4Fast!" end
     if bleeding == "RAPID"    then return "`4Patient is losing blood rapidly!" end
     if bleeding == "MODERATE" then return "Patient is `6losing `6blood!" end
     if bleeding == "SLIGHT"   then return "Patient is losing blood `3slow`3ly." end
@@ -94,12 +86,11 @@ end
 -- Fever row: shown BEFORE spacer (same position as bleeding)
 local function feverRow(st)
     if st.temperature < 100.0 then return nil end
+    if not st.tempRising then return nil end
     local diag = SD.DIAG[st.diagKey] or {}
-    if st.tempRising and diag.tempRiseFast then
+    if diag.tempRiseFast or st.temperature >= 106.0 then
         return "Patient's fever is `4climbing `4fast!"
-    elseif st.temperature >= 106.0 and st.tempRising then
-        return "Patient's fever is `4climbing `4fast!"
-    elseif st.temperature >= 101.0 and st.tempRising then
+    elseif st.temperature >= 101.0 then
         return "Patient's fever is `6clim`6bing!"
     else
         return "Patient's fever is `3slowly `3rising."
@@ -131,7 +122,6 @@ function M.buildPanel(player, session, surgeonSkill)
 
     local d = ""
     d = d .. "set_default_color|`o\n"
-    d = d .. "set_bg_color|54,152,198,200|\n"
     d = d .. "add_label_with_icon|big|`wSurg-E|left|" .. INSURGERY_ITEM_ID .. "|\n"
 
     -- Modifiers (right after header, `9 color)
@@ -142,26 +132,26 @@ function M.buildPanel(player, session, surgeonSkill)
             if mod then parts[#parts+1] = "`9" .. mod.label end
         end
         if #parts > 0 then
-            d = d .. "add_smalltext|" .. table.concat(parts, " `w| ") .. "|\n"
+            d = d .. "add_smalltext|" .. table.concat(parts, " `w| ") .. "|left|\n"
         end
     end
 
     -- Story headline (changes per milestone)
-    d = d .. "add_smalltext|" .. (st.storyHeadline or "`4The patient has not been diagnosed.") .. "|\n"
+    d = d .. "add_smalltext|" .. (st.storyHeadline or "`4The patient has not been diagnosed.") .. "|left|\n"
 
     -- ── Status block ────────────────────────────────────────────────────────
-    d = d .. "add_smalltext|`$Pulse: "        .. pulseLabel(st.pulse)
-          .. "    `$Status: "                   .. consLabel(st) .. "|\n"
-    d = d .. "add_smalltext|`$Temp: "          .. tempLabel(st.temperature)
-          .. "    `$Operation site: "           .. cleanLabel(st.siteClean) .. "|\n"
+    d = d .. "add_smalltext|`oPulse: "         .. pulseLabel(st.pulse)
+          .. "    `oStatus: "                  .. consLabel(st) .. "|left|\n"
+    d = d .. "add_smalltext|`oTemp: "          .. tempLabel(st.temperature)
+          .. "    `oOperation site: "          .. cleanLabel(st.siteClean) .. "|left|\n"
 
     local vr = visRow(st.visibility)
     if vr then
-        d = d .. "add_smalltext|" .. vr .. "|\n"
+        d = d .. "add_smalltext|" .. vr .. "|left|\n"
     end
 
     local incColor = st.incisions == 0 and "`2" or "`3"
-    local incRow = "add_smalltext|`$Incisions: " .. incColor .. st.incisions .. "``"
+    local incRow = "add_smalltext|`oIncisions: " .. incColor .. st.incisions .. "``"
 
     local hasBones = st.brokenBones > 0 or st.shatteredBones > 0
     if hasBones and st.bonesRevealed then
@@ -175,42 +165,43 @@ function M.buildPanel(player, session, surgeonSkill)
         else
             boneStr = "`2OK"
         end
-        d = d .. incRow .. "    `$Bones: " .. boneStr .. "|\n"
+        d = d .. incRow .. "    `oBones: " .. boneStr .. "|left|\n"
     else
-        d = d .. incRow .. "|\n"
+        d = d .. incRow .. "|left|\n"
     end
 
     -- Bleeding + fever rows (between incisions and spacer)
     local br = bleedingRow(st.bleeding)
-    if br then d = d .. "add_smalltext|" .. br .. "|\n" end
+    if br then d = d .. "add_smalltext|" .. br .. "|left|\n" end
     local fr = feverRow(st)
-    if fr then d = d .. "add_smalltext|" .. fr .. "|\n" end
+    if fr then d = d .. "add_smalltext|" .. fr .. "|left|\n" end
 
     -- After spacer: lastMsg, contextMsg, or default "prepped" if nothing
     d = d .. "add_spacer|small|\n"
     local hasMsg = false
     if st.lastMsg and st.lastMsg ~= "" then
-        d = d .. "add_smalltext|`3" .. st.lastMsg .. "|\n"
+        d = d .. "add_smalltext|`3" .. st.lastMsg .. "|left|\n"
         hasMsg = true
     end
     if st.contextMsg and st.contextMsg ~= "" then
-        d = d .. "add_smalltext|`3" .. st.contextMsg .. "|\n"
+        d = d .. "add_smalltext|`3" .. st.contextMsg .. "|left|\n"
         hasMsg = true
     end
     if not hasMsg then
-        d = d .. "add_smalltext|Patient is prepped for surgery.|\n"
+        d = d .. "add_smalltext|Patient is prepped for surgery.|left|\n"
     end
     -- Heart stopped: extra spacer + warning (shown after lastMsg/contextMsg)
     if st.heartStopped then
         d = d .. "add_spacer|small|\n"
-        d = d .. "add_smalltext|`4The patient's `4heart `4has stopped!|\n"
+        d = d .. "add_smalltext|`4The patient's `4heart `4has stopped!|left|\n"
     end
 
     -- ── Tool grid (sequential, client auto-wrap) ─────────────────────────────
+    -- Order confirmed from real GT debug (SERIOUS_HEAD 2026-04-01):
     local toolOrder = {
-        T.DEFIBRILLATOR, T.SPONGE, T.ANESTHETIC, T.STITCHES, T.SCALPEL, T.ULTRASOUND,
-        T.ANTISEPTIC, T.FIX_IT, T.LAB_KIT, T.ANTIBIOTICS, T.TRANSFUSION, T.SPLINT,
-        T.PINS, T.CLAMP,
+        T.SPONGE, T.SCALPEL, T.STITCHES, T.ANTIBIOTICS, T.ANTISEPTIC, T.FIX_IT,
+        T.ULTRASOUND, T.LAB_KIT, T.ANESTHETIC, T.DEFIBRILLATOR, T.SPLINT,
+        T.PINS, T.CLAMP, T.TRANSFUSION,
     }
 
     local invMap = buildInvMap(player)
@@ -227,12 +218,9 @@ function M.buildPanel(player, session, surgeonSkill)
                   .. "||noflags|" .. EMPTY_TRAY_ITEM_ID .. "|\n"
         end
     end
-    -- Slot 15: permanent empty (row 3 slot 3)
-    d = d .. "add_button_with_icon|btn_na_extra||noflags|" .. EMPTY_TRAY_ITEM_ID .. "|\n"
     d = d .. "add_button_with_icon||END_LIST|noflags|0||\n"
 
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_button|btn_giveup|`4Give Up!|noflags|0|0|\n"
+    d = d .. "add_button|btn_giveup|`4Give up!|noflags|0|0|\n"
     d = d .. "end_dialog|" .. dlgName .. "|||\n"
 
     return d

@@ -145,8 +145,8 @@ function M.isToolAvailable(session, toolId)
     if toolId == T.ULTRASOUND  then return not st.ultrasoundUsed end
     if toolId == T.LAB_KIT     then return not st.labKitUsed end
 
-    -- Only available after Lab Kit is physically used
-    if toolId == T.ANTIBIOTICS then return st.labKitUsed end
+    -- Available when diagnosis allows it (either needsLabKit=false, or Lab Kit was used)
+    if toolId == T.ANTIBIOTICS then return st.abxUnlocked end
 
     -- Fix It: available when objective reached, disappears after use
     if toolId == T.FIX_IT then return st.fixItReady and not st.fixItDone end
@@ -171,56 +171,53 @@ function M.applyToolEffect(session, toolId)
 
     if toolId == T.SPONGE then
         st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, -2)
-        return "You clean the operation site. Visibility improves."
+        return "You mopped up the operating site."
 
     elseif toolId == T.LAB_KIT then
         st.labKitUsed  = true
         st.abxUnlocked = true
-        -- For diagnoses revealed by Lab Kit (not Ultrasound), set headline here
         if not diag.needsUltrasound and diag.headline then
             st.diagRevealed  = true
             st.storyHeadline = diag.headline
+            return "You performed lab work on the patient, and discovered they are suffering from "
+                   .. string.lower(diag.name or "unknown") .. "!"
         end
-        return "Lab results in. Antibiotics are now unlocked."
+        return "You performed lab work on the patient, and have antibiotics at the ready."
 
     elseif toolId == T.ANTIBIOTICS then
-        -- Immediate drop on use + 2-turn passive effect (1-3°F per turn)
-        -- Also clears fever climbing flag
         local drop
         if st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT then
-            drop = 0.3 + math.random(0, 3) * 0.1  -- 0.3–0.6°F
+            drop = 0.3 + math.random(0, 3) * 0.1
         else
-            drop = 1 + math.random(0, 2)  -- 1–3°F
+            drop = 1 + math.random(0, 2)
         end
         st.temperature  = math.max(98.6, st.temperature - drop)
         st.tempRising   = false
         st.abxTurnsLeft = 2
-        return string.format("Antibiotics administered. Temperature: %.1f°F. Treatment active for 2 more turns.", st.temperature)
+        return "You used antibiotics to reduce the patient's infection."
 
     elseif toolId == T.ANTISEPTIC then
         st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, -2)
-        return "Area disinfected."
+        return "You applied antiseptic to the area."
 
     elseif toolId == T.ANESTHETIC then
-        -- Near coma → re-dose = permanent death (overdose)
         if st.consciousness == "NEAR_COMA" then
             return "<<PERMA_DEATH>>"
         end
-        -- Already unconscious → overdose: patient enters NEAR_COMA after passive tick
         if st.consciousness == "UNCONSCIOUS" then
-            st.anesthTurns = 2  -- passive tick: 2→1 = NEAR_COMA
-            return "Overdose! Patient critical — DO NOT use Anesthetic again!"
+            st.anesthTurns = 2
+            return "Overdose! The patient is dangerously close to a coma!"
         end
-        -- AWAKE or COMING_TO → normal dose / safe re-dose → UNCONSCIOUS
         local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 4 or 10
         st.consciousness = "UNCONSCIOUS"
         st.anesthTurns   = turns
-        return string.format("Patient sedated. You have about %d moves.", turns)
+        return "The patient falls into a deep sleep."
 
     elseif toolId == T.SCALPEL then
         st.incisions    = st.incisions + 1
         st.scalpelCount = st.scalpelCount + 1
-        st.bleeding     = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+        -- Successful scalpel = neat incision, does NOT increase bleeding (confirmed GT debug)
+        -- Only skill fail scalpel increases bleeding (+2 in applySkillFailEffect)
         if diag.needsFixIt and st.scalpelCount >= st.requiredScalpels then
             st.fixItReady = true
             if diag.scalpelHeadline then
@@ -230,63 +227,81 @@ function M.applyToolEffect(session, toolId)
                 st.contextMsg = diag.scalpelContextMsg
             end
         end
-        return "Incision made. Incisions: " .. st.incisions
+        return "You've made a neat incision."
 
     elseif toolId == T.FIX_IT then
-        -- 30% chance it fails on first try (retryable)
         local failChance = 0.30 - (tonumber(session.surgeonSkillSnapshot) or 0) * 0.002
         failChance = math.max(0.05, failChance)
         if math.random() < failChance then
-            return "<<RETRY>>You screwed it up! Try again."  -- special marker
+            return "<<RETRY>>You screwed it up! Try again."
         end
         st.fixItDone  = true
         st.fixItReady = false
         if diag.fixItHeadline then
             st.storyHeadline = diag.fixItHeadline
         end
-        return "Fix It! The procedure is complete. Now close up the incisions."
+        return diag.fixItHeadline or "Fix It! The procedure is complete."
 
     elseif toolId == T.STITCHES then
-        if st.incisions > 0 then
+        local hadIncision = st.incisions > 0
+        if hadIncision then
             st.incisions = st.incisions - 1
         end
-        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, -2)
-        return "Incisions reduced to " .. st.incisions .. ". Bleeding: " .. st.bleeding
+        -- Closing a proper incision = -2, bandaging with no incision = -1 (confirmed GT debug)
+        local bleedDelta = hadIncision and -2 or -1
+        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, bleedDelta)
+        return hadIncision and "You stitched up an incision." or "You bandaged some injuries."
 
     elseif toolId == T.SPLINT then
         if st.brokenBones > 0 then
             st.brokenBones = st.brokenBones - 1
         end
-        return "Bone set. Broken bones remaining: " .. st.brokenBones
+        return "You splinted a broken bone."
 
     elseif toolId == T.ULTRASOUND then
         st.ultrasoundUsed = true
         st.bonesRevealed  = true
         st.diagRevealed   = true
-        st.storyHeadline  = diag.headline or ("Patient suffers from " .. (diag.name or "?") .. ".")
-        return ""
+        if diag.headline then
+            st.storyHeadline = diag.headline
+        end
+        local boneInfo = ""
+        if st.brokenBones > 0 or st.shatteredBones > 0 then
+            local parts = {}
+            if st.brokenBones > 0 then
+                parts[#parts+1] = st.brokenBones .. " broken bone" .. (st.brokenBones > 1 and "s" or "")
+            end
+            if st.shatteredBones > 0 then
+                parts[#parts+1] = st.shatteredBones .. " shattered bone" .. (st.shatteredBones > 1 and "s" or "")
+            end
+            boneInfo = " You found " .. table.concat(parts, " and ") .. "."
+        end
+        local msg = "You scanned the patient with ultrasound, discovering they are suffering from "
+                    .. string.lower(diag.name or "?") .. "!" .. boneInfo
+        st.contextMsg = msg
+        return msg
 
     elseif toolId == T.PINS then
         if st.shatteredBones > 0 then
             st.shatteredBones = st.shatteredBones - 1
             st.brokenBones    = st.brokenBones + 1
         end
-        return "Shattered bone stabilized → now broken. Shattered: " .. st.shatteredBones
+        return "You pinned a shattered bone together. Don't forget to splint it!"
 
     elseif toolId == T.CLAMP then
         st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, -1)
-        return "Clamped. Bleeding: " .. st.bleeding
+        return "You clamped the wound."
 
     elseif toolId == T.TRANSFUSION then
         st.pulse = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, -2)
-        return ""
+        return "You transfused several pints of blood into your patient."
 
     elseif toolId == T.DEFIBRILLATOR then
         if st.heartStopped then
             st.heartStopped     = false
             st.heartStopTurns   = 0
             st.pulse            = "WEAK"
-            return "CLEAR! Heart restarted. Pulse is Weak."
+            return "You shocked the patient back to life!"
         end
         return "Defibrillator used but patient's heart is fine."
     end
@@ -333,8 +348,14 @@ function M.applySkillFailEffect(session, toolId)
         local diag = SD.DIAG[st.diagKey]
         if diag.needsFixIt and st.scalpelCount >= st.requiredScalpels then
             st.fixItReady = true
+            if diag.scalpelHeadline then
+                st.storyHeadline = diag.scalpelHeadline
+            end
+            if diag.scalpelContextMsg then
+                st.contextMsg = diag.scalpelContextMsg
+            end
         end
-        return SD.TOOL_FAIL_MSG[T.SCALPEL] .. " Extra bleeding."
+        return SD.TOOL_FAIL_MSG[T.SCALPEL]
 
     elseif toolId == T.FIX_IT then
         return "<<RETRY>>You screwed it up! Try again."
@@ -384,9 +405,11 @@ function M.applyPassiveEffects(session)
     end
 
     -- Bleeding effects (hemophiliac: bleeds 2x faster)
+    -- Pulse is NOT passively worsened by bleeding (confirmed GT debug: SLIGHT/MODERATE
+    -- bleeding over many turns, pulse stayed constant without Transfusion).
+    -- Only visibility and site worsen passively from active bleeding.
     local bleedDelta = (st.modifiers and st.modifiers.HEMOPHILIAC) and 2 or 1
     if SD.BLEED_INDEX[st.bleeding] and SD.BLEED_INDEX[st.bleeding] > 1 then
-        st.pulse      = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, 1)
         st.visibility = SD.shiftRank(SD.VIS_ORDER,   SD.VIS_INDEX,   st.visibility, bleedDelta)
         st.siteClean  = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, bleedDelta)
     end
@@ -454,9 +477,8 @@ function M.applyPassiveEffects(session)
         elseif ev == "worms_escape" then
             -- After fixItDone, ~25% chance worms escape → reset Fix It
             if st.fixItDone and math.random() < 0.25 then
-                st.fixItDone  = true  -- keep done but reset ready so player must redo
-                st.fixItReady = true
                 st.fixItDone  = false
+                st.fixItReady = true
                 st.lastMsg    = (st.lastMsg or "") .. " `4Worms escaped to the back of the brain! Fix It again!"
             end
 

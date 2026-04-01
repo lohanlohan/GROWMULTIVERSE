@@ -143,33 +143,46 @@ social → admin → standalones
 | `reception_desk.lua` | `hospital_reception_desk.lua` | ✅ owner panel, manage doctors |
 | `operating_table.lua` | `hospital_operating_table.lua` | ✅ 3 visual states + event-driven tick + prize panel + surgery minigame |
 | `surgery_loader.lua` | — | ✅ load 5 surgery modul (+ surgprize) |
-| `surgery_data.lua` | — | ✅ 27 diagnoses + 7-level pulse + modifiers + exact GT fail messages + headline texts |
+| `surgery_data.lua` | — | ✅ 28 diagnoses + 7-level pulse + modifiers + exact GT fail messages + headline texts |
 | `surgery_engine.lua` | — | ✅ session management + unified win check + special events + Lab Kit reveal |
 | `surgery_ui.lua` | — | ✅ sequential tool grid + story headline + fever/bleeding rows + heart stopped warning |
 | `surgery_callbacks.lua` | — | ✅ dialog callbacks + DB prize pool + 3 reward flavor messages + allowedDiags |
 | `surgprize.lua` | — | ✅ /surgprize panel UI per-diagnosis, 5 slots, item picker |
 | `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
 
-**Surgery Minigame — Status 2026-04-01, updated via real GT debug:**
-- 27 diagnoses: 16 standard + 5 malady + 6 vile vial ✅
+**Surgery Minigame — Status 2026-04-01, updated via real GT debug + full audit:**
+- 28 diagnoses: 17 standard + 5 malady + 6 vile vial ✅ (MONKEY_FLU ditambah)
 - Story headline system: storyHeadline per milestone (diagRevealed via Lab Kit/Ultrasound, scalpelHeadline, fixItHeadline) ✅
 - Lab Kit reveal: set storyHeadline jika needsUltrasound=false ✅
-- Diagnoses dengan confirmed headlines (dari GT debug): FLU, BROKEN_LEG, APPENDICITIS, KIDNEY_FAILURE, BRAIN_TUMOR, SWALLOWED_WL, HERNIATED_DISC, SERIOUS_TRAUMA ✅
+- ANTIBIOTICS: availability check pakai `abxUnlocked` (bukan `labKitUsed`) ✅
+- Diagnoses dengan confirmed headlines (dari GT debug): FLU, MONKEY_FLU, BROKEN_LEG, APPENDICITIS, KIDNEY_FAILURE, BRAIN_TUMOR, SWALLOWED_WL, HERNIATED_DISC, SERIOUS_TRAUMA, NOSE_JOB, MASSIVE_TRAUMA, SERIOUS_HEAD, HEART_ATTACK ✅
+- Diagnoses **tanpa headline** (belum ada GT debug data): LIVER_INFECTION, BROKEN_EVERYTHING, semua malady, semua vile_vial
 - Splint available dari awal (tidak perlu bonesRevealed) ✅
 - Bones row: hidden sepenuhnya sebelum ultrasound ✅
-- allowedDiags cfg: operating_table hanya pakai DIAG_KEYS_STANDARD (16 penyakit) ✅
+- allowedDiags cfg: operating_table hanya pakai DIAG_KEYS_STANDARD (17 penyakit) ✅
 - Prize pool: DB-based per diagnosis via /surgprize, Caduceus wajib + random prize ✅
 - 3 reward flavor messages (random) ✅
-- Success: console only (tidak ada result panel) ✅
-- Fail: result panel tetap muncul ✅
+- Success + Fail: result panel muncul di keduanya ✅
 - Heart stopped: consLabel "Heart `4stopped!" + extra spacer + warning row ✅
 - FLU: tempRiseFast=true → "climbing fast!" dari awal ✅
+- Exact GT tool success & fail messages: semua 14 tool confirmed ✅
+- cleanLabel color: SLIGHTLY_DIRTY=`3, DIRTY=`6, UNSANITARY=`4 ✅ (swap fixed)
+- COMING_TO consLabel: `6 warna, tanpa move count ✅
+- INTENSE bleeding row: "Extremely Fast" bukan "intensely" ✅
+- feverRow: return nil jika tempRising=false ✅
+- CHAOS_INFECTION: requiredScalpels=0 (bukan 3, orphaned) ✅
+- HERNIATED_DISC: fixItHeadline ditambah ✅
+- getSurgeonSkill: 1 read per move (tidak double) ✅
 - getItem() (bukan getItemById) ✅
 - role_inject.lua: item 25036 = role 51, 25038 = role 0 ✅
 
 **Surgery UI confirmed via GT debug (2026-04-01):**
-- Tool order: Defibrillator, Sponge, Anesthetic, Stitches, Scalpel, Ultrasound, Antiseptic, Fix It!, Lab Kit, Antibiotics, Transfusion, Splint, Pins, Clamp ✅
+- Tool order (re-confirmed GT debug SERIOUS_HEAD 2026-04-01): Sponge, Scalpel, Stitches, Antibiotics, Antiseptic, Fix It!, Ultrasound, Lab Kit, Anesthetic, Defibrillator, Splint, Pins, Clamp, Transfusion ✅
 - Sequential layout (END_LIST), client auto-wrap, text_scaling_string|Defibrillator ✅
+- add_smalltext pakai |left| alignment pada semua baris di surgery panel ✅
+- cleanLabel confirmed: SLIGHTLY_DIRTY=`3"Not sanitized", DIRTY=`6"Unclean", UNSANITARY=`4"Unsanitary" ✅
+- Scalpel SUCCESS tidak naikan bleeding (hanya skill fail +2) ✅
+- HEART_ATTACK: needsUltrasound=true, initialTemp=98.6, tempRising=false, initialPulse=STRONG ✅
 - Bleeding row SEBELUM spacer, fever row SEBELUM spacer ✅
 - "prepped for surgery" hanya muncul jika lastMsg DAN contextMsg kosong ✅
 - Operation site: lowercase 's' ✅

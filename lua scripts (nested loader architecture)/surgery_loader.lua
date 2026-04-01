@@ -8,6 +8,7 @@ local modules = {
     "surgery_ui",
     "surgery_callbacks",
     "surgprize",
+    "surgery_test",
 }
 
 -- Each module sets its _G global immediately after load so the next

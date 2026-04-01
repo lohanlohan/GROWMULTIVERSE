@@ -109,11 +109,9 @@ local function endSurgery(world, player, session, success, failReason)
         cfg.onEnd(world, player, success)
     end
 
-    -- Show result: success = console only, fail = panel
-    if not success then
-        local resultDlg = SU.buildResultPanel(false, failReason, diagName, skill, newSkill, x, y)
-        player:onDialogRequest(resultDlg, 0)
-    end
+    -- Show result panel for both success and failure
+    local resultDlg = SU.buildResultPanel(success, failReason, diagName, skill, newSkill, x, y)
+    player:onDialogRequest(resultDlg, 0)
 end
 
 -- =======================================================
@@ -140,8 +138,9 @@ local function processTool(world, player, session, toolId)
         return
     end
 
-    -- RNG: skill fail check
-    local failChance = SD.skillFailChance(getSurgeonSkill(player))
+    -- RNG: skill fail check (cache skill to avoid 2 DB reads per move)
+    local skill      = getSurgeonSkill(player)
+    local failChance = SD.skillFailChance(skill)
     local isFail     = math.random() < failChance
 
     local msg
@@ -197,7 +196,6 @@ local function processTool(world, player, session, toolId)
     end
 
     -- Continue: show updated panel
-    local skill = getSurgeonSkill(player)
     local panel = SU.buildPanel(player, session, skill)
     player:onDialogRequest(panel, 0)
 end

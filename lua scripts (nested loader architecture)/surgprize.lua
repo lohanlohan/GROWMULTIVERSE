@@ -34,7 +34,7 @@ local function openMainPanel(player)
     local data = load()
     local d = ""
     d = d .. "set_default_color|`o\n"
-    d = d .. "add_label|big|`wSurgery Prizes|left|\n"
+    d = d .. "add_label_with_icon|big|`wSurgery Prizes|left|25028|\n"
     d = d .. "add_textbox|Select a diagnosis to configure its prize pool:|\n"
     d = d .. "add_spacer|small|\n"
 
@@ -54,7 +54,7 @@ local function openMainPanel(player)
 
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|btn_close|`7Close|noflags|0|0|\n"
-    d = d .. "end_dialog|surg_prize_main|||"
+    d = d .. "end_dialog|surg_prize_main|||\n"
     player:onDialogRequest(d)
 end
 
@@ -65,7 +65,7 @@ local function openEditPanel(player, diagKey, delay)
 
     local d = ""
     d = d .. "set_default_color|`o\n"
-    d = d .. "add_label|big|`w" .. diagName .. "|left|\n"
+    d = d .. "add_label_with_icon|big|`w" .. diagName .. "|left|25028|\n"
     d = d .. "add_textbox|`7Set item, amount, and chance (0-100) for each slot. Chance 0 = disabled.|\n"
     d = d .. "embed_data|diag|" .. diagKey .. "|\n"
 
@@ -74,7 +74,7 @@ local function openEditPanel(player, diagKey, delay)
         local item = (tonumber(p.itemId) or 0) > 0 and getItem(tonumber(p.itemId)) or nil
         local name = item and item:getName() or "Empty"
         d = d .. "add_spacer|small|\n"
-        d = d .. "add_label|small|`wSlot " .. i .. "|left|\n"
+        d = d .. "add_smalltext|`wSlot " .. i .. "|\n"
         d = d .. "add_item_picker|slot_item_" .. i .. "|`w" .. name .. "`7:|Select Prize Item|\n"
         d = d .. "add_text_input|slot_amt_" .. i .. "|Amount:|" .. (p.amount or 1) .. "|6|\n"
         d = d .. "add_text_input|slot_chance_" .. i .. "|Chance (%):|" .. (p.chance or 0) .. "|4|\n"
@@ -83,7 +83,7 @@ local function openEditPanel(player, diagKey, delay)
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|btn_save|`2Save Prizes|noflags|0|0|\n"
     d = d .. "add_button|btn_back|`oBack|noflags|0|0|\n"
-    d = d .. "end_dialog|surg_prize_edit|||"
+    d = d .. "end_dialog|surg_prize_edit|||\n"
     player:onDialogRequest(d, delay or 0)
 end
 

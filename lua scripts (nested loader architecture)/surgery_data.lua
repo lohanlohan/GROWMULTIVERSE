@@ -1,5 +1,5 @@
 -- MODULE
--- surgery_data.lua — Surgical tool definitions and all 27 diagnoses
+-- surgery_data.lua — Surgical tool definitions and all 28 diagnoses
 
 local M = {}
 
@@ -47,7 +47,7 @@ M.TOOL_FAIL_MSG = {
     [1258] = "You somehow managed to eat the sponge.",
     [1260] = "This will leave a nasty scar, but you managed to cut the right place.",
     [1262] = "You end up inhaling all the anesthetic yourself. You feel woozy.",
-    [1270] = "You somehow tied yourself up in stitches.",
+    [1270] = "You somehow tied yourself up in stitches!",
     [1266] = "This is the wrong medication! The bacteria like it.",
     [1264] = "You spilled antiseptic on your shoes. They are very clean now.",
     [1268] = "You ate a splint, good job!",
@@ -55,7 +55,7 @@ M.TOOL_FAIL_MSG = {
     [4312] = "You electrocuted yourself!",
     [4308] = "You jabbed the pin through the artery!",
     [4314] = "The clamp fell out of your hand, oh well.",
-    [4310] = "You spilled blood everywhere!",
+    [4310] = "You spilled all of it! Kind of gross.",
     [4316] = "You scanned the nurse with your ultrasound!",
     [1296] = "You screwed it up! Try again.",
 }
@@ -244,18 +244,22 @@ M.DIAG = {
     HEART_ATTACK = {
         name             = "Heart Attack",
         category         = "standard",
-        description      = "Cardiac emergency. Lower fever if needed, sedate, make two incisions, Fix It, Stitches.",
-        initialTemp      = 100.2,
-        tempRising       = true,
-        initialPulse     = "WEAK",
+        description      = "Cardiac emergency. Ultrasound to confirm, sedate, two incisions, Fix It, stitch up. Heart may stop — keep Defibrillator ready.",
+        initialTemp      = 98.6,
+        tempRising       = false,
+        initialPulse     = "STRONG",
         initialBleeding  = "NONE",
         brokenBones      = 0,
         shatteredBones   = 0,
         needsLabKit      = true,
-        needsUltrasound  = false,
+        needsUltrasound  = true,
         needsFixIt       = true,
         requiredScalpels = 2,
         heartStopChance  = 0.03,
+        headline         = "Patient had a heart attack.",
+        scalpelHeadline  = "The heart is now exposed for operating.",
+        scalpelContextMsg = "The heart is now exposed for operating.",
+        fixItHeadline    = "You grafted in some nice new arteries!",
     },
 
     BRAIN_TUMOR = {
@@ -377,6 +381,7 @@ M.DIAG = {
         headline         = "Patient's spine is damaged.",
         scalpelHeadline  = "You've opened up the vertebrae.",
         scalpelContextMsg = "You've opened up the vertebrae.",
+        fixItHeadline    = "You repaired the herniated disc!",
     },
 
     BROKEN_EVERYTHING = {
@@ -399,18 +404,22 @@ M.DIAG = {
     SERIOUS_HEAD = {
         name             = "Serious Head Injury",
         category         = "standard",
-        description      = "Head trauma with active bleeding. STOP THE BLEEDING FIRST with Stitches before using Anesthetic!",
+        description      = "Head trauma with active bleeding. Sponge to clear visibility, Transfuse to stabilize pulse, Lab Kit, Ultrasound, Anesthetic, then operate.",
         initialTemp      = 98.6,
         tempRising       = false,
         initialPulse     = "WEAK",
         initialBleeding  = "MODERATE",
         brokenBones      = 0,
         shatteredBones   = 0,
-        needsLabKit      = false,
-        needsUltrasound  = false,
+        needsLabKit      = true,
+        needsUltrasound  = true,
         needsFixIt       = true,
         requiredScalpels = 1,
         heartStopChance  = 0,
+        headline         = "Patient has a serious head injury.",
+        scalpelHeadline  = "You've opened the skull.",
+        scalpelContextMsg = "You've opened the skull.",
+        fixItHeadline    = "You reduced the swelling!",
     },
 
     SERIOUS_TRAUMA = {
@@ -564,7 +573,7 @@ M.DIAG = {
         needsLabKit      = true,
         needsUltrasound  = false,
         needsFixIt       = false,
-        requiredScalpels = 3,
+        requiredScalpels = 0,
         heartStopChance  = 0,
         specialEvent     = "chaos",
     },
