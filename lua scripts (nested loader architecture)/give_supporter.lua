@@ -147,14 +147,43 @@
         return nil
     end
 
+    local function sendResetVariants(target)
+        -- Kirim variant packets untuk reset status seperti /hidestatus
+        target:sendVariant({ "OnTransmutateLinkDataModified" })
+
+        -- Pakai nilai default yang dipakai /hidestatus, supaya style/supporter marker mati
+        target:sendVariant({ "OnSetRoleSkinsAndIcons", 6, 6, 0 })
+
+        -- Reset clothing transform (pakai placeholder dari paket /hidestatus)
+        target:sendVariant({ "OnSetClothing", "x: 1442.000000 y: 0.000000 z: 3172.000000", "x: 0.000000 y: 3774.000000 z: 0.000000", "x: 818.000000 y: 0.000000 z: 16076.000000", 3370516479, "x: 0.000000 y: 1.000000 z: 0.000000" })
+
+        -- Reset status UI / guild / internal flags
+        target:sendVariant({ "OnGuildDataChanged", 0, 0, 0, 0 })
+        target:sendVariant({ "OnFlagMay2019", 0 })
+        target:sendVariant({ "OnClearItemTransforms" })
+
+        -- Billboard harus 6 agar sama dengan /hidestatus
+        target:sendVariant({ "OnBillboardChange", 6, 25038, "0,0", 1, 1 })
+
+        -- Country state dotted dari player
+        local country = (target.getCountry and target:getCountry() or "us")
+        target:sendVariant({ "OnCountryState", country })
+
+        -- Nama/title reset: biasa dicall on hidestatus dan presenter default
+        local clearedName = sanitizeDisplayName(target:getName() or "")
+        target:sendVariant({ "OnNameChanged", clearedName, "{}" })
+    end
+
     local function applySupporterSubscription(target, tier)
         if tier == "sup" then
             target:removeSubscription(SUB_SUPER_SUPP)
+            sendResetVariants(target)
             target:addSubscription(SUB_SUPPORTER, 0)
             return "Supporter"
         end
 
         target:removeSubscription(SUB_SUPPORTER)
+        sendResetVariants(target)
         target:addSubscription(SUB_SUPER_SUPP, 0)
         return "Super Supporter"
     end
@@ -189,6 +218,7 @@
         target:removeSubscription(SUB_SUPPORTER)
         target:removeSubscription(SUB_SUPER_SUPP)
         resetSupporterPersonalization(target)
+        sendResetVariants(target)
     end
 
     local function openGiveSuppDialog(requester, target)
