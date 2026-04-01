@@ -50,7 +50,7 @@ M.TOOL_FAIL_MSG = {
     [1270] = "You somehow tied yourself up in stitches.",
     [1266] = "This is the wrong medication! The bacteria like it.",
     [1264] = "You spilled antiseptic on your shoes. They are very clean now.",
-    [1268] = "You somehow cut the patient.",
+    [1268] = "You ate a splint, good job!",
     [4318] = "You contaminated the sample.",
     [4312] = "You electrocuted yourself!",
     [4308] = "You jabbed the pin through the artery!",
@@ -98,7 +98,7 @@ function M.skillFailChance(surgeonSkill)
 end
 
 -- =======================================================
--- DIAGNOSES  (27 total)
+-- DIAGNOSES  (28 total)
 -- =======================================================
 -- Fields:
 --   name              string
@@ -144,6 +144,25 @@ M.DIAG = {
         headline         = "Patient is showing signs of the bird flu.",
     },
 
+    MONKEY_FLU = {
+        name             = "Monkey Flu",
+        category         = "standard",
+        description      = "Patient has a severe monkey flu infection. Use Lab Kit first, then Antibiotics until temperature returns to normal.",
+        initialTemp      = 107.6,
+        tempRising       = true,
+        tempRiseFast     = true,
+        initialPulse     = "STRONG",
+        initialBleeding  = "NONE",
+        brokenBones      = 0,
+        shatteredBones   = 0,
+        needsLabKit      = true,
+        needsUltrasound  = false,
+        needsFixIt       = false,
+        requiredScalpels = 0,
+        heartStopChance  = 0,
+        headline         = "Patient is showing signs of the monkey flu.",
+    },
+
     BROKEN_ARM = {
         name             = "Broken Arm",
         category         = "standard",
@@ -183,18 +202,22 @@ M.DIAG = {
     NOSE_JOB = {
         name             = "Nose Job",
         category         = "standard",
-        description      = "Routine cosmetic procedure. Ultrasound, sedate, one incision, Fix It, then close up.",
+        description      = "Routine cosmetic procedure. Sedate, one incision, Fix It, then stitch up.",
         initialTemp      = 98.6,
         tempRising       = false,
-        initialPulse     = "STEADY",
+        initialPulse     = "STRONG",
         initialBleeding  = "NONE",
         brokenBones      = 0,
         shatteredBones   = 0,
         needsLabKit      = false,
-        needsUltrasound  = true,
+        needsUltrasound  = false,
         needsFixIt       = true,
         requiredScalpels = 1,
         heartStopChance  = 0,
+        headline         = "Patient wants a nose job.",
+        scalpelHeadline  = "You have cut into nasal area.",
+        scalpelContextMsg = "You have cut into nasal area.",
+        fixItHeadline    = "You rearranged their face!",
     },
 
     LUNG_TUMOR = {
@@ -414,18 +437,23 @@ M.DIAG = {
     MASSIVE_TRAUMA = {
         name             = "Massive Trauma",
         category         = "standard",
-        description      = "Critical condition. Stop bleeding immediately, Transfuse, Ultrasound, then operate carefully.",
+        description      = "Critical condition. Sponge first to see anything, stop bleeding, Transfuse, Lab Kit, Ultrasound, then operate. Heart may stop after sedation.",
         initialTemp      = 98.6,
         tempRising       = false,
-        initialPulse     = "VERY_WEAK",
-        initialBleeding  = "RAPID",
+        initialPulse     = "STEADY",
+        initialBleeding  = "INTENSE",
+        initialVisibility = "IMPOSSIBLE",
         brokenBones      = 2,
         shatteredBones   = 2,
-        needsLabKit      = false,
+        needsLabKit      = true,
         needsUltrasound  = true,
-        needsFixIt       = false,
+        needsFixIt       = true,
         requiredScalpels = 3,
         heartStopChance  = 0.05,
+        headline         = "Patient suffered massive trauma with internal bleeding.",
+        scalpelHeadline  = "You found the internal bleed.",
+        scalpelContextMsg = "You found the internal bleed.",
+        fixItHeadline    = "You cauterized it.",
     },
 
     -- =========================================================
@@ -686,7 +714,7 @@ end
 -- =======================================================
 
 M.DIAG_KEYS_STANDARD = {
-    "FLU", "BROKEN_ARM", "BROKEN_LEG", "NOSE_JOB", "LUNG_TUMOR",
+    "FLU", "MONKEY_FLU", "BROKEN_ARM", "BROKEN_LEG", "NOSE_JOB", "LUNG_TUMOR",
     "HEART_ATTACK", "BRAIN_TUMOR", "LIVER_INFECTION", "KIDNEY_FAILURE",
     "APPENDICITIS", "SWALLOWED_WL", "HERNIATED_DISC", "BROKEN_EVERYTHING",
     "SERIOUS_HEAD", "SERIOUS_TRAUMA", "MASSIVE_TRAUMA",

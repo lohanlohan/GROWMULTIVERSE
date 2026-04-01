@@ -88,6 +88,7 @@ player:isFacingLeft()                     -- Return: boolean
 player:isOnline()                         -- Return: boolean
 player:getGameVersion()                   -- Return: float (misal 3.02)
 player:getPlaytime()                      -- Return: number (total detik, nperma)
+player:getLastOnline()                    -- Return: timestamp (detik) kapan player terakhir online
 ```
 
 ---
