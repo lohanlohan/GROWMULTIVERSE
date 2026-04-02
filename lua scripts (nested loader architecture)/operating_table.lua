@@ -107,22 +107,31 @@ end
 -- NATIVE SURGERY INTERCEPT
 -- =======================================================
 
--- 1. Surg-E (item 4296): Sebia sends end_dialog|surge|Cancel|Okay!| with embed_data tilex/tiley.
+-- embed_data from native Sebia dialogs is NOT echoed back to Lua callbacks.
+-- Capture tile position at wrench time and store here, keyed by player name.
+if not _G.__SURGE_PENDING then _G.__SURGE_PENDING = {} end
+
+-- 1. Surg-E: Sebia sends end_dialog|surge|Cancel|Okay!|
+--    Tile position was stored in _G.__SURGE_PENDING at wrench time.
 onPlayerDialogCallback(function(world, player, data)
     if (data["dialog_name"] or "") ~= "surge" then return false end
-    -- end_dialog footer buttons: OK may arrive as "Okay!" or "" depending on client.
-    -- Only skip if player explicitly clicked Cancel.
     local btn = data["buttonClicked"] or ""
-    if btn == "Cancel" then return true end
+    if btn == "Cancel" then
+        _G.__SURGE_PENDING[player:getName()] = nil
+        return true
+    end
 
-    local x = tonumber(data["tilex"])
-    local y = tonumber(data["tiley"])
-    if not x or not y then
+    local pending = _G.__SURGE_PENDING[player:getName()]
+    _G.__SURGE_PENDING[player:getName()] = nil
+
+    if not pending then
         player:onConsoleMessage("`4[Surgery] Could not determine tile position.")
         return true
     end
 
+    local x, y     = pending.x, pending.y
     local worldName = getWorldName(world)
+
     if not _G.SurgerySystem then
         player:onConsoleMessage("`4[Surgery] SurgerySystem not loaded.")
         return true
@@ -135,41 +144,53 @@ onPlayerDialogCallback(function(world, player, data)
     return true
 end)
 
--- 2. Player-on-player surgery: Sebia's manoProfile dialog has a "surgery" button.
---    embed_data|netID = target player's netID.
---    We intercept only the surgery button — all other buttons (trade, sendpm, etc.) pass through.
+-- 2. Player-on-player surgery: capture target UID by intercepting the manoProfile dialog
+--    BEFORE it reaches the client via onPlayerVariantCallback.
+--    embed_data|netID is in the dialog content — parse it here and store for surgery button use.
+if not _G.__SURGERY_TARGET then _G.__SURGERY_TARGET = {} end
+
+onPlayerVariantCallback(function(player, variant, delay, netID)
+    if variant[1] ~= "OnDialogRequest" then return false end
+    local content = tostring(variant[2] or "")
+    if not content:find("manoProfile", 1, true) then return false end
+    local targetNetID = tonumber(content:match("embed_data|netID|(%d+)"))
+    if targetNetID then
+        if not _G.__SURGERY_TARGET then _G.__SURGERY_TARGET = {} end
+        for _, p in ipairs(getAllPlayers()) do
+            if p:getNetID() == targetNetID then
+                _G.__SURGERY_TARGET[player:getName()] = p:getUserID()
+                break
+            end
+        end
+    end
+    return false  -- let dialog through to client unchanged
+end)
+
 onPlayerDialogCallback(function(world, player, data)
     if (data["dialog_name"] or "") ~= "manoProfile" then return false end
     if (data["buttonClicked"] or "") ~= "surgery" then return false end
-
-    local targetNetID = tonumber(data["netID"])
-    if not targetNetID then return true end
-
-    local target = getPlayer(targetNetID)
-    if not target then
-        talkBubble(player, "`4That player is no longer here.")
-        return true
-    end
 
     if not _G.SurgerySystem then
         player:onConsoleMessage("`4[Surgery] SurgerySystem not loaded.")
         return true
     end
 
-    -- Virtual tile: (-targetUID, -2) — unique per target, isolated from OT and dev sessions
     local worldName = getWorldName(world)
-    local vx        = -(target:getUserID())
-    local vy        = -2
+    local targetUID = _G.__SURGERY_TARGET and _G.__SURGERY_TARGET[player:getName()] or nil
+    if _G.__SURGERY_TARGET then _G.__SURGERY_TARGET[player:getName()] = nil end
+
+    local vx = -(player:getUserID())
+    local vy = -2
 
     if _G.SurgerySystem.hasSession(worldName, vx, vy) then
-        talkBubble(player, "`4This player is already being operated on.")
+        talkBubble(player, "`4You already have a surgery in progress.")
         return true
     end
 
     if _G.SurgeryEngine then _G.SurgeryEngine.clearSession(worldName, vx, vy) end
     _G.SurgerySystem.start(world, player, vx, vy, {
         allowedDiags = _G.SurgeryData.DIAG_KEYS_STANDARD,
-        targetUID    = target:getUserID(),
+        targetUID    = targetUID,
     })
     return true
 end)
@@ -274,6 +295,12 @@ end)
 onTileWrenchCallback(function(world, player, tile)
     if type(tile) ~= "userdata" then return false end
     local fg = tonumber(tile:getTileForeground()) or 0
+
+    -- Always store tile position for native surge dialog intercept.
+    -- Native Surg-E (4296) sends embed_data that we cannot read back from Lua,
+    -- so we capture the position here for every wrench and use it if surge dialog arrives.
+    if not _G.__SURGE_PENDING then _G.__SURGE_PENDING = {} end
+    _G.__SURGE_PENDING[player:getName()] = { x = tile:getPosX(), y = tile:getPosY() }
 
     if fg == SURGBOT_ITEM_ID then
         local worldName = getWorldName(world)
