@@ -120,6 +120,17 @@ registerLuaCommand({ command = "warp", roleRequired = ROLE_NONE, description = "
 registerLuaCommand({ command = "back", roleRequired = ROLE_NONE, description = "Return to your previous world." })
 registerLuaCommand({ command = "res", roleRequired = ROLE_NONE, description = "Respawn your character instantly." })
 registerLuaCommand({ command = "respawn", roleRequired = ROLE_NONE, description = "Respawn your character instantly." })
+registerLuaCommand({ command = "removeplaymods", roleRequired = ROLE_NONE, description = "Remove all playmods (DEVELOPER only)." })
+
+local function removeAllPlaymods(player)
+    if player == nil or player.setPlaymodStatus == nil then
+        player:onConsoleMessage("`4Failed to remove playmods. setPlaymodStatus() is unavailable.")
+        return false
+    end
+
+    player:setPlaymodStatus(0)
+    return true
+end
 
 onPlayerEnterWorldCallback(function(world, player)
     local history = ensureHistory(player)
@@ -160,8 +171,24 @@ onPlayerCommandCallback(function(world, player, fullCommand)
     end
 
     cmd = cmd:lower():gsub("^/", "")
-    if cmd ~= "warp" and cmd ~= "back" and cmd ~= "res" and cmd ~= "respawn" then
+    if cmd ~= "warp" and cmd ~= "back" and cmd ~= "res" and cmd ~= "respawn" and cmd ~= "removeplaymods" then
         return false
+    end
+
+    if cmd == "removeplaymods" then
+        if not isDeveloper(player) then
+            player:onConsoleMessage("`oThis command is only available for`$ Developer`o role.")
+            player:playAudio("bleep_fail.wav")
+            return true
+        end
+
+        if removeAllPlaymods(player) then
+            player:onConsoleMessage("`2All playmods have been removed!")
+            player:playAudio("cash_register.wav")
+        else
+            player:playAudio("bleep_fail.wav")
+        end
+        return true
     end
 
     if not isDeveloper(player) and not canUseFeatureCommands(player) then

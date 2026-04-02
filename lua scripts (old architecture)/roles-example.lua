@@ -36,17 +36,10 @@ local respawnCommandData = {
     description = "Respawn your character instantly"
 }
 
-local removePlaymodsCommandData = {
-    command = "removeplaymods",
-    roleRequired = Roles.ROLE_DEVELOPER,
-    description = "Remove all playmods from a player"
-}
-
 registerLuaCommand(warp)
 registerLuaCommand(backCommandData)
 registerLuaCommand(resCommandData)
 registerLuaCommand(respawnCommandData)
-registerLuaCommand(removePlaymodsCommandData)
 
 ---------------------------------------
 -- WARP FUNCTION
@@ -169,13 +162,6 @@ local function canUseFeatureCommands(player)
     return player:hasRole(Roles.ROLE_VIP) or player:hasRole(Roles.ROLE_DEVELOPER)
 end
 
-local function isDeveloper(player)
-    if not player or not player.hasRole then
-        return false
-    end
-    return player:hasRole(Roles.ROLE_DEVELOPER)
-end
-
 local function forceRespawn(world, player)
     if not player then
         return false
@@ -192,16 +178,6 @@ local function forceRespawn(world, player)
 
     -- Real death flow: player dies first, then server respawn handles it.
     activeWorld:kill(player)
-    return true
-end
-
-local function removeAllPlaymods(player)
-    if not player or not player.setPlaymodStatus then
-        return false
-    end
-    
-    -- Set playmod status to 0 to remove all playmods
-    player:setPlaymodStatus(0)
     return true
 end
 
@@ -379,20 +355,6 @@ onPlayerCommandCallback(function(world, player, command)
 
         if warpPlayer(player, worldTarget, doorTarget) then
             startCooldown(player, warpCooldownUntil)
-        end
-        return true
-    end
-    
-    if cmd == removePlaymodsCommandData.command then
-        if not isDeveloper(player) then
-            player:onConsoleMessage("`4Unknown command. `oEnter /? for a list of valid commands.")
-            return true
-        end
-
-        if removeAllPlaymods(player) then
-            player:onConsoleMessage("`2All playmods have been removed!")
-        else
-            player:onConsoleMessage("`4Failed to remove playmods. setPlaymodStatus() is unavailable.")
         end
         return true
     end
