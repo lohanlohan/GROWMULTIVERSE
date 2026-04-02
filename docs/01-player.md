@@ -305,10 +305,9 @@ player:setFlag(flag, enabled)              -- Set player flag
 player:setGodMode(enabled)                 -- God mode (invincible)
 player:setGuildName(name)                  -- Set guild name display
 player:setBadge(badgeID)                   -- Set badge
-player:getPlaymodStatus()                  -- Return: playmod status
-player:setPlaymodStatus(status)            -- Set playmod status
+player:getMod(playModID)                   -- Return: playmod status
 player:getOwnerRole()                      -- Return: owner role ID
-player:setOwnerRole(roleID)               -- Set owner role ID
+player:setOwnerRole(roleID)                -- Set owner role ID
 player:getHomeWorldID()                    -- Return: home world ID
 player:getOnlineStatus()                   -- Return: online status
 player:getGuildID()                        -- Return: guild ID

@@ -123,12 +123,19 @@ registerLuaCommand({ command = "respawn", roleRequired = ROLE_NONE, description 
 registerLuaCommand({ command = "removeplaymods", roleRequired = ROLE_NONE, description = "Remove all playmods (DEVELOPER only)." })
 
 local function removeAllPlaymods(player)
-    if player == nil or player.setPlaymodStatus == nil then
-        player:onConsoleMessage("`4Failed to remove playmods. setPlaymodStatus() is unavailable.")
+    if player == nil or player.removeMod == nil then
+        player:onConsoleMessage("`4Failed to remove playmods. removeMod() is unavailable.")
         return false
     end
 
-    player:setPlaymodStatus(0)
+    -- Loop through common mod IDs (0-100 range) and remove each one
+    for modID = -20000, 20000 do
+        local modStatus = player:getMod(modID)
+        if modStatus ~= nil and modStatus ~= 0 then
+            player:removeMod(modID)
+        end
+    end
+    
     return true
 end
 
