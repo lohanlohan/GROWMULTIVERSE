@@ -115,8 +115,8 @@ local function endSurgery(world, player, session, success, failReason)
         player:onConsoleMessage("`2" .. msg)
         player:onTalkBubble(player:getNetID(), "`2" .. msg, 0)
 
-        -- Recovering mod on target patient (player-on-player only: surgeonUID ~= targetUID)
-        if session.targetUID and session.targetUID ~= session.surgeonUID then
+        -- Recovering mod on target patient
+        if session.targetUID then
             local target = getPlayer(session.targetUID)
             if target then
                 target:addMod(MOD_RECOVERING, 1800)  -- 30 min
@@ -129,9 +129,25 @@ local function endSurgery(world, player, session, success, failReason)
         player:onConsoleMessage("`4" .. msg)
         player:onTalkBubble(player:getNetID(), "`4" .. msg, 0)
 
-        -- Malpractice mod on surgeon, 1 hour
+        -- Malpractice mod on surgeon, 1 hour (Sebia native shows its own message automatically)
         player:addMod(MOD_MALPRACTICE, 3600)
-        player:onConsoleMessage("`4You have been given a Malpractice mod for 1 hour.")
+
+        -- Kill + recovering mod on target patient if this was a player-on-player surgery
+        if session.targetUID then
+            local target = getPlayer(session.targetUID)
+            if not target then
+                for _, p in ipairs(getAllPlayers()) do
+                    if p:getUserID() == session.targetUID then
+                        target = p
+                        break
+                    end
+                end
+            end
+            if target then
+                target:addMod(MOD_RECOVERING, 1800)  -- 30 min
+                world:kill(target)
+            end
+        end
     end
 end
 
