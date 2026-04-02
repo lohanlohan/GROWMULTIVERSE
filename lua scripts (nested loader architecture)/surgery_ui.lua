@@ -200,13 +200,20 @@ function M.buildPanel(player, session, surgeonSkill)
 
     local invMap = buildInvMap(player)
 
+    local FIX_IT_ID = SD.TOOL.FIX_IT
     d = d .. "text_scaling_string|Defibrillator|\n"
     for _, toolId in ipairs(toolOrder) do
-        local count = invMap[toolId] or 0
         if SE.isToolAvailable(session, toolId) then
             local label = SD.TOOL_LABEL[toolId] or ("Item " .. toolId)
-            d = d .. "add_button_with_icon|btn_t_" .. toolId
-                  .. "|`$" .. label .. "|noflags|" .. toolId .. "|" .. count .. "|\n"
+            if toolId == FIX_IT_ID then
+                -- Fix It is a button action, no inventory count shown
+                d = d .. "add_button_with_icon|btn_t_" .. toolId
+                      .. "|" .. label .. "|noflags|" .. toolId .. "|\n"
+            else
+                local count = invMap[toolId] or 0
+                d = d .. "add_button_with_icon|btn_t_" .. toolId
+                      .. "|`$" .. label .. "|noflags|" .. toolId .. "|" .. count .. "|\n"
+            end
         else
             d = d .. "add_button_with_icon|btn_na_" .. toolId
                   .. "||noflags|" .. EMPTY_TRAY_ITEM_ID .. "|\n"

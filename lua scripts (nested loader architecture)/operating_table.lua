@@ -45,19 +45,8 @@ end
 -- Pattern: always loadAllStates once, modify, saveAllStates once → single DB read per operation
 -- =======================================================
 
-local function loadAllStates()  return DB.loadFeature("ot_state")  or {} end
-local function loadAllPrizes()  return DB.loadFeature("ot_prizes") or {} end
-local function saveAllStates(d) DB.saveFeature("ot_state",  d) end
-local function saveAllPrizes(d) DB.saveFeature("ot_prizes", d) end
-
-local function loadWorldPrizes(worldName)
-    return loadAllPrizes()[worldName] or {}
-end
-local function saveWorldPrizes(worldName, prizes)
-    local all = loadAllPrizes()
-    all[worldName] = prizes
-    saveAllPrizes(all)
-end
+local function loadAllStates()  return DB.loadFeature("ot_state") or {} end
+local function saveAllStates(d) DB.saveFeature("ot_state", d) end
 
 local function getTileRow(state, x, y)
     local key = M.getOperatingRowKey(x, y)
@@ -111,62 +100,88 @@ local function armEvent(worldName, t)
 end
 
 -- =======================================================
--- PRIZE ADMIN PANEL
+-- SURGERY CONFIRMATION PANEL
 -- =======================================================
 
-local MAX_PRIZES = 5
+-- =======================================================
+-- NATIVE SURGERY INTERCEPT
+-- =======================================================
 
-local function showPrizePanel(world, player, worldName)
-    local prizes = loadWorldPrizes(worldName)
-    local d = ""
-    d = d .. "set_default_color|`o\n"
-    d = d .. "set_bg_color|54,152,198,180|\n"
-    d = d .. "add_label_with_icon|big|`wOperating Table Prizes|left|14662|\n"
-    d = d .. "add_spacer|small|\n"
-    d = d .. "add_smalltext|`oMax " .. MAX_PRIZES .. " prizes. Chance = 1-100 (%).|\n"
-    d = d .. "add_spacer|small|\n"
-
-    for i = 1, MAX_PRIZES do
-        local p      = prizes[i] or {}
-        local itemId = tostring(p.itemId or "")
-        local amount = tostring(p.amount or "1")
-        local chance = tostring(p.chance or "0")
-        d = d .. "add_textbox|`wPrize " .. i .. "|\n"
-        d = d .. "add_text_input|p_item_" .. i .. "|Item ID:|" .. itemId .. "|6|\n"
-        d = d .. "add_text_input|p_amt_"  .. i .. "|Amount:|"  .. amount .. "|4|\n"
-        d = d .. "add_text_input|p_ch_"   .. i .. "|Chance %:|" .. chance .. "|3|\n"
-        d = d .. "add_spacer|small|\n"
-    end
-
-    d = d .. "add_button|btn_save|`wSave|noflags|0|0|\n"
-    d = d .. "add_button|btn_close|`wClose|noflags|0|0|\n"
-    d = d .. "add_quick_exit|\n"
-    d = d .. "end_dialog|ot_prize_panel|||\n"
-    player:onDialogRequest(d, 0)
-end
-
+-- 1. Surg-E (item 4296): Sebia sends end_dialog|surge|Cancel|Okay!| with embed_data tilex/tiley.
 onPlayerDialogCallback(function(world, player, data)
-    local dlg = data["dialog_name"] or ""
-    if dlg ~= "ot_prize_panel" then return false end
-    if (data["buttonClicked"] or "") == "btn_save" then
-        local worldName = getWorldName(world)
-        local prizes    = {}
-        for i = 1, MAX_PRIZES do
-            local itemId = tonumber(data["p_item_" .. i])
-            local amount = math.max(1, tonumber(data["p_amt_" .. i]) or 1)
-            local chance = math.max(0, math.min(100, tonumber(data["p_ch_" .. i]) or 0))
-            if itemId and itemId > 0 and chance > 0 then
-                prizes[#prizes + 1] = { itemId = itemId, amount = amount, chance = chance }
-            end
-        end
-        saveWorldPrizes(worldName, prizes)
-        player:onConsoleMessage("`2[OT] Saved `w" .. #prizes .. " `2prize(s).")
+    if (data["dialog_name"] or "") ~= "surge" then return false end
+    -- end_dialog footer buttons: OK may arrive as "Okay!" or "" depending on client.
+    -- Only skip if player explicitly clicked Cancel.
+    local btn = data["buttonClicked"] or ""
+    if btn == "Cancel" then return true end
+
+    local x = tonumber(data["tilex"])
+    local y = tonumber(data["tiley"])
+    if not x or not y then
+        player:onConsoleMessage("`4[Surgery] Could not determine tile position.")
+        return true
     end
+
+    local worldName = getWorldName(world)
+    if not _G.SurgerySystem then
+        player:onConsoleMessage("`4[Surgery] SurgerySystem not loaded.")
+        return true
+    end
+
+    if _G.SurgeryEngine then _G.SurgeryEngine.clearSession(worldName, x, y) end
+    _G.SurgerySystem.start(world, player, x, y, {
+        allowedDiags = _G.SurgeryData.DIAG_KEYS_STANDARD,
+    })
+    return true
+end)
+
+-- 2. Player-on-player surgery: Sebia's manoProfile dialog has a "surgery" button.
+--    embed_data|netID = target player's netID.
+--    We intercept only the surgery button — all other buttons (trade, sendpm, etc.) pass through.
+onPlayerDialogCallback(function(world, player, data)
+    if (data["dialog_name"] or "") ~= "manoProfile" then return false end
+    if (data["buttonClicked"] or "") ~= "surgery" then return false end
+
+    local targetNetID = tonumber(data["netID"])
+    if not targetNetID then return true end
+
+    local target = getPlayer(targetNetID)
+    if not target then
+        talkBubble(player, "`4That player is no longer here.")
+        return true
+    end
+
+    if not _G.SurgerySystem then
+        player:onConsoleMessage("`4[Surgery] SurgerySystem not loaded.")
+        return true
+    end
+
+    -- Virtual tile: (-targetUID, -2) — unique per target, isolated from OT and dev sessions
+    local worldName = getWorldName(world)
+    local vx        = -(target:getUserID())
+    local vy        = -2
+
+    if _G.SurgerySystem.hasSession(worldName, vx, vy) then
+        talkBubble(player, "`4This player is already being operated on.")
+        return true
+    end
+
+    if _G.SurgeryEngine then _G.SurgeryEngine.clearSession(worldName, vx, vy) end
+    _G.SurgerySystem.start(world, player, vx, vy, {
+        allowedDiags = _G.SurgeryData.DIAG_KEYS_STANDARD,
+        targetUID    = target:getUserID(),
+    })
+    return true
+end)
+
+-- 3. Block native surgery panel (dialog_name = "surgery") from processing natively.
+onPlayerDialogCallback(function(world, player, data)
+    if (data["dialog_name"] or "") ~= "surgery" then return false end
     return true
 end)
 
 -- =======================================================
--- SURGERY CONFIRMATION PANEL
+-- CUSTOM SURGBOT CONFIRM PANEL
 -- =======================================================
 
 local function showSurgbotConfirmPanel(player, tileX, tileY)
@@ -245,10 +260,7 @@ onPlayerDialogCallback(function(world, player, data)
     -- Clear any stale in-memory session from a previous crash
     if _G.SurgeryEngine then _G.SurgeryEngine.clearSession(worldName, x, y) end
 
-    local prizes = loadWorldPrizes(worldName)
     _G.SurgerySystem.start(world, player, x, y, {
-        prizePool    = prizes,
-        caduceusId   = 4298,
         onEnd        = onSurgeryEnd,
         allowedDiags = _G.SurgeryData.DIAG_KEYS_STANDARD,
     })
@@ -456,15 +468,6 @@ onPlayerCommandCallback(function(world, player, fullCommand)
         all[worldName] = state
         saveAllStates(all)  -- single write
         player:onConsoleMessage("`2[OT] " .. sub .. " — `w" .. count .. " `2table(s).")
-        return true
-    end
-
-    if cmd == "operatingtableprize" then
-        if not player:hasRole(ROLE_DEV) then
-            player:onConsoleMessage("`4No permission.")
-            return true
-        end
-        showPrizePanel(world, player, getWorldName(world))
         return true
     end
 

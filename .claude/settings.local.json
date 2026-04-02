@@ -13,7 +13,8 @@
       "Bash(xargs file:*)",
       "Bash(find c:UsersPCDocumentsGROWMULTIVERSE -maxdepth 2 -type f -name *item* -o -name *Item*)",
       "Bash(grep -r 14662 c:UsersPCDocumentsGROWMULTIVERSE --include=*.lua --include=*.json --include=*.txt --include=*.md)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(grep -r -i \"mod\\\\|malpractic\\\\|recovering\" 'c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/' --include=*.lua -l)"
     ]
   }
 }

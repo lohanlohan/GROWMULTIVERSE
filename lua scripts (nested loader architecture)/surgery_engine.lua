@@ -77,7 +77,7 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         incisions      = 0,
         scalpelCount   = 0,
         bleeding       = diag.initialBleeding,
-        siteClean      = modMap.FILTHY and "SLIGHTLY_DIRTY" or "CLEAN",
+        siteClean      = modMap.FILTHY and "SLIGHTLY_DIRTY" or (diag.initialSiteClean or "CLEAN"),
         visibility     = diag.initialVisibility or "CLEAR",
 
         -- Bones

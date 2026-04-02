@@ -87,21 +87,18 @@ end
 -- HELPER: end surgery (success or fail)
 -- =======================================================
 
+local MOD_MALPRACTICE = -45   -- applied to surgeon on fail, 1 hour
+local MOD_RECOVERING  = -44   -- applied to target patient on success, 30 min
+
 local function endSurgery(world, player, session, success, failReason)
     local worldName = world:getName()
     local x, y     = session.tileX, session.tileY
     local cfg       = session.cfg or {}
 
-    local skill     = getSurgeonSkill(player)
-    local newSkill  = skill
-    local diagName  = (SD.DIAG[session.diagKey] or {}).name or "?"
+    local skill    = getSurgeonSkill(player)
+    local diagName = (SD.DIAG[session.diagKey] or {}).name or "?"
 
-    if success then
-        newSkill = addSurgeonSkill(player, 1)
-        giveSuccessPrizes(world, player, session.diagKey)
-    end
-
-    -- Clear session FIRST — so even if onEnd crashes, next surgery can start cleanly
+    -- Clear session FIRST
     SE.clearSession(worldName, x, y)
 
     -- Notify caller (tile swap back to empty bed)
@@ -109,9 +106,33 @@ local function endSurgery(world, player, session, success, failReason)
         cfg.onEnd(world, player, success)
     end
 
-    -- Show result panel for both success and failure
-    local resultDlg = SU.buildResultPanel(success, failReason, diagName, skill, newSkill, x, y)
-    player:onDialogRequest(resultDlg, 0)
+    if success then
+        addSurgeonSkill(player, 1)
+        giveSuccessPrizes(world, player, session.diagKey)
+
+        -- Console + bubble for surgeon
+        local msg = "You successfully treated " .. diagName .. "!"
+        player:onConsoleMessage("`2" .. msg)
+        player:onTalkBubble(player:getNetID(), "`2" .. msg, 0)
+
+        -- Recovering mod on target patient (player-on-player only: surgeonUID ~= targetUID)
+        if session.targetUID and session.targetUID ~= session.surgeonUID then
+            local target = getPlayer(session.targetUID)
+            if target then
+                target:addMod(MOD_RECOVERING, 1800)  -- 30 min
+                target:onConsoleMessage("`2You have been treated for " .. diagName .. "! Rest for 30 minutes.")
+            end
+        end
+    else
+        -- Console + bubble for surgeon
+        local msg = failReason or "The surgery failed."
+        player:onConsoleMessage("`4" .. msg)
+        player:onTalkBubble(player:getNetID(), "`4" .. msg, 0)
+
+        -- Malpractice mod on surgeon, 1 hour
+        player:addMod(MOD_MALPRACTICE, 3600)
+        player:onConsoleMessage("`4You have been given a Malpractice mod for 1 hour.")
+    end
 end
 
 -- =======================================================
@@ -129,13 +150,15 @@ local function processTool(world, player, session, toolId)
         return
     end
 
-    -- Consume 1 tool from inventory (returns false if player doesn't have it)
-    if not player:changeItem(toolId, -1, 0) then
-        player:onTalkBubble(player:getNetID(), "`4You don't have that tool.", 0)
-        local skill = getSurgeonSkill(player)
-        local panel = SU.buildPanel(player, session, skill)
-        player:onDialogRequest(panel, 0)
-        return
+    -- Fix It is a button action, not an inventory item — skip consume check
+    if toolId ~= SD.TOOL.FIX_IT then
+        if not player:changeItem(toolId, -1, 0) then
+            player:onTalkBubble(player:getNetID(), "`4You don't have that tool.", 0)
+            local skill = getSurgeonSkill(player)
+            local panel = SU.buildPanel(player, session, skill)
+            player:onDialogRequest(panel, 0)
+            return
+        end
     end
 
     -- RNG: skill fail check (cache skill to avoid 2 DB reads per move)
@@ -330,6 +353,7 @@ function M.start(world, player, tileX, tileY, cfg)
         return false
     end
     session.surgeonSkillSnapshot = skill
+    session.targetUID            = cfg.targetUID or nil
 
     SE.setSession(worldName, tileX, tileY, session)
 
