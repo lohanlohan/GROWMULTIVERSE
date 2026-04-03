@@ -68,7 +68,7 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         heartStopped   = false,
         heartStopTurns = 0,
 
-        -- Consciousness (AWAKE / UNCONSCIOUS / COMING_TO / NEAR_COMA)
+        -- Consciousness (AWAKE / UNCONSCIOUS / COMING_TO)
         -- Derived from anesthTurns each turn; anesthTurns = 0 means AWAKE
         consciousness  = "AWAKE",
         anesthTurns    = 0,
@@ -199,7 +199,7 @@ function M.applyToolEffect(session, toolId)
         if st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT then
             drop = 0.3 + math.random(0, 3) * 0.1
         else
-            drop = 1 + math.random(0, 2)
+            drop = 2 + math.random(0, 2)
         end
         st.temperature  = math.max(98.6, st.temperature - drop)
         st.tempRising   = false
@@ -211,15 +211,10 @@ function M.applyToolEffect(session, toolId)
         return "You applied antiseptic to the area."
 
     elseif toolId == T.ANESTHETIC then
-        if st.consciousness == "NEAR_COMA" then
+        if st.consciousness == "UNCONSCIOUS" then
             return "<<PERMA_DEATH>>"
         end
-        if st.consciousness == "UNCONSCIOUS" then
-            st.consciousness = "NEAR_COMA"
-            st.anesthTurns   = 2
-            return "Overdose! The patient is dangerously close to a coma!"
-        end
-        local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 4 or 10
+        local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 6 or 10
         st.consciousness = "UNCONSCIOUS"
         st.anesthTurns   = turns
         return "The patient falls into a deep sleep."
@@ -260,7 +255,7 @@ function M.applyToolEffect(session, toolId)
             st.incisions = st.incisions - 1
         end
         -- Closing a proper incision = -2, bandaging with no incision = -1 (confirmed GT debug)
-        local bleedDelta = hadIncision and -2 or -1
+        local bleedDelta = -1
         st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, bleedDelta)
         return hadIncision and "You stitched up an incision." or "You bandaged some injuries."
 
@@ -389,13 +384,13 @@ function M.applyPassiveEffects(session)
     local st   = session
     local diag = SD.DIAG[st.diagKey]
 
-    -- Antibiotics 2-turn passive effect (1-3°F drop per turn, floor 98.6)
+    -- Antibiotics 2-turn passive effect (2-4°F drop per turn, floor 98.6)
     if st.abxTurnsLeft and st.abxTurnsLeft > 0 then
         local drop
         if st.modifiers and st.modifiers.ANTIBIOTIC_RESISTANT then
             drop = 0.3 + math.random(0, 3) * 0.1  -- 0.3–0.6°F
         else
-            drop = 1 + math.random(0, 2)  -- 1–3°F
+            drop = 2 + math.random(0, 2)  -- 2–4°F
         end
         st.temperature  = math.max(98.6, st.temperature - drop)
         if st.temperature <= 98.6 then st.tempRising = false end
@@ -406,11 +401,10 @@ function M.applyPassiveEffects(session)
     if st.anesthTurns > 0 then
         st.anesthTurns = st.anesthTurns - 1
     end
-    -- NEAR_COMA is only set by explicit overdose (applyToolEffect), never by passive countdown.
     -- Normal wakeup sequence: UNCONSCIOUS → COMING_TO → AWAKE
     if st.anesthTurns == 0 then
         st.consciousness = "AWAKE"
-    elseif st.consciousness ~= "NEAR_COMA" then
+    else
         if st.anesthTurns <= 3 then
             st.consciousness = "COMING_TO"
         else
@@ -419,7 +413,6 @@ function M.applyPassiveEffects(session)
     end
 
     -- Bleeding effects (hemophiliac: bleeds 2x faster)
-    -- Pulse is NOT passively worsened by bleeding (confirmed GT debug).
     -- Site always worsens with any bleeding (>NONE).
     -- Visibility: probability-based per tier (not guaranteed every turn).
     --   MODERATE=40%, RAPID=65%, INTENSE=100%
@@ -434,6 +427,28 @@ function M.applyPassiveEffects(session)
         end
         if visChance > 0 and math.random() < visChance then
             st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, bleedDelta)
+        end
+    end
+
+    -- Bleeding self-escalation: untreated wounds worsen over time
+    if bleedIdx == (SD.BLEED_INDEX["SLIGHT"] or 2) then
+        if math.random() < 0.15 then
+            st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+        end
+    elseif bleedIdx == (SD.BLEED_INDEX["MODERATE"] or 3) then
+        if math.random() < 0.25 then
+            st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+        end
+    end
+
+    -- Pulse degrades from sustained heavy bleeding
+    if bleedIdx >= (SD.BLEED_INDEX["INTENSE"] or 5) then
+        if math.random() < 0.60 then
+            st.pulse = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, 1)
+        end
+    elseif bleedIdx >= (SD.BLEED_INDEX["RAPID"] or 4) then
+        if math.random() < 0.30 then
+            st.pulse = SD.shiftRank(SD.PULSE_ORDER, SD.PULSE_INDEX, st.pulse, 1)
         end
     end
 
@@ -489,9 +504,9 @@ function M.applyPassiveEffects(session)
     if ev then
         if ev == "chaos" then
             -- Random: temp spike, sudden heart stop, or random bleed
-            local roll = math.random(1, 8)
+            local roll = math.random(1, 12)
             if roll == 1 then
-                st.temperature = st.temperature + math.random(2, 5) * 0.5
+                st.temperature = st.temperature + math.random(1, 3) * 0.5
             elseif roll == 2 and not st.heartStopped then
                 st.heartStopped   = true
                 st.heartStopTurns = 0
@@ -517,7 +532,7 @@ function M.applyPassiveEffects(session)
 
         elseif ev == "guts_burst" then
             -- Every ~3-4 turns: guts burst → visibility = IMPOSSIBLE
-            if st.moveCount > 0 and st.moveCount % 3 == 0 then
+            if st.moveCount > 0 and st.moveCount % 5 == 0 then
                 st.visibility = "IMPOSSIBLE"
                 st.lastMsg    = (st.lastMsg or "") .. " `4The patient's guts burst! You can't see anything!"
             end

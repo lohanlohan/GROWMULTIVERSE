@@ -80,7 +80,11 @@ local function giveSuccessPrizes(world, player, diagKey)
     else
         player:onConsoleMessage("You got a `3" .. cadName .. "``!")
     end
-    player:onConsoleMessage("`2Hospital progress increased by 1.")
+    if _G.HospitalSystem and _G.HospitalSystem.addSurgeryProgress then
+        if _G.HospitalSystem.addSurgeryProgress(world, player) then
+            player:onConsoleMessage("`2Hospital progress increased by 1.")
+        end
+    end
 end
 
 -- =======================================================

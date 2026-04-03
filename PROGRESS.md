@@ -150,16 +150,36 @@ social → admin → standalones
 | `surgprize.lua` | — | ✅ /surgprize panel UI per-diagnosis, 5 slots, item picker |
 | `auto_surgeon.lua` | `hospital_auto_surgeon.lua` | ✅ auto-cure + tile extra data visual |
 
-**Surgery Minigame — Status 2026-04-01, updated via real GT debug + full audit:**
+**Surgery Minigame — Status 2026-04-03, updated via GT surgery simulator:**
 - 28 diagnoses: 17 standard + 5 malady + 6 vile vial ✅ (MONKEY_FLU ditambah)
 - Story headline system: storyHeadline per milestone (diagRevealed via Lab Kit/Ultrasound, scalpelHeadline, fixItHeadline) ✅
 - Lab Kit reveal: set storyHeadline jika needsUltrasound=false ✅
 - ANTIBIOTICS: availability check pakai `abxUnlocked` (bukan `labKitUsed`) ✅
 - Diagnoses dengan confirmed headlines (dari GT debug): FLU, MONKEY_FLU, BROKEN_LEG, APPENDICITIS, KIDNEY_FAILURE, BRAIN_TUMOR, SWALLOWED_WL, HERNIATED_DISC, SERIOUS_TRAUMA, NOSE_JOB, MASSIVE_TRAUMA, SERIOUS_HEAD, HEART_ATTACK ✅
-- Diagnoses **tanpa headline** (belum ada GT debug data): LIVER_INFECTION, BROKEN_EVERYTHING, semua malady, semua vile_vial
+- Diagnoses **tanpa headline** (belum ada GT debug data): LIVER_INFECTION, BROKEN_EVERYTHING
+- **VILE VIAL DIAGNOSES — semua 6 verified dari GT surgery simulator 2026-04-03:**
+  - CHAOS_INFECTION: 107.6 STEADY RAPID IMPOSSIBLE UNSANITARY, needsLabKit+Ultrasound, scalpel=3, fixIt. Special event "chaos" (random temp/sleep/heartStop). fixItHeadline confirmed ✅
+  - LUPUS: 100.1 STRONG SLIGHT HARD DIRTY, needsLabKit+Ultrasound, 2 shattered, scalpel=2 (ultrasound auto-adds 1). howl 10%/turn adds incision. fixItHeadline custom ✅
+  - BRAINWORMS: 100.58 STEADY RAPID SLIGHTLY_DIRTY, needsLabKit+Ultrasound, 1 shattered, scalpel=3. Worms escape 10%/turn, depth 1-5. fixItHeadline confirmed ✅
+  - MOLDY_GUTS: 104.6 WEAK NONE HARD UNSANITARY, needsLabKit+Ultrasound, 1 shattered, scalpel=2. Guts burst 10%→IMPOSSIBLE+sponge only. fixItHeadline custom ✅
+  - ECTO_BONES: 98.6 STEADY NONE HARD SLIGHTLY_DIRTY, needsUltrasound only, 6 broken+2 shattered, scalpel=0 (Fix It immediate). No special event. fixItHeadline confirmed ✅
+  - FATTY_LIVER: 101.6 STRONG NONE HARD UNSANITARY, needsLabKit+Ultrasound, scalpel=3. Guaranteed heartStop at depth 2, then 15%/turn. fixItHeadline custom ✅
+  - scalpelHeadline semua confirmed: BRAINWORMS + FATTY_LIVER = "You've made a neat incision." ✅
+- **MALADY DIAGNOSES — semua 5 verified dari GT surgery simulator 2026-04-03:**
+  - TORN_PUNCHING_MUSCLE: STRONG pulse, NONE bleed, IMPOSSIBLE visibility, needsLabKit+Ultrasound, scalpel=1, fixIt=1. Headlines confirmed ✅
+  - GEM_CUTS: STRONG pulse, SLIGHT bleed, needsLabKit+Ultrasound, scalpel=2, fixIt=2. headline="Patient is bleeding from multiple gem-induced cuts." ✅
+  - BROKEN_HEART_MALADY: temp=107.6 rising, STRONG pulse, 2 shattered, needsLabKit+Ultrasound, scalpel=1. headline="Patient suffered from a Broken Heart." ✅
+  - GRUMBLETEETH: temp=104.6 static, WEAK pulse, HARD visibility, heartStopChance=0.08, 1 shattered, needsLabKit+Ultrasound, scalpel=1. headline="Patient's teeth are chattering They sound angry." ✅
+  - CHICKEN_FEET: temp=98.6 rising, STRONG pulse, IMPOSSIBLE visibility, 2 shattered, needsLabKit+Ultrasound, scalpel=2. headline="Patient feet have turned into chicken toes.." (typo GT asli) ✅
+  - Semua malady fixItHeadline = "You fixed the issue!" ✅
+- **Player-on-player surgery: diagnosis otomatis dari playmod pasien 2026-04-03:**
+  - `surgery_data.lua`: tambah `M.MALADY_TO_DIAG_KEY` mapping (11 malady → diag key)
+  - `surgery_callbacks.lua`: `M.start` support `cfg.forcedDiagKey`
+  - `operating_table.lua`: capture target malady saat wrench profile, pass `forcedDiagKey` ke `SurgerySystem.start`
+  - AUTOMATION_CURSE tidak punya diag → fall back random standard ✅
 - Splint available dari awal (tidak perlu bonesRevealed) ✅
 - Bones row: hidden sepenuhnya sebelum ultrasound ✅
-- allowedDiags cfg: operating_table hanya pakai DIAG_KEYS_STANDARD (17 penyakit) ✅
+- allowedDiags cfg: operating_table hanya pakai DIAG_KEYS_STANDARD (17 penyakit) untuk Surg-E ✅
 - Prize pool: DB-based per diagnosis via /surgprize, Caduceus wajib + random prize ✅
 - 3 reward flavor messages (random) ✅
 - Success + Fail: result panel muncul di keduanya ✅
@@ -175,6 +195,7 @@ social → admin → standalones
 - getSurgeonSkill: 1 read per move (tidak double) ✅
 - getItem() (bukan getItemById) ✅
 - role_inject.lua: item 25036 = role 51, 25038 = role 0 ✅
+- **Playmod IDs confirmed 2026-04-03:** LUPUS=-49, CHAOS=-50, FATTY=-51, MOLDY=-52, ECTO=-53, BRAIN=-54, BROKEN_HEARTS=-55, CHICKEN_FEET=-56 (native, unused — kita pakai -1101 lua custom), GRUMBLE=-57, GEMS=-58, TORN=-59
 
 **Surgery UI confirmed via GT debug (2026-04-01):**
 - Tool order (re-confirmed GT debug SERIOUS_HEAD 2026-04-01): Sponge, Scalpel, Stitches, Antibiotics, Antiseptic, Fix It!, Ultrasound, Lab Kit, Anesthetic, Defibrillator, Splint, Pins, Clamp, Transfusion ✅
