@@ -14,7 +14,10 @@
       "Bash(find c:UsersPCDocumentsGROWMULTIVERSE -maxdepth 2 -type f -name *item* -o -name *Item*)",
       "Bash(grep -r 14662 c:UsersPCDocumentsGROWMULTIVERSE --include=*.lua --include=*.json --include=*.txt --include=*.md)",
       "Bash(xargs ls:*)",
-      "Bash(grep -r -i \"mod\\\\|malpractic\\\\|recovering\" 'c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/' --include=*.lua -l)"
+      "Bash(grep -r -i \"mod\\\\|malpractic\\\\|recovering\" 'c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/' --include=*.lua -l)",
+      "Bash(\"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts:*)",
+      "Bash(ls \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(nested loader architecture\\)\"\")",
+      "Bash(find c:/Users/PC/Documents/GROWMULTIVERSE -name *.rml -o -name *.rcss)"
     ]
   }
 }

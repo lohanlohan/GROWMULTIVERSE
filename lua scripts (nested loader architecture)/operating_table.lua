@@ -158,7 +158,8 @@ onPlayerVariantCallback(function(player, variant, delay, netID)
         if not _G.__SURGERY_TARGET then _G.__SURGERY_TARGET = {} end
         for _, p in ipairs(getAllPlayers()) do
             if p:getNetID() == targetNetID then
-                _G.__SURGERY_TARGET[player:getName()] = p:getUserID()
+                local tMalady = _G.MaladySystem and _G.MaladySystem.getActiveMalady(p) or nil
+                _G.__SURGERY_TARGET[player:getName()] = { uid = p:getUserID(), malady = tMalady }
                 break
             end
         end
@@ -176,8 +177,16 @@ onPlayerDialogCallback(function(world, player, data)
     end
 
     local worldName = getWorldName(world)
-    local targetUID = _G.__SURGERY_TARGET and _G.__SURGERY_TARGET[player:getName()] or nil
+    local targetData   = _G.__SURGERY_TARGET and _G.__SURGERY_TARGET[player:getName()] or nil
     if _G.__SURGERY_TARGET then _G.__SURGERY_TARGET[player:getName()] = nil end
+    local targetUID    = targetData and (type(targetData) == "table" and targetData.uid    or targetData) or nil
+    local targetMalady = targetData and  type(targetData) == "table" and targetData.malady or nil
+
+    -- Resolve forced diagnosis from target's active malady
+    local forcedDiagKey = nil
+    if targetMalady and _G.SurgeryData then
+        forcedDiagKey = (_G.SurgeryData.MALADY_TO_DIAG_KEY or {})[targetMalady]
+    end
 
     local vx = -(player:getUserID())
     local vy = -2
@@ -189,8 +198,9 @@ onPlayerDialogCallback(function(world, player, data)
 
     if _G.SurgeryEngine then _G.SurgeryEngine.clearSession(worldName, vx, vy) end
     _G.SurgerySystem.start(world, player, vx, vy, {
-        allowedDiags = _G.SurgeryData.DIAG_KEYS_STANDARD,
-        targetUID    = targetUID,
+        allowedDiags  = _G.SurgeryData.DIAG_KEYS_STANDARD,
+        targetUID     = targetUID,
+        forcedDiagKey = forcedDiagKey,
     })
     return true
 end)

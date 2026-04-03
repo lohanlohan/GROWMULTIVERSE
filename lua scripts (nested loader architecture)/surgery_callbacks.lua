@@ -356,9 +356,14 @@ function M.start(world, player, tileX, tileY, cfg)
         return false
     end
 
-    -- Pick random diagnosis (use allowedDiags if provided, else all)
-    local pool    = (cfg.allowedDiags and #cfg.allowedDiags > 0) and cfg.allowedDiags or SD.DIAG_KEYS
-    local diagKey = pool[math.random(1, #pool)]
+    -- Use forced diagnosis if provided (e.g. target has active malady), else pick random
+    local diagKey
+    if cfg.forcedDiagKey and SD.DIAG[cfg.forcedDiagKey] then
+        diagKey = cfg.forcedDiagKey
+    else
+        local pool = (cfg.allowedDiags and #cfg.allowedDiags > 0) and cfg.allowedDiags or SD.DIAG_KEYS
+        diagKey = pool[math.random(1, #pool)]
+    end
 
     -- Store surgeon skill snapshot for Fix It internal use
     local skill = getSurgeonSkill(player)

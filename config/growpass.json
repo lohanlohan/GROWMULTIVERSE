@@ -1,0 +1,1269 @@
+{
+    "config": {
+        "max_seasons": 3,
+        "season_duration_min": 518400,
+        "season_duration_max": 691200
+    },
+    "rewards": [
+        {
+            "count": 1,
+            "id": 11306,
+            "points": 150,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 20,
+            "id": 5706,
+            "points": 150,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 14150,
+            "points": 300,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 300,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10858,
+            "points": 450,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 450,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 600,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10838,
+            "points": 600,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 750,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 750,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 14360,
+            "points": 900,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 900,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 4,
+            "id": 8196,
+            "points": 1100,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1100,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 3684,
+            "points": 1300,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10834,
+            "points": 1300,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 1500,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1500,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 3562,
+            "points": 1700,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10836,
+            "points": 1700,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 1900,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1900,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 11308,
+            "points": 2100,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10858,
+            "points": 2100,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 1488,
+            "points": 2350,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 2350,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 2600,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 2600,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 4,
+            "id": 8196,
+            "points": 3100,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 5,
+            "id": 1486,
+            "points": 3100,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 3350,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 3350,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 14358,
+            "points": 3600,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 3600,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 942,
+            "points": 3900,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 3900,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 5,
+            "id": 1486,
+            "points": 4200,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 5,
+            "id": 2478,
+            "points": 4200,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 4500,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 4500,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 4800,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 4800,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 5100,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 5100,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 13574,
+            "points": 5400,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 11306,
+            "points": 5400,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 5800,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 5800,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10838,
+            "points": 6200,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 50,
+            "id": 5706,
+            "points": 6200,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10834,
+            "points": 6600,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 6600,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 10836,
+            "points": 7000,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 8196,
+            "points": 7000,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 7400,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 7400,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 13574,
+            "points": 7800,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 7800,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 20694,
+            "points": 8400,
+            "royal": true,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 5202,
+            "points": 8400,
+            "royal": false,
+            "season": 1
+        },
+        {
+            "count": 1,
+            "id": 11440,
+            "points": 150,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 20,
+            "id": 5706,
+            "points": 150,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 14150,
+            "points": 300,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 300,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10858,
+            "points": 450,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 450,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 600,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10838,
+            "points": 600,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 750,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 750,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 14492,
+            "points": 900,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 900,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 4,
+            "id": 8196,
+            "points": 1100,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1100,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 3684,
+            "points": 1300,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10834,
+            "points": 1300,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 1500,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1500,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 3562,
+            "points": 1700,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10836,
+            "points": 1700,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 1900,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1900,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 11442,
+            "points": 2100,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10858,
+            "points": 2100,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 1488,
+            "points": 2350,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 2350,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 2600,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 2600,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 4,
+            "id": 8196,
+            "points": 3100,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 5,
+            "id": 1486,
+            "points": 3100,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 3350,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 3350,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 14490,
+            "points": 3600,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 3600,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 942,
+            "points": 3900,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 3900,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 5,
+            "id": 1486,
+            "points": 4200,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 5,
+            "id": 2478,
+            "points": 4200,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 4500,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 4500,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 4800,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 4800,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 5100,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 5100,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 13574,
+            "points": 5400,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 11440,
+            "points": 5400,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 5800,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 5800,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10838,
+            "points": 6200,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 50,
+            "id": 5706,
+            "points": 6200,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10834,
+            "points": 6600,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 6600,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 10836,
+            "points": 7000,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 8196,
+            "points": 7000,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 7400,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 7400,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 13574,
+            "points": 7800,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 7800,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 20696,
+            "points": 8400,
+            "royal": true,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 5202,
+            "points": 8400,
+            "royal": false,
+            "season": 2
+        },
+        {
+            "count": 1,
+            "id": 11506,
+            "points": 150,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 20,
+            "id": 5706,
+            "points": 150,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 14150,
+            "points": 300,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 300,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10858,
+            "points": 450,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 450,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 600,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10838,
+            "points": 600,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 750,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 750,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 14534,
+            "points": 900,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 900,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 4,
+            "id": 8196,
+            "points": 1100,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1100,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 3684,
+            "points": 1300,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10834,
+            "points": 1300,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 1500,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1500,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 3562,
+            "points": 1700,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10836,
+            "points": 1700,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 1900,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 1900,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 11508,
+            "points": 2100,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10858,
+            "points": 2100,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 1488,
+            "points": 2350,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 2350,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 2,
+            "id": 1486,
+            "points": 2600,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 2600,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 4,
+            "id": 8196,
+            "points": 3100,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 5,
+            "id": 1486,
+            "points": 3100,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 3350,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 3350,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 14532,
+            "points": 3600,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 3600,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 942,
+            "points": 3900,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 3900,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 5,
+            "id": 1486,
+            "points": 4200,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 5,
+            "id": 2478,
+            "points": 4200,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 2,
+            "id": 10858,
+            "points": 4500,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 4500,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 4800,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 4800,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 5100,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 5100,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 13574,
+            "points": 5400,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 11506,
+            "points": 5400,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10842,
+            "points": 5800,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 5800,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10838,
+            "points": 6200,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 50,
+            "id": 5706,
+            "points": 6200,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10834,
+            "points": 6600,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 6600,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 10836,
+            "points": 7000,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 8196,
+            "points": 7000,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2480,
+            "points": 7400,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 0,
+            "points": 7400,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 13574,
+            "points": 7800,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 2992,
+            "points": 7800,
+            "royal": false,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 20698,
+            "points": 8400,
+            "royal": true,
+            "season": 3
+        },
+        {
+            "count": 1,
+            "id": 5202,
+            "points": 8400,
+            "royal": false,
+            "season": 3
+        }
+    ]
+}
