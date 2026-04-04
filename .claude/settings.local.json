@@ -14,7 +14,17 @@
       "Bash(find c:UsersPCDocumentsGROWMULTIVERSE -maxdepth 2 -type f -name *item* -o -name *Item*)",
       "Bash(grep -r 14662 c:UsersPCDocumentsGROWMULTIVERSE --include=*.lua --include=*.json --include=*.txt --include=*.md)",
       "Bash(xargs ls:*)",
-      "Bash(grep -r -i \"mod\\\\|malpractic\\\\|recovering\" 'c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/' --include=*.lua -l)"
+      "Bash(grep -r -i \"mod\\\\|malpractic\\\\|recovering\" 'c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/' --include=*.lua -l)",
+      "Bash(\"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts:*)",
+      "Bash(ls \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(nested loader architecture\\)\"\")",
+      "Bash(find c:/Users/PC/Documents/GROWMULTIVERSE -name *.rml -o -name *.rcss)",
+      "Bash(ls \"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(nested loader architecture\\)/\")",
+      "Bash(BASE=\"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(nested loader architecture\\)\")",
+      "Bash(__NEW_LINE_193783ef479e3a48__ mv:*)",
+      "Bash(mv \"$BASE/standalones/xqsb.lua\" \"$BASE/admin/\")",
+      "Bash(mv \"$BASE/standalones/rent_entrance.lua\" \"$BASE/machine/\")",
+      "Bash(mv \"$BASE/standalones/autofarm_speed.lua\" \"$BASE/automation/\")",
+      "Bash(ls \"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(nested loader architecture\\)/standalones/\")"
     ]
   }
 }

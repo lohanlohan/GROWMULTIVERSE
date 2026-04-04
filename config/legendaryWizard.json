@@ -1,0 +1,1236 @@
+{
+    "quests": [
+        {
+            "quest_id": 0,
+            "tasks": [
+                {
+                    "items_ids": [
+                        442
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        2946
+                    ],
+                    "target_val": 600,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 50000,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        1462
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        784
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 34464,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 7
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 1000,
+                    "task_id": 8
+                },
+                {
+                    "items_ids": [
+                        1458
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        1614,
+                        12188
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1680
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1672
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1280
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 1,
+            "tasks": [
+                {
+                    "items_ids": [
+                        4
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        598
+                    ],
+                    "target_val": 600,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 50000,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        900
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        1114
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 34464,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 7
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 1000,
+                    "task_id": 8
+                },
+                {
+                    "items_ids": [
+                        1576
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        394,
+                        6014,
+                        8034,
+                        9298,
+                        10574,
+                        11592,
+                        13052,
+                        14184
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1378
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1128
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1206
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 2,
+            "tasks": [
+                {
+                    "items_ids": [
+                        914
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        254
+                    ],
+                    "target_val": 600,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 50000,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        1274
+                    ],
+                    "target_val": 2,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        324
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 34464,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 7
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 1000,
+                    "task_id": 8
+                },
+                {
+                    "items_ids": [
+                        1250
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        1602,
+                        11012
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1354
+                    ],
+                    "target_val": 5,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1396
+                    ],
+                    "target_val": 5,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        8284
+                    ],
+                    "target_val": 2,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 3,
+            "tasks": [
+                {
+                    "items_ids": [
+                        728
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        156
+                    ],
+                    "target_val": 600,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 50000,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        1550
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        678
+                    ],
+                    "target_val": 800,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 34464,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 7
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 1000,
+                    "task_id": 8
+                },
+                {
+                    "items_ids": [
+                        1672
+                    ],
+                    "target_val": 20,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        1460
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        818
+                    ],
+                    "target_val": 100,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1674,
+                        9758
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1574
+                    ],
+                    "target_val": 50,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 4,
+            "tasks": [
+                {
+                    "items_ids": [
+                        684
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        604
+                    ],
+                    "target_val": 600,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 50000,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        2386
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        690
+                    ],
+                    "target_val": 800,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 34464,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 10
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 11
+                },
+                {
+                    "items_ids": [
+                        810
+                    ],
+                    "target_val": 20,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        2002
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        2456
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        2572
+                    ],
+                    "target_val": 20,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        2266
+                    ],
+                    "target_val": 20,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 5,
+            "tasks": [
+                {
+                    "items_ids": [
+                        1050
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        6080
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        4880
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 20000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        5202
+                    ],
+                    "target_val": 5,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 8928,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 10
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 20,
+                    "task_id": 12
+                },
+                {
+                    "items_ids": [
+                        5276
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        6028
+                    ],
+                    "target_val": 5,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        5650
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        6094,
+                        7334,
+                        7968
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        5078
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 6,
+            "tasks": [
+                {
+                    "items_ids": [
+                        5042
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        1736
+                    ],
+                    "target_val": 1000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        2982
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 20000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        1936
+                    ],
+                    "target_val": 800,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 8928,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 7
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10,
+                    "task_id": 12
+                },
+                {
+                    "items_ids": [
+                        1824
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        4302,
+                        13566
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        7762
+                    ],
+                    "target_val": 5,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        5754
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        7728
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 7,
+            "tasks": [
+                {
+                    "items_ids": [
+                        9390
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        10214
+                    ],
+                    "target_val": 150,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        8952
+                    ],
+                    "target_val": 15,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 20000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        10332
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 8928,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 13
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 1000,
+                    "task_id": 8
+                },
+                {
+                    "items_ids": [
+                        2952
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        11076
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        9376
+                    ],
+                    "target_val": 5,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        11008
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        10806
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        },
+        {
+            "quest_id": 8,
+            "tasks": [
+                {
+                    "items_ids": [
+                        8206
+                    ],
+                    "target_val": 2000,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 1
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10000,
+                    "task_id": 2
+                },
+                {
+                    "items_ids": [
+                        10160
+                    ],
+                    "target_val": 50,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 34464,
+                    "task_id": 3
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 5,
+                    "task_id": 4
+                },
+                {
+                    "items_ids": [
+                        11152
+                    ],
+                    "target_val": 50,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 20000,
+                    "task_id": 5
+                },
+                {
+                    "items_ids": [
+                        10130
+                    ],
+                    "target_val": 10,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        112
+                    ],
+                    "target_val": 34464,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 6
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 100,
+                    "task_id": 10
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 10,
+                    "task_id": 12
+                },
+                {
+                    "items_ids": [
+                        10634
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [],
+                    "target_val": 3392,
+                    "task_id": 9
+                },
+                {
+                    "items_ids": [
+                        7416
+                    ],
+                    "target_val": 2,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        11050
+                    ],
+                    "target_val": 3,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        10724
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        10576
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                },
+                {
+                    "items_ids": [
+                        1794
+                    ],
+                    "target_val": 1,
+                    "task_id": 0
+                }
+            ]
+        }
+    ],
+    "quests_names": [
+        [
+            8,
+            "Quest Of The Owl"
+        ],
+        [
+            7,
+            "Quest Of The Mech"
+        ],
+        [
+            6,
+            "Quest For The Sky"
+        ],
+        [
+            5,
+            "Quest For Candour"
+        ],
+        [
+            4,
+            "Quest For The Blade"
+        ],
+        [
+            3,
+            "Quest Of The Heavens"
+        ],
+        [
+            2,
+            "Quest Of Steel"
+        ],
+        [
+            1,
+            "Quest For Fire"
+        ],
+        [
+            0,
+            "Quest For Honor"
+        ]
+    ],
+    "quests_rewards": [
+        [
+            8,
+            11142
+        ],
+        [
+            7,
+            11140
+        ],
+        [
+            6,
+            7734
+        ],
+        [
+            5,
+            6026
+        ],
+        [
+            4,
+            2592
+        ],
+        [
+            3,
+            1784
+        ],
+        [
+            2,
+            1780
+        ],
+        [
+            1,
+            1782
+        ],
+        [
+            0,
+            1794
+        ]
+    ]
+}

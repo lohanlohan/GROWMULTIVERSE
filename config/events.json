@@ -1,0 +1,243 @@
+{
+    "daily_events": [
+        {
+            "description": "`3Today is Geiger Day!`` Geiger Counters recharge faster, among other surprises!",
+            "id": 40,
+            "title": "`3Geiger Day``"
+        },
+        {
+            "description": "`3Today is Dark Mage Day!`` Be ready to encounter the holy Dark Mage & don't forget to bring some rare blocks to him!",
+            "id": 41,
+            "title": "`3Dark Mage Day``"
+        },
+        {
+            "description": "`3Today is Surgery Day!`` `4Malpractice`` and `4Recovering`` effects only last a few minutes, and bonus items can be found doing surgery.",
+            "id": 42,
+            "title": "`3Surgery Day``"
+        },
+        {
+            "description": "`2It's Voucher Dayz in Growtopia! There are some awesome deals in the store so check them out!``",
+            "id": 43,
+            "title": "`3Voucher Dayz``"
+        },
+        {
+            "description": "`3Today is Rayman Day!`` Rayman's Fist now will give 1 HIT when charged! Such an amazing day!",
+            "id": 44,
+            "title": "`3Rayman Day``"
+        },
+        {
+            "description": "A `2Traveling Salesman`` has come to Growtopia! Go trade him some of your Locks for fabulous items before he leaves town again!",
+            "id": 45,
+            "title": "`3Locke Day``"
+        },
+        {
+            "description": "`3Today is Experience Day!`` All experience you gain has a chance to be multiplied by 5x!",
+            "id": 46,
+            "title": "`3Experience Day``"
+        },
+        {
+            "description": "`2The Carnival has come to Growtopia!`` Check out the fun and games in the world `9CARNIVAL``! Hurry, it only lasts 3 days!",
+            "id": 47,
+            "title": "`3Carnival``"
+        }
+    ],
+    "daily_challenges": [
+        1, 2, 4
+    ],
+    "event_textures": [
+        {
+            "item_id": 2,
+            "required_event": 1,
+            "texture": [
+                "dirtv_page1.rttex",
+                "tiles_switchv.rttex"
+            ],
+            "texture_hash": -528229871
+        },
+        {
+            "item_id": 2,
+            "required_event": 2,
+            "texture": [
+                "dirte_page1.rttex",
+                "tiles_switche.rttex"
+            ],
+            "texture_hash": 138994818
+        },
+        {
+            "item_id": 2,
+            "required_event": 3,
+            "texture": [
+                "dirtl_page1.rttex",
+                "tiles_switchl.rttex"
+            ],
+            "texture_hash": -1220428458
+        },
+        {
+            "item_id": 2,
+            "required_event": 4,
+            "texture": [
+                "dirtn_page1.rttex",
+                "tiles_switchn.rttex"
+            ],
+            "texture_hash": -126583804
+        },
+        {
+            "item_id": 2,
+            "required_event": 5,
+            "texture": [
+                "dirth_page1.rttex",
+                "tiles_switchh.rttex"
+            ],
+            "texture_hash": 1602222323
+        },
+        {
+            "item_id": 2,
+            "required_event": 6,
+            "texture": [
+                "dirtg_page1.rttex",
+                "tiles_switchg.rttex"
+            ],
+            "texture_hash": 1479602358
+        },
+        {
+            "item_id": 2,
+            "required_event": 7,
+            "texture": [
+                "dirt9_page1.rttex",
+                "tiles_switch9.rttex"
+            ],
+            "texture_hash": 2045353937
+        },
+        {
+            "item_id": 2,
+            "required_event": 8,
+            "texture": [
+                "dirtg_page1.rttex",
+                "tiles_switchg.rttex"
+            ],
+            "texture_hash": 1479602358
+        }
+    ],
+    "events": [
+        {
+            "description": "During Valentine event you are able to use Well Of Love & have a chance to obtain Golden Heart Crystal!",
+            "id": 1,
+            "message": "`4Happy Valentine's Week!``",
+            "title": "`3Valentine's Day``"
+        },
+        {
+            "description": "During Eco event you are able to purchase offers related to Eco event, you can plant Eco seeds & Golden Eco seeds for awesome rewards & to make things even better every 20 Eco seeds planted you will get Golden Eco seed!",
+            "id": 2,
+            "message": "`2Wildlife Weekend is here!`` Play your part planting Eco Seeds and help our world...",
+            "title": "`3Eco Event``"
+        },
+        {
+            "description": "During Halloween event you can visit Growganoth, make sacrifices & get awesome rewards! Don't forget to checkout the TOMBOFGROWGANOTH too!",
+            "id": 3,
+            "message": "`8It's `4Halloween!`` Visit the world `4GROWGANOTH`` to sacrifice your items to Almighty Growganoth!",
+            "title": "`3Halloween Day``"
+        },
+        {
+            "description": "During Night of the Comet sparkly dust may spawn in your worlds, or perhaps in more popular worlds! Don't forget to collect them, they are useful!",
+            "id": 4,
+            "message": "It's the `2Night of the Comet!`` Stardust is sprinkling down from the sky, and you just might be able to get items that can only be spliced in the cosmic energy of the comet!",
+            "title": "`3Night of the Comet``"
+        },
+        {
+            "description": "During Harvest Festival there's a chance of getting Mooncakes from harvesting trees, well higher rarity, higher chance, however there's much much more!",
+            "id": 5,
+            "message": "`8It's time for the `4Harvest Festival!`` Harvest trees to find goodies that you can mix in a Laboratory or E-Z Cook Oven to make better goodies!",
+            "title": "`3Harvest Festival``"
+        },
+        {
+            "description": "During Grow4Good Day event you will see new awesome store offers & participate in the awesome fight for Grow4Good title!",
+            "id": 6,
+            "message": "It's `2Grow4Good!`` Complete tasks, earn rewards and contribute to a great cause!",
+            "title": "`3Grow4Good Day``"
+        },
+        {
+            "description": "During Easter there's a chance of Magic Eggs randomly spawning in your world, look for them! And don't forget to check the store out for awesome easter deals!",
+            "id": 7,
+            "message": "`3It's Easter Week!`` Find Magic Eggs hidden in every world, then plant or splice them to make magical springtime items!",
+            "title": "`3Easter Event``"
+        },
+        {
+            "description": "Ride the Party Wagon as we make our way to the Euphoria party! Reach for the stars and secure your spot in the Leaderboards to be crowned as Party Animals and receive awesome rewards!",
+            "id": 8,
+            "message": "`2Growtopia is a year older!`` Get `5Double Bonus Golden Party Boxes`` for your money this week, and enjoy special party events!",
+            "title": "`3Anniversary Day``"
+        },
+        {
+            "description": "",
+            "id": 9,
+            "message": "`2Happy St. Patrick's Day!`` Get `425%`` more Gems for your money! And go kiss the `2Blarney Stone`` in the worlds BLARNEY1 - BLARNEY10!",
+            "title": "`3St-Patricks Day``"
+        },
+        {
+            "description": "",
+            "id": 10,
+            "message": "",
+            "title": "`3Cinco De Mayo``"
+        },
+        {
+            "description": "",
+            "id": 11,
+            "message": "",
+            "title": "`3Summerfest``"
+        },
+        {
+            "description": "",
+            "id": 12,
+            "message": "",
+            "title": "`3Wonder Day``"
+        },
+        {
+            "description": "",
+            "id": 13,
+            "message": "",
+            "title": "`3Ubi Day``"
+        },
+        {
+            "description": "",
+            "id": 14,
+            "message": "",
+            "title": "`3Pineapple Event``"
+        },
+        {
+            "description": "",
+            "id": 15,
+            "message": "",
+            "title": "`3Winterfest``"
+        },
+        {
+            "description": "",
+            "id": 16,
+            "message": "",
+            "title": "`3Wings Day``"
+        },
+        {
+            "description": "",
+            "id": 17,
+            "message": "",
+            "title": "`3Thanksgiving Day``"
+        },
+        {
+            "description": "",
+            "id": 18,
+            "message": "",
+            "title": "`3Pegasus Pursuit``"
+        },
+        {
+            "description": "",
+            "id": 19,
+            "message": "",
+            "title": "`3Garuda's Glory Day``"
+        },
+        {
+            "description": "",
+            "id": 20,
+            "message": "",
+            "title": "`3Lunar New Year Day``"
+        }
+    ]
+}

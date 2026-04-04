@@ -80,7 +80,11 @@ local function giveSuccessPrizes(world, player, diagKey)
     else
         player:onConsoleMessage("You got a `3" .. cadName .. "``!")
     end
-    player:onConsoleMessage("`2Hospital progress increased by 1.")
+    if _G.HospitalSystem and _G.HospitalSystem.addSurgeryProgress then
+        if _G.HospitalSystem.addSurgeryProgress(world, player) then
+            player:onConsoleMessage("`2Hospital progress increased by 1.")
+        end
+    end
 end
 
 -- =======================================================
@@ -159,8 +163,9 @@ local function processTool(world, player, session, toolId)
     local T  = SD.TOOL
     local st = session
 
-    -- Special: Scalpel on non-unconscious patient → instant fail
-    if toolId == T.SCALPEL and st.consciousness ~= "UNCONSCIOUS" then
+    -- Special: Scalpel on fully awake patient → instant fail
+    -- COMING_TO is still sedated (patient is groggy, not reactive) — scalpel is allowed
+    if toolId == T.SCALPEL and st.consciousness == "AWAKE" then
         endSurgery(world, player, session, false,
             "You just stabbed someone who was fully awake! YOUR MEDICAL LICENSE IS REVOKED!")
         return
@@ -356,9 +361,14 @@ function M.start(world, player, tileX, tileY, cfg)
         return false
     end
 
-    -- Pick random diagnosis (use allowedDiags if provided, else all)
-    local pool    = (cfg.allowedDiags and #cfg.allowedDiags > 0) and cfg.allowedDiags or SD.DIAG_KEYS
-    local diagKey = pool[math.random(1, #pool)]
+    -- Use forced diagnosis if provided (e.g. target has active malady), else pick random
+    local diagKey
+    if cfg.forcedDiagKey and SD.DIAG[cfg.forcedDiagKey] then
+        diagKey = cfg.forcedDiagKey
+    else
+        local pool = (cfg.allowedDiags and #cfg.allowedDiags > 0) and cfg.allowedDiags or SD.DIAG_KEYS
+        diagKey = pool[math.random(1, #pool)]
+    end
 
     -- Store surgeon skill snapshot for Fix It internal use
     local skill = getSurgeonSkill(player)

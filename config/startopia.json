@@ -1,0 +1,364 @@
+{
+    "missions": [
+        {
+            "id": 0,
+            "scan_target": "",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "Your new ship, gleaming with potential, is finally ready. To get underway, you must navigate to the warp buoy at the end of Starbase Alpha's docks. Let's use a Tactical Drone to get an idea of what's out there. Select it from your Star Tools below (if you don't have it, get one)!"
+                    ]
+                },
+                {
+                    "correct_tool": 6534,
+                    "description": [
+                        "Your Tactical Drone locates the warp buoy! You chart a course, and with a brilliant flare of its engines, your ship navigates out of the dock. Now all you need is clearance to depart. Let's use our Stellar Documents to show Imperial Command everything's in order."
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "Clearance granted! Imperial Command accepts your Stellar Documents and wishes you success on your travels. The stars beckon, Captain - let's explore them! ",
+                        "VOOM! The warp buoy ignites, rocketing your ship into the vast unknown of deep space! Have fun on your adventure, Star Captain, and good luck!"
+                    ]
+                }
+            ],
+            "title": "Set a Course"
+        },
+        {
+            "id": 3,
+            "scan_target": "",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "As you pass an uninhabited planet, your science officer informs you that some artifical structures on its surface are triggering strange readings. Something is off here - perhaps we should investigate!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "The Tactical Drone reports a massive city that has fallen into ruin! Sounds like a good opportunity for some exploration!"
+                    ]
+                },
+                {
+                    "correct_tool": 6530,
+                    "description": [
+                        "Your crew beams over to the apocalyptic city. Let's see if there's anything of value here... "
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "The Quadriscanner directs the crew to central blast sites at the heart of the vast city. It looks like some terribly devastating weapon ripped this place to shreds and blackened the skies above! This world is a total loss, but perhaps our scientists can learn something from the blast sites. These locations are valuable data - let's get them back to the ship!"
+                    ]
+                },
+                {
+                    "correct_tool": 6534,
+                    "description": [
+                        "Your crew returns to the ship, data in hand. What a find! Think of everything our scientists could learn from this! Let's file an official report on it with Imperial Command so they can get to work on it right away!"
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "Using a fresh batch of Stellar Documents, your science team makes a full report on their discovery and sends it off to Imperial Command. The response is immediate: A commendation and reward for your efforts! Well done!",
+                        "Fascinating results, Captain! This data will surely be useful for the scientists and engineers at Startopia Imperial Research Academy! We should investigate to find more opportunities like this!"
+                    ]
+                }
+            ],
+            "title": "Devastation Data"
+        },
+        {
+            "id": 4,
+            "scan_target": "",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "Imperial Command has reported the loss of an experimental ship in a nearby asteroid field. They want us to recover all remaining systems before agents of the Greezak Horde find out about this!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "The Tactical Drone finds three intact Imperial ship systems in the debris field. Let's get them onto our ship and get out of this mess!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "You teleport one of the prototype systems into the cargo bay. Two to go!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "You teleport one of the prototype systems into the cargo bay. One to go!"
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "You teleport the final prototype system into the cargo bay. Nicely done! Now let's get out of this debris field!",
+                        "Having successfully retrieved all experimental components from the wreck of the prototype vessel, you set course for the nearest starbase, secure in the knowledge that you've helped the Imperial cause!"
+                    ]
+                }
+            ],
+            "title": "Experimental Salvage"
+        },
+        {
+            "id": 1,
+            "scan_target": "Infested Derelict",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "We've got a report of a xenoid infestation in an abandoned derelict vessel not far from our current position. We can't let them spread, Captain - let's take them out."
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "The derelict pops up on our sensors, right where we expected it to be. It doesn't seem to have any active defenses or weapon systems. Looks like we're clear to head in."
+                    ]
+                },
+                {
+                    "correct_tool": 6530,
+                    "description": [
+                        "Your crew arrives in the derelict vessel. All is clear in the current area, but if the reports are accurate, there's a Xenoid Hive and their queen somewhere here. Let's find them."
+                    ]
+                },
+                {
+                    "correct_tool": 6528,
+                    "description": [
+                        "Movement! The Quadriscanner picks up signs of activity not far from your crew's current position. They follow the sensor readings into- AMBUSH! A swarm of xenoid warriors led by a multi-limbed queen launch an all-out attack on our people!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "Take THAT, Xenoid scum! Gigablasters flaring with white-hot light, your crew cut down the attacking warrior beasts and their horrible queen. Well done! Now let's get our people back!"
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "Cheering and laughing, your crew beam back to the ship, another successful mission under their belts.",
+                        "The xenoid beasts and their queen have been defeated - well done, Captain! Imperial Command is pleased with your performance."
+                    ]
+                }
+            ],
+            "title": "Xenoid Hunt"
+        },
+        {
+            "id": 2,
+            "scan_target": "Infested Derelict",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "We've got a report of a rogue AI infestation in an abandoned derelict vessel not far from our current position. We can't let them spread, Captain - let's take them out."
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "The derelict pops up on our sensors, right where we expected it to be. It doesn't seem to have any active defenses or weapon systems. Looks like we're clear to head in."
+                    ]
+                },
+                {
+                    "correct_tool": 6530,
+                    "description": [
+                        "Your crew arrives in the derelict vessel. All is clear in the current area, but if the reports are accurate, there's a rogue AI and a bunch of robot minions that need removing somewhere here. Let's find them."
+                    ]
+                },
+                {
+                    "correct_tool": 6528,
+                    "description": [
+                        "Movement! The Quadriscanner picks up signs of activity not far from your crew's current position. They follow the sensor readings into- AMBUSH! A swarm of robots led by a glowing AI masterbot launch an all-out attack on our people!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "Take THAT, robot scum! Gigablasters flaring with white-hot light, your crew cut down the attacking machines and their AI leader. Well done! Now let's get our people back!"
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "Cheering and laughing, your crew beam back to the ship, another successful mission under their belts.",
+                        "The rogue AI and its minions has been defeated - well done, Captain! Imperial Command is pleased with your performance."
+                    ]
+                }
+            ],
+            "title": "Robot Hunt"
+        },
+        {
+            "id": 5,
+            "scan_target": "ghost ship",
+            "steps": [
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "A faint signal from an Imperial Starship Beacon draws you to a lonely system outside claimed space. Here, a ship floats in an unstable orbit around a cold star. You hail it, but receive no signal."
+                    ]
+                },
+                {
+                    "correct_tool": 6530,
+                    "description": [
+                        "Your crew enters the ghost ship. Markings on its walls reveal its designation as the ISS Sorrowsong. It's one of ours... but what happened? We must investigate!"
+                    ]
+                },
+                {
+                    "correct_tool": 6520,
+                    "description": [
+                        "Your Quadriscanner finds no lifesigns on board, but the computer core does appear to be functioning. Your crew head for the mainframe - they'll need a software interpreter to interface with it!"
+                    ]
+                },
+                {
+                    "correct_tool": 6534,
+                    "description": [
+                        "Using the AI Brain, you download the ship's data log and discover the grim fate of the Sorrowsong. It looks like it suffered a reactor malfunction and ran out of fuel beyond known space. They tried to make it back on sublight power, but ran out of supplies long before they got close to anyone. We should report this loss to the proper authorities, and their families, with all proper documentation. It's important."
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "You use a fresh batch of Stellar Documents to make a full report on the final resting place and disposition of the Sorrowsong. A sad end for its crew, but it's good to know their families will have closure.",
+                        "You send your report to Imperial Command with a sense of satisfaction. At least, the crew of the Sorrowsong can rest in peace."
+                    ]
+                }
+            ],
+            "title": "Skeleton Crew"
+        },
+        {
+            "id": 6,
+            "scan_target": "Derelict Ship",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "Your ship receives a distress call from a nearby asteroid belt. Startopia Imperial Mandate 47.M.098 requires you to explore and render assistance to any survivors."
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "Your Tactical Drone scans the area, revealing the derelict vessel. It's dead in space, adrift with no power!"
+                    ]
+                },
+                {
+                    "correct_tool": 6530,
+                    "description": [
+                        "Your crew beams over to the derelict vessel. It's dark and silent - not much to go on from a visual scan. We're going to need more data."
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "Energy readings! Most of the ship is dead, but it looks like the bridge still has power. Unfortunately, the moment your crew reaches it, an automatic self-destruct triggers! The countdown on the screan reads: '1 MINUTE REMAINING UNTIL SELF-DESTRUCT' "
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "Yikes! Abort! Abort! Your crew gathers together for the teleporter, which pulls them off of the derelict moments before it erupts in a giant fireball! That was close!",
+                        "You leave the flaming wreck of the derelict behind and continue on your journey. Whether that was a booby trap or a simple accident, you'll never know, but at least everyone got back safely!"
+                    ]
+                }
+            ],
+            "title": "Salvage Run"
+        },
+        {
+            "id": 7,
+            "scan_target": "`4Growlactus``",
+            "steps": [
+                {
+                    "correct_tool": 6532,
+                    "description": [
+                        "The starry brilliance of the Galactic Nexus splits and wavers. A cold dread grips your heart as darkness pounds in your mind, a call of madness beyond mortal understanding. SOMETHING is here, and it craves your ruin."
+                    ]
+                },
+                {
+                    "correct_tool": 6518,
+                    "description": [
+                        "Your Tactical Drone reveals your foe, and you instantly wish it hadn't. `4Growlactus`` is VAST, a near-incomprehensible horror that blots the very stars. It is a living moon of twisted limbs, unblinking eyes, and monstrous flesh, and it's coming for `4YOU``. Even now, tentacles stream from it to ensnare and crush your ship. We need to reinforce our defenses, FAST!"
+                    ]
+                },
+                {
+                    "correct_tool": 6540,
+                    "description": [
+                        "The tentacles of `4Growlactus`` sizzle and rebound against the glowing might of the HyperShields, and it pulls back in shock and fury. A mouth lined with jagged teeth opens to howl its displeasure. Now's our chance!"
+                    ]
+                },
+                {
+                    "correct_tool": 6538,
+                    "description": [
+                        "The missile volley smashes into the maw of `4Growlactus``, bypassing its armored hide and making it squirm in pain! It spits broken teeth the size of asteroids, and then its many eyes narrow. You feel like they're looking through the ship, straight into YOU. Your vision wavers, and a voice like a bandsaw cleaves into your thoughts: 'YOU ARE STRONG. BE OF ME.' It's trying to convert you!"
+                    ]
+                },
+                {
+                    "correct_tool": 6528,
+                    "description": [
+                        "Its circuits sparking from the effort, the Cyborg Diplomat leaps between you and `4Growlactus`` sacrificing itself to help you resist the conversion ray! The abomination shudders with hate at this denial, and then its many eyes roll up as it focuses inward. Suddenly, intruder alerts sound on all decks - It's teleported creatures on-board!"
+                    ]
+                },
+                {
+                    "correct_tool": 6520,
+                    "description": [
+                        "Gigablasters set to FRY, your valiant crew cleanse the ship of the vile servants of `4Growlactus``! Infuriated, the creature roars again, and your consoles flicker as it tries a new tactic: It's targeting our computers! Techno-Organic viruses are loose in the mainframe and they're tearing our systems apart!"
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "With a whining SCREEEECH, the AI Brain overloads, purging your systems of the chaos virus. `4Growlactus`` looks confused - nobody's ever put up this much resistance! We must strike now! Let's suit up and take the fight to it!"
+                    ]
+                },
+                {
+                    "correct_tool": 6530,
+                    "description": [
+                        "With a hum of energy, you and your crew teleport into the heart of `4Galactus``! You encounter a nightmare realm of chaos within - It's impossible to navigate! We need direction!"
+                    ]
+                },
+                {
+                    "correct_tool": 6528,
+                    "description": [
+                        "Success! The Quadriscanner points the way to the core of `4Growlactus``, a writhing bundle of fibers and goo that must be its central brain! Captain, I think it's time to kill a starbeast."
+                    ]
+                },
+                {
+                    "correct_tool": 6526,
+                    "description": [
+                        "Gigablasters afire, you carve apart the very essence of `4Growlactus``, destroying its central brain! The creature screeches a panicked curse, and then begins to fall apart! Captain, we have to get out of here before it takes us with it!"
+                    ]
+                },
+                {
+                    "correct_tool": 0,
+                    "description": [
+                        "WE MADE IT! The Teleporter Charge rips us from the clutches of the dying horror before it can react. Mortally wounded and unable to reach us, `4Growlactus`` shrieks in agony and collapses, its form wrenching apart!",
+                        "Impossibly, fantastically, you have destroyed the cosmic horror of `4Growlactus``. Tidal waves of energy explode into space from the abomination's corpse, shockwaves of power that overload your systems and shift your vessel into a higher plane of existance! Glowing with luminous might, you and your crew ascend to a new state of being, no longer mere officers of Startopia, but true champions of the galaxy! Your valor will be remembered for all time. Amazing work, Captain. Simply amazing."
+                    ]
+                }
+            ],
+            "title": "`4Growlactus!``"
+        }
+    ],
+    "side_missions": [
+        {
+            "after_tick_description": "`8The pirate ships swoop in, sending out a swarm of missiles to rake our hull!``",
+            "correct_tool": 6540,
+            "description": "A wing of pirate ships swoops in from above! They're raiding us? At a time like this?! COME ON!",
+            "id": 0
+        },
+        {
+            "after_tick_description": "`8The crew can't see to do their work, they keep bumping into each other!``",
+            "correct_tool": 6522,
+            "description": "The lights throughout the ship are failing. It's getting really dark and hard to see. We need repairs to the main fuse units quickly.",
+            "id": 1
+        }
+    ]
+}

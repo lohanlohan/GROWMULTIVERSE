@@ -34,6 +34,18 @@ GROWMULTIVERSE/
 ├── game/                               ← Asset real Growtopia
 ├── GameData/                           ← Data real Growtopia (ItemRenderers, UI, dll.)
 ├── interface/                          ← Interface real Growtopia
+├── config/                             ← Server config JSON — bisa diedit untuk modifikasi server
+│   ├── conf.json                       ← Master config: Discord, Game flags, Server network
+│   ├── roles_v2.json                   ← Semua role: permissions, commands, flags, prefix, daily reward
+│   ├── titles.json                     ← Custom titles: titleID, titleDisplay, titleLabel
+│   ├── events.json                     ← Events & daily events: id, title, description, textures
+│   ├── growpass.json                   ← GrowPass (battle pass): seasons, rewards per points tier
+│   ├── fishing.json                    ← Fishing: allowed rods/baits, escape_time, wait_time per rod
+│   ├── dungeons.json                   ← Dungeon: energy, entry price, max players, base stats
+│   ├── ances.json                      ← Ancestors daily riddles: riddle string → item reward
+│   ├── apiConf.json                    ← REST API: port, secret key, SSL toggle
+│   ├── startopia.json                  ← Startopia missions: steps dengan correct_tool per step
+│   └── legendaryWizard.json            ← Legendary Wizard quests: tasks dengan items_ids + target_val
 ├── lua scripts (old architecture)/     ← REFERENSI — semua script lama (flat, tanpa module)
 │   ├── carnival.lua                    ← Contoh: semua script lama ada di sini
 │   └── ...
@@ -48,6 +60,7 @@ GROWMULTIVERSE/
 **Aturan folder:**
 - `.github/` & `.claude/` = Customizations & prompts — jangan edit kecuali update konteks
 - `lua scripts (old architecture)/` = **hanya referensi** — jangan edit, jangan hapus
+- `config/` = **bisa diedit langsung** — modifikasi JSON untuk ubah roles, events, quests, dll tanpa perlu Lua script
 - `lua scripts (nested loader architecture)/` = **tempat kerja aktif** — semua file baru dibuat di sini
 - `audio/`, `game/`, `GameData/`, `interface/` = **jangan disentuh** — file asli Growtopia
 - `docs/` = **jangan edit secara sembarangan** — update hanya jika ada dokumentasi API baru dari Skoobz atau Nperma

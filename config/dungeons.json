@@ -1,0 +1,16 @@
+{
+    "config": {
+        "max_energy": 20,
+        "energy_refresh_cooldown": 2160,
+        "entry_energy_price": 5,
+        "max_players": 4,
+        "waiting_time": 30,
+        "max_rooms": 5,
+        "base_max_player_health": 500,
+        "base_player_lives": 3,
+        "base_player_damage": 20,
+        "base_player_crit_chance": 0.0,
+        "base_player_crit_multiplier": 100.0,
+        "league_season_duration": 604800
+    }
+}

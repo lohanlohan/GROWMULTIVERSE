@@ -1,0 +1,12 @@
+{
+    "Server": {
+        "API_PORT": 21234,
+        "ENABLE_API": true,
+        "LISTEN_HOST": "127.0.0.1",
+        "Secret": {
+            "KEY_HEADER": "X-Soft-Authenticate-Key",
+            "SECRET_KEY": "193594990012"
+        },
+        "USE_SSL": false
+    }
+}

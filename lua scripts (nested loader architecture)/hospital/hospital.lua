@@ -2223,5 +2223,20 @@
         return false
     end)
 
+    -- Called by surgery_callbacks.lua after a successful surgery minigame.
+    -- Returns true only if: world is a registered hospital AND player is owner or registered doctor.
+    function HospitalSystem.addSurgeryProgress(world, player)
+        local worldName = world:getName()
+        local db        = readHospitalDB()
+        if type(db.worlds[tostring(worldName)]) ~= "table" then
+            return false  -- world not registered as hospital
+        end
+        local uid = player:getUserID()
+        if not isEffectiveDoctor(world, worldName, uid, player) then
+            return false  -- player is not owner or registered doctor
+        end
+        return addHospitalProgressIfPossible(worldName, 1)
+    end
+
     _G.HospitalSystem = HospitalSystem
     return HospitalSystem
