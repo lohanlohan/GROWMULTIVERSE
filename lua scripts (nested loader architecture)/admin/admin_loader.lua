@@ -10,7 +10,6 @@ local modules = {
     "fake_warn",
     "online",
     "reload",
-    "bb_scan",
     "gsm",
     "xqsb",
     "tile_debug",
