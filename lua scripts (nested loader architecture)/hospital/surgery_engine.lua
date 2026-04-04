@@ -256,9 +256,7 @@ function M.applyToolEffect(session, toolId)
         if hadIncision then
             st.incisions = st.incisions - 1
         end
-        -- Closing a proper incision = -2, bandaging with no incision = -1 (confirmed GT debug)
-        local bleedDelta = -1
-        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, bleedDelta)
+        st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, -1)
         return hadIncision and "You stitched up an incision." or "You bandaged some injuries."
 
     elseif toolId == T.SPLINT then
@@ -596,7 +594,7 @@ function M.checkFail(session)
     end
 
     -- Heart not resuscitated in time
-    if st.heartStopped and st.heartStopTurns >= 2 then
+    if st.heartStopped and st.heartStopTurns >= 3 then
         return "HEART_STOPPED", "The patient was not resuscitated in time. YOUR MEDICAL LICENSE IS REVOKED!"
     end
 
