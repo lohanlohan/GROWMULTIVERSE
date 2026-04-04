@@ -110,7 +110,8 @@ function M.newSession(diagKey, surgeon, tileX, tileY, cfg)
         moveCount      = 0,
 
         -- Antibiotics passive effect counter
-        abxTurnsLeft   = 0,
+        abxTurnsLeft    = 0,
+        abxImmuneTurns  = 0,  -- prevents dirty site from re-triggering fever after antibiotics
     }
 end
 
@@ -201,9 +202,10 @@ function M.applyToolEffect(session, toolId)
         else
             drop = 2 + math.random(0, 2)
         end
-        st.temperature  = math.max(98.6, st.temperature - drop)
-        st.tempRising   = false
-        st.abxTurnsLeft = 2
+        st.temperature     = math.max(98.6, st.temperature - drop)
+        st.tempRising      = false
+        st.abxTurnsLeft    = 2
+        st.abxImmuneTurns  = 6  -- 6-turn window: fever can't re-trigger from dirty site
         return "You used antibiotics to reduce the patient's infection."
 
     elseif toolId == T.ANTISEPTIC then
@@ -214,7 +216,7 @@ function M.applyToolEffect(session, toolId)
         if st.consciousness == "UNCONSCIOUS" then
             return "<<PERMA_DEATH>>"
         end
-        local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 6 or 10
+        local turns = (st.modifiers and st.modifiers.HYPERACTIVE) and 8 or 15
         st.consciousness = "UNCONSCIOUS"
         st.anesthTurns   = turns
         return "The patient falls into a deep sleep."
@@ -426,7 +428,7 @@ function M.applyPassiveEffects(session)
         elseif bleedIdx >= (SD.BLEED_INDEX["MODERATE"]  or 3) then visChance = 0.40
         end
         if visChance > 0 and math.random() < visChance then
-            st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, bleedDelta)
+            st.visibility = SD.shiftRank(SD.VIS_ORDER, SD.VIS_INDEX, st.visibility, 1)
         end
     end
 
@@ -457,8 +459,14 @@ function M.applyPassiveEffects(session)
         st.siteClean = SD.shiftRank(SD.CLEAN_ORDER, SD.CLEAN_INDEX, st.siteClean, 1)
     end
 
+    -- Antibiotics immunity countdown (prevents dirty site re-triggering fever)
+    if st.abxImmuneTurns and st.abxImmuneTurns > 0 then
+        st.abxImmuneTurns = st.abxImmuneTurns - 1
+    end
+
     -- Dirtiness: chance per turn to trigger fever climbing (if not already rising)
-    if not st.tempRising then
+    -- Skipped during antibiotics immunity window
+    if not st.tempRising and (not st.abxImmuneTurns or st.abxImmuneTurns <= 0) then
         local cleanIdx      = SD.CLEAN_INDEX[st.siteClean] or 1
         local triggerChance = 0
         if     cleanIdx >= 4 then triggerChance = 0.30   -- UNSANITARY
@@ -504,9 +512,9 @@ function M.applyPassiveEffects(session)
     if ev then
         if ev == "chaos" then
             -- Random: temp spike, sudden heart stop, or random bleed
-            local roll = math.random(1, 12)
+            local roll = math.random(1, 20)
             if roll == 1 then
-                st.temperature = st.temperature + math.random(1, 3) * 0.5
+                st.temperature = st.temperature + math.random(1, 2) * 0.5
             elseif roll == 2 and not st.heartStopped then
                 st.heartStopped   = true
                 st.heartStopTurns = 0

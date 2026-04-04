@@ -163,8 +163,9 @@ local function processTool(world, player, session, toolId)
     local T  = SD.TOOL
     local st = session
 
-    -- Special: Scalpel on non-unconscious patient → instant fail
-    if toolId == T.SCALPEL and st.consciousness ~= "UNCONSCIOUS" then
+    -- Special: Scalpel on fully awake patient → instant fail
+    -- COMING_TO is still sedated (patient is groggy, not reactive) — scalpel is allowed
+    if toolId == T.SCALPEL and st.consciousness == "AWAKE" then
         endSurgery(world, player, session, false,
             "You just stabbed someone who was fully awake! YOUR MEDICAL LICENSE IS REVOKED!")
         return
