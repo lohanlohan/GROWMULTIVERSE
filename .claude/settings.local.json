@@ -17,7 +17,8 @@
       "Bash(grep -r -i \"mod\\\\|malpractic\\\\|recovering\" 'c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(old architecture\\)/' --include=*.lua -l)",
       "Bash(\"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts:*)",
       "Bash(ls \"c:\\\\Users\\\\PC\\\\Documents\\\\GROWMULTIVERSE\\\\lua scripts \\(nested loader architecture\\)\"\")",
-      "Bash(find c:/Users/PC/Documents/GROWMULTIVERSE -name *.rml -o -name *.rcss)"
+      "Bash(find c:/Users/PC/Documents/GROWMULTIVERSE -name *.rml -o -name *.rcss)",
+      "Bash(ls \"c:/Users/PC/Documents/GROWMULTIVERSE/lua scripts \\(nested loader architecture\\)/\")"
     ]
   }
 }
