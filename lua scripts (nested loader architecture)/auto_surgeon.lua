@@ -145,10 +145,10 @@ end
 
 -- Per-malady icon override: can be visual string or numeric item/icon ID.
 local LOCAL_MALADY_ICON_OVERRIDE = {
-    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = "image:game/tiles_page16.rttex;frame:8,22;frameSize:32;",
-    [MaladySystem.MALADY.GEMS_CUTS]            = "image:game/tiles_page16.rttex;frame:22,26;frameSize:32;",
+    [MaladySystem.MALADY.TORN_PUNCHING_MUSCLE] = 25042,
+    [MaladySystem.MALADY.GEMS_CUTS]            = 25040,
     [MaladySystem.MALADY.CHICKEN_FEET]         = 872,
-    [MaladySystem.MALADY.GRUMBLETEETH]         = "image:game/tiles_page14.rttex;frame:30,27;frameSize:32;",
+    [MaladySystem.MALADY.GRUMBLETEETH]         = 25044,
     [MaladySystem.MALADY.BROKEN_HEARTS]        = 5810,
     [MaladySystem.MALADY.CHAOS_INFECTION]      = 8538,
     [MaladySystem.MALADY.MOLDY_GUTS]           = 8540,
