@@ -493,7 +493,7 @@ function AutoSurgeon.showAutoSurgeonStoragePanel(world, player, worldName, x, y)
         for i = rowStart, rowEnd do
             local toolID = ALL_SURGICAL_TOOLS[i]
             d = d .. string.format(
-                "add_button_with_icon|%s%d|%s|staticBlueFrame|%d|0|left|\n",
+                "add_button_with_icon|%s%d|%s|noflags|%d||left|\n",
                 BTN_WITHDRAW_TOOL_PREFIX, toolID,
                 AutoSurgeon.getToolStorageLabel(worldName, x, y, toolID), toolID
             )
@@ -522,6 +522,7 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
     local hospitalLevel = tonumber(hospitalState.level) or 1
 
     local d = "set_default_color|`o\n"
+    d = d .. "text_scaling_string|aaaaaaaaa|\n"
     d = d .. "add_label_with_icon|big|Auto Surgeon Station|left|" .. tostring(AUTO_SURGEON_ID) .. "|\n"
     d = d .. "add_smalltext|`oPick which illness this Auto Surgeon Station can cure:|\n"
     d = d .. "add_spacer|small|\n"
@@ -537,7 +538,7 @@ function AutoSurgeon.showAutoSurgeonIllnessPickerPanel(world, player, worldName,
             local labelColor  = selected == m and "`2" or "`o"
             local iconID      = tonumber(getMaladyIconID(m)) or AUTO_SURGEON_ID
 
-            d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|noflags|" .. tostring(iconID) .. "|0|left|\n"
+            d = d .. "add_button_with_icon|" .. btnName .. "|" .. labelColor .. displayName .. "|noflags|" .. tostring(iconID) .. "||left|\n"
         end
         d = d .. "add_custom_break|\n"
         d = d .. "add_spacer|small|\n"
