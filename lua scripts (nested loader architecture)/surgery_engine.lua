@@ -511,15 +511,27 @@ function M.applyPassiveEffects(session)
     local ev = diag.specialEvent
     if ev then
         if ev == "chaos" then
-            -- Random: temp spike, sudden heart stop, or random bleed
+            -- Each turn: one of 4 effects can trigger, each with 5% chance (roll 1–20).
+            -- Only one triggers per turn (if/elseif guarantees this).
             local roll = math.random(1, 20)
             if roll == 1 then
+                -- Sudden temp spike
                 st.temperature = st.temperature + math.random(1, 2) * 0.5
+                st.lastMsg = (st.lastMsg or "") .. " `4Chaos surges! Patient's temperature spikes!"
             elseif roll == 2 and not st.heartStopped then
+                -- Sudden heart stop
                 st.heartStopped   = true
                 st.heartStopTurns = 0
+                st.lastMsg = (st.lastMsg or "") .. " `4Chaos surges! Heart stops suddenly!"
             elseif roll == 3 then
+                -- Sudden bleed worsens
                 st.bleeding = SD.shiftRank(SD.BLEED_ORDER, SD.BLEED_INDEX, st.bleeding, 1)
+                st.lastMsg = (st.lastMsg or "") .. " `4Chaos surges! Bleeding worsens!"
+            elseif roll == 4 and st.consciousness == "AWAKE" then
+                -- Sudden unconsciousness (only makes sense if patient is awake)
+                st.consciousness = "UNCONSCIOUS"
+                st.anesthTurns   = 4
+                st.lastMsg = (st.lastMsg or "") .. " `4Chaos surges! Patient falls unconscious!"
             end
 
         elseif ev == "howl" then
