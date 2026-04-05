@@ -29,6 +29,7 @@ local TAB_ICONS = {
     roles    = 1796,
     titles   = 4298,
     topup    = 242,
+    gacha    = 6190,
 }
 
 local TAB_LABELS = {
@@ -37,9 +38,10 @@ local TAB_LABELS = {
     roles    = "`wRoles",
     titles   = "`wTitles",
     topup    = "`9Top Up",
+    gacha    = "`9Gacha",
 }
 
-local TABS = { "featured", "items", "roles", "titles", "topup" }
+local TABS = { "featured", "items", "roles", "titles", "topup", "gacha" }
 
 -- =======================================================
 -- HELPERS
@@ -146,6 +148,12 @@ local function buildFeaturedTab(d, player)
             end
         end
     end
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oFeatured items change periodically. Check back often for new exclusive deals!|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oNeed more Premium Gems? Visit the `9Top Up`` tab for available packages.|\n"
     return d
 end
 
@@ -168,24 +176,29 @@ local function buildItemsTab(d, player)
     if #items == 0 then
         d = d .. "add_textbox|`8No items available yet. Check back later for exclusive items added by the server owner!|\n"
         d = d .. "add_spacer|small|\n"
-        d = d .. "add_textbox|`o[Coming soon]|\n"
-        return d
-    end
-
-    for i, item in ipairs(items) do
-        if (item.id or 0) > 0 then
-            local name   = (item.name ~= "" and item.name) or ("Item #" .. item.id)
-            local sLabel = stockLabel(item)
-            if item.stock == 0 then
-                d = d .. "add_button_with_icon|btn_na_item_" .. i ..
-                    "|`8" .. name .. "\\n`4OUT OF STOCK|staticGreyFrame|" .. item.id .. "|48|\n"
-            else
-                d = d .. "add_button_with_icon|btn_buy_item_" .. i ..
-                    "|`w" .. name .. "\\n" .. pgLabel(item.price or 0) .. "   " .. sLabel ..
-                    "|staticGreyFrame|" .. item.id .. "|48|\n"
+        d = d .. "add_textbox|`oNew items will be listed here as the server grows. Stay tuned!|\n"
+    else
+        for i, item in ipairs(items) do
+            if (item.id or 0) > 0 then
+                local name   = (item.name ~= "" and item.name) or ("Item #" .. item.id)
+                local sLabel = stockLabel(item)
+                if item.stock == 0 then
+                    d = d .. "add_button_with_icon|btn_na_item_" .. i ..
+                        "|`8" .. name .. "\\n`4OUT OF STOCK|staticGreyFrame|" .. item.id .. "|48|\n"
+                else
+                    d = d .. "add_button_with_icon|btn_buy_item_" .. i ..
+                        "|`w" .. name .. "\\n" .. pgLabel(item.price or 0) .. "   " .. sLabel ..
+                        "|staticGreyFrame|" .. item.id .. "|48|\n"
+                end
             end
         end
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_textbox|`oMore items may be added over time. Check back for new listings!|\n"
     end
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oNeed more Premium Gems? Visit the `9Top Up`` tab for available packages.|\n"
     return d
 end
 
@@ -208,17 +221,22 @@ local function buildRolesTab(d, player)
     if #roles == 0 then
         d = d .. "add_textbox|`8No roles available yet. Exclusive server roles will appear here when added!|\n"
         d = d .. "add_spacer|small|\n"
-        d = d .. "add_textbox|`o[Coming soon]|\n"
-        return d
+        d = d .. "add_textbox|`oRoles grant special permissions and perks on the server. Stay tuned for new offerings!|\n"
+    else
+        for i, role in ipairs(roles) do
+            local typeLabel = role.permanent and "`2Permanent" or ("`3" .. (role.durationDays or 30) .. " days")
+            d = d .. "add_button_with_icon|btn_buy_role_" .. i ..
+                "|`w" .. (role.name or "Role") .. "\\n" ..
+                pgLabel(role.price or 0) .. "   " .. typeLabel ..
+                "|staticGreyFrame|1796|48|\n"
+        end
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_textbox|`oMore roles may be added over time. Check back for new listings!|\n"
     end
-
-    for i, role in ipairs(roles) do
-        local typeLabel = role.permanent and "`2Permanent" or ("`3" .. (role.durationDays or 30) .. " days")
-        d = d .. "add_button_with_icon|btn_buy_role_" .. i ..
-            "|`w" .. (role.name or "Role") .. "\\n" ..
-            pgLabel(role.price or 0) .. "   " .. typeLabel ..
-            "|staticGreyFrame|1796|48|\n"
-    end
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oNeed more Premium Gems? Visit the `9Top Up`` tab for available packages.|\n"
     return d
 end
 
@@ -241,15 +259,20 @@ local function buildTitlesTab(d, player)
     if #titles == 0 then
         d = d .. "add_textbox|`8No titles available yet. Custom display titles will appear here when added!|\n"
         d = d .. "add_spacer|small|\n"
-        d = d .. "add_textbox|`o[Coming soon]|\n"
-        return d
+        d = d .. "add_textbox|`oTitles are displayed next to your name in-game. Collect them all!|\n"
+    else
+        for i, title in ipairs(titles) do
+            d = d .. "add_button_with_icon|btn_buy_title_" .. i ..
+                "|`w" .. (title.name or "Title") .. "\\n" .. pgLabel(title.price or 0) ..
+                "|staticGreyFrame|4298|48|\n"
+        end
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_textbox|`oMore titles may be added over time. Check back for new listings!|\n"
     end
-
-    for i, title in ipairs(titles) do
-        d = d .. "add_button_with_icon|btn_buy_title_" .. i ..
-            "|`w" .. (title.name or "Title") .. "\\n" .. pgLabel(title.price or 0) ..
-            "|staticGreyFrame|4298|48|\n"
-    end
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oNeed more Premium Gems? Visit the `9Top Up`` tab for available packages.|\n"
     return d
 end
 
@@ -286,6 +309,46 @@ local function buildTopupTab(d, player)
 end
 
 -- =======================================================
+-- GACHA TAB
+-- =======================================================
+
+local function buildGachaTab(d, player)
+    local SD      = _G.StoreData
+    local cfg     = SD and SD.load() or { gacha = { banners = {} } }
+    local banners = (cfg.gacha and cfg.gacha.banners) or {}
+
+    d = d .. "add_label_with_icon|small|`9Gacha Banners|left|6190|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oTry your luck! Each pull costs Premium Gems. The rarer the banner, the more exciting the rewards!|\n"
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+
+    if #banners == 0 then
+        d = d .. "add_textbox|`8No gacha banners available yet. New banners will be added by the server owner!|\n"
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_textbox|`oStay tuned — limited-time banners with exclusive items are coming soon!|\n"
+    else
+        for i, banner in ipairs(banners) do
+            local icon = banner.icon or 6190
+            local name = banner.name or ("Banner #" .. i)
+            local desc = banner.description or ""
+            local line2 = pgLabel(banner.price or 0) .. (desc ~= "" and ("   `o" .. desc) or "")
+            d = d .. "add_button_with_icon|btn_gacha_" .. i ..
+                "|`9" .. name .. "\\n" .. line2 ..
+                "|staticGreyFrame|" .. icon .. "|64|\n"
+        end
+        d = d .. "add_spacer|small|\n"
+        d = d .. "add_textbox|`oBanners are limited-time. Once a banner ends, its exclusive items may never return!|\n"
+    end
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oNeed more Premium Gems? Visit the `9Top Up`` tab for available packages.|\n"
+    return d
+end
+
+-- =======================================================
 -- PUBLIC: buildMain
 -- =======================================================
 
@@ -302,12 +365,97 @@ function M.buildMain(player, activeTab)
     elseif activeTab == "roles"    then d = buildRolesTab(d, player)
     elseif activeTab == "titles"   then d = buildTitlesTab(d, player)
     elseif activeTab == "topup"    then d = buildTopupTab(d, player)
+    elseif activeTab == "gacha"    then d = buildGachaTab(d, player)
     end
 
     d = d .. "add_spacer|small|\n"
     d = d .. "add_button|btn_close|Close|noflags|0|0|\n"
     d = d .. "end_dialog|premium_store_" .. activeTab .. "|||\n"
     d = d .. "add_quick_exit|\n"
+    return d
+end
+
+-- =======================================================
+-- PUBLIC: buildGachaConfirm
+-- =======================================================
+
+function M.buildGachaConfirm(player, bannerIdx)
+    local SD      = _G.StoreData
+    local cfg     = SD and SD.load()
+    local banners = cfg and cfg.gacha and cfg.gacha.banners or {}
+    local banner  = banners[bannerIdx]
+    if not banner then return nil end
+
+    local bal       = _G.PremiumCurrency and _G.PremiumCurrency.getBalance(player) or 0
+    local price     = banner.price or 0
+    local canAfford = bal >= price
+    local after     = bal - price
+    local icon      = banner.icon or 6190
+    local name      = banner.name or ("Banner #" .. bannerIdx)
+    local pool      = banner.pool or {}
+
+    local d = ""
+    d = d .. "set_default_color|`o\n"
+    d = d .. "add_label_with_icon|big|`9Gacha Pull|left|" .. icon .. "|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_label_with_icon|small|`9" .. name .. "|left|" .. icon .. "|\n"
+    d = d .. "add_spacer|small|\n"
+    if banner.description and banner.description ~= "" then
+        d = d .. "add_textbox|`o" .. banner.description .. "|\n"
+        d = d .. "add_spacer|small|\n"
+    end
+    d = d .. "add_smalltext|`oPool size:  `w" .. #pool .. " item" .. (#pool == 1 and "" or "s") .. "|\n"
+    d = d .. "add_smalltext|`oPrice:      " .. pgLabel(price) .. "|\n"
+    d = d .. "add_smalltext|`oBalance:    " .. pgLabel(bal) .. "|\n"
+    if canAfford then
+        d = d .. "add_smalltext|`oAfter pull: " .. pgLabel(after) .. "|\n"
+    end
+    d = d .. "add_spacer|small|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    if canAfford then
+        if #pool == 0 then
+            d = d .. "add_textbox|`4This banner has no items in the pool yet. Contact the server owner.|\n"
+        else
+            d = d .. "add_button|btn_gacha_pull|Pull!|noflags|0|0|\n"
+        end
+    else
+        d = d .. "add_textbox|`4Insufficient Premium Gems.\\nVisit the Top Up tab to get more.|\n"
+    end
+    d = d .. "add_button|btn_gacha_back|Back|noflags|0|0|\n"
+    d = d .. "add_quick_exit|\n"
+    d = d .. "end_dialog|premium_gacha_confirm_" .. bannerIdx .. "|||\n"
+    return d
+end
+
+-- =======================================================
+-- PUBLIC: buildGachaResult
+-- =======================================================
+
+function M.buildGachaResult(player, bannerIdx, itemId)
+    local SD      = _G.StoreData
+    local cfg     = SD and SD.load()
+    local banners = cfg and cfg.gacha and cfg.gacha.banners or {}
+    local banner  = banners[bannerIdx]
+    local icon    = banner and banner.icon or 6190
+    local bname   = banner and banner.name or ("Banner #" .. bannerIdx)
+
+    local d = ""
+    d = d .. "set_default_color|`o\n"
+    d = d .. "add_label_with_icon|big|`9You Got Something!|left|" .. icon .. "|\n"
+    d = divider(d)
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`oFrom banner: `9" .. bname .. "``|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_label_with_icon|big|`w|left|" .. (itemId or icon) .. "|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_textbox|`2The item has been added to your inventory!|\n"
+    d = d .. "add_spacer|small|\n"
+    d = d .. "add_button|btn_gacha_again_" .. bannerIdx .. "|Pull Again!|noflags|0|0|\n"
+    d = d .. "add_button|btn_gacha_done|Back to Store|noflags|0|0|\n"
+    d = d .. "add_quick_exit|\n"
+    d = d .. "end_dialog|premium_gacha_result_" .. bannerIdx .. "|||\n"
     return d
 end
 

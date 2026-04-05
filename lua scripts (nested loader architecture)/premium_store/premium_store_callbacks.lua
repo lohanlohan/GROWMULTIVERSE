@@ -48,6 +48,28 @@ local function openFeaturedEdit(player, slotIdx)
     SUI.resetTheme(player)
 end
 
+local function openGachaConfirm(player, bannerIdx)
+    local SUI = _G.StoreUI
+    if not SUI then return end
+    local dlg = SUI.buildGachaConfirm(player, bannerIdx)
+    if not dlg then
+        player:onTalkBubble(player:getNetID(), "`4Banner not found.", 0)
+        openStore(player, "gacha")
+        return
+    end
+    SUI.applyTheme(player)
+    player:onDialogRequest(dlg, 500)
+    SUI.resetTheme(player)
+end
+
+local function openGachaResult(player, bannerIdx, itemId)
+    local SUI = _G.StoreUI
+    if not SUI then return end
+    SUI.applyTheme(player)
+    player:onDialogRequest(SUI.buildGachaResult(player, bannerIdx, itemId), 500)
+    SUI.resetTheme(player)
+end
+
 local function openFeaturedList(player)
     local SUI = _G.StoreUI
     if not SUI then return end
@@ -171,6 +193,92 @@ onPlayerDialogCallback(function(world, player, data)
     if btn:match("^btn_topup_") then
         player:onTalkBubble(player:getNetID(), "`oContact the server owner to top up.", 0)
         openStore(player, tab)
+        return true
+    end
+
+    -- Gacha banner click
+    local gachaIdx = btn:match("^btn_gacha_(%d+)$")
+    if gachaIdx then
+        openGachaConfirm(player, tonumber(gachaIdx))
+        return true
+    end
+
+    return true
+end)
+
+-- =======================================================
+-- GACHA CONFIRM DIALOG CALLBACK
+-- =======================================================
+
+onPlayerDialogCallback(function(world, player, data)
+    local dlg = data["dialog_name"] or ""
+    local idx = dlg:match("^premium_gacha_confirm_(%d+)$")
+    if not idx then return false end
+
+    local btn       = data["buttonClicked"] or ""
+    local bannerIdx = tonumber(idx)
+    local SD        = _G.StoreData
+    local PC        = _G.PremiumCurrency
+    if not SD or not PC then return true end
+
+    if btn == "btn_gacha_back" or btn == "" then
+        openStore(player, "gacha")
+        return true
+    end
+
+    if btn ~= "btn_gacha_pull" then return true end
+
+    local cfg     = SD.load()
+    local banners = cfg.gacha and cfg.gacha.banners or {}
+    local banner  = banners[bannerIdx]
+    if not banner then
+        player:onTalkBubble(player:getNetID(), "`4Banner not found.", 0)
+        openStore(player, "gacha")
+        return true
+    end
+
+    local pool = banner.pool or {}
+    if #pool == 0 then
+        player:onTalkBubble(player:getNetID(), "`4This banner has no items yet.", 0)
+        openStore(player, "gacha")
+        return true
+    end
+
+    if not PC.spend(player, banner.price or 0) then
+        player:onTalkBubble(player:getNetID(), "`4Insufficient Premium Gems.", 0)
+        openGachaConfirm(player, bannerIdx)
+        return true
+    end
+
+    local itemId = SD.rollGacha(banner)
+    if itemId and itemId > 0 then
+        player:changeItem(itemId, 1, 0)
+    end
+
+    openGachaResult(player, bannerIdx, itemId)
+    return true
+end)
+
+-- =======================================================
+-- GACHA RESULT DIALOG CALLBACK
+-- =======================================================
+
+onPlayerDialogCallback(function(world, player, data)
+    local dlg = data["dialog_name"] or ""
+    local idx = dlg:match("^premium_gacha_result_(%d+)$")
+    if not idx then return false end
+
+    local btn       = data["buttonClicked"] or ""
+    local bannerIdx = tonumber(idx)
+
+    if btn == "btn_gacha_done" or btn == "" then
+        openStore(player, "gacha")
+        return true
+    end
+
+    local again = btn:match("^btn_gacha_again_(%d+)$")
+    if again then
+        openGachaConfirm(player, tonumber(again))
         return true
     end
 

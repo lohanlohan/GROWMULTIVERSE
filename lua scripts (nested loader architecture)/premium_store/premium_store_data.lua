@@ -30,6 +30,10 @@ local function defaultConfig()
             -- packages: { name, pgAmount, price (in WL), consumableId }
             packages = {},
         },
+        gacha = {
+            -- banners: { name, icon, price, description, pool=[{itemId, weight},...] }
+            banners = {},
+        },
     }
 end
 
@@ -48,6 +52,8 @@ function M.load()
     if type(data.catalog.roles)  ~= "table" then data.catalog.roles  = {} end
     if type(data.catalog.titles) ~= "table" then data.catalog.titles = {} end
     if type(data.topup.packages) ~= "table" then data.topup.packages = {} end
+    if type(data.gacha)          ~= "table" then data.gacha          = { banners = {} } end
+    if type(data.gacha.banners)  ~= "table" then data.gacha.banners  = {} end
     -- Ensure exactly 3 featured slots
     while #data.featured < 3 do
         data.featured[#data.featured + 1] = { type = "item", id = 0, name = "", price = 0, stock = -1, soldCount = 0, endDate = 0 }
@@ -98,6 +104,26 @@ function M.purchase(source)
     slot.soldCount = (slot.soldCount or 0) + 1
     M.save(cfg)
     return true
+end
+
+-- Roll gacha from a banner's pool using weighted random.
+-- Returns itemId or nil if pool is empty.
+function M.rollGacha(banner)
+    local pool = banner.pool or {}
+    if #pool == 0 then return nil end
+    local total = 0
+    for _, entry in ipairs(pool) do
+        total = total + (tonumber(entry.weight) or 1)
+    end
+    local roll = math.random() * total
+    local cumulative = 0
+    for _, entry in ipairs(pool) do
+        cumulative = cumulative + (tonumber(entry.weight) or 1)
+        if roll <= cumulative then
+            return tonumber(entry.itemId)
+        end
+    end
+    return tonumber(pool[#pool].itemId)
 end
 
 function M.resolveSlot(cfg, source)
