@@ -1652,7 +1652,7 @@
         end
 
         -- Auto Surgeon:
-        -- - If station has data, keep punch FX but never allow destruction.
+        -- - If station has data/config, hard-block destruction.
         -- - If station is empty, let default break behavior run (6 hits).
         if tileID == AUTO_SURGEON_ID then
             local uid = getUserID(player)
@@ -1694,7 +1694,8 @@
                 safeBubble(player, "Empty the Auto Surgeon storage before smashing!", 1)
             end
 
-            return false
+            -- Hard block so hit accumulation never reaches tile break.
+            return true
         end
 
         -- World Lock: block if hospital exists in world

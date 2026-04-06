@@ -383,7 +383,18 @@ end
 function AutoSurgeon.canBreakAutoSurgeon(worldName, x, y)
     local station = getStation(worldName, x, y)
     if not station then return true end
-    if (tonumber(station.earned_wl) or 0) > 0 then return false end
+    local maladyType = tostring(station.malady_type or "")
+    local enabled    = tonumber(station.enabled) == 1
+    local priceWL    = tonumber(station.price_wl) or MIN_CURE_PRICE_WL
+    local earnedWL   = tonumber(station.earned_wl) or 0
+
+    -- Any station configuration means it is still active and must not be breakable.
+    if maladyType ~= "" then return false end
+    if enabled then return false end
+    if priceWL ~= MIN_CURE_PRICE_WL then return false end
+    if earnedWL > 0 then return false end
+
+    -- Any stored tools also lock breaking until emptied.
     if AutoSurgeon.hasAnyStationStock(worldName, x, y) then return false end
     return true
 end
