@@ -1,5 +1,5 @@
 # Growtopia Multiverse — Project Overview
-> Last updated: March 2026
+> Last updated: April 2026
 > Status: DEVELOPMENT — Fokus core features dulu
 
 ---
@@ -60,6 +60,9 @@ Tidak semua player bisa/perlu sampai sini.
 | Starter Pack | starter-pack.lua | Selesai |
 | Enchanted Item Effects | itemeffectlua.lua | Selesai |
 | Delete Account (admin) | delaccount.lua | Selesai |
+| Hospital System + Surgery Minigame | hospital/ + surgery/ (nested loader) | ✅ Selesai April 2026 |
+| Carnival System (6 minigames + ticket booth + ringmaster) | carnival/ (nested loader) | ✅ Selesai |
+| Premium Store | premium_store/ (nested loader) | ✅ Selesai April 2026 — 6 tab, gacha, featured, admin panel |
 
 ### 🔧 Sedang Dikerjakan
 | Fitur | Prioritas | Catatan |
@@ -70,7 +73,7 @@ Tidak semua player bisa/perlu sampai sini.
 | Fitur | Prioritas | Catatan |
 |-------|-----------|---------|
 | Event Seasonal | HIGH | Custom event di atas GT event system |
-| Custom Shop / Store | HIGH | Toko custom dengan Premium Gems |
+| Custom Shop / Store | ~~HIGH~~ | ✅ Selesai — premium_store/ |
 | Leaderboard / Ranking | MEDIUM | Ranking per kategori (wealth, level, dll.) |
 | Guild / Clan System | MEDIUM | Setelah core selesai |
 | Daily Reward / Streak | MEDIUM | Perhatikan balance agar tidak flood currency |
@@ -148,11 +151,15 @@ GROWMULTIVERSE/ (menyerupai file manager panel dashboard GTPS Cloud by Sebia)
 
 ## Progress Log
 
+### April 2026
+- Surgery minigame selesai: 28 diagnoses (17 std + 5 malady + 6 vile vial), 14 tools, exact GT messages, player-on-player surgery
+- Premium Store selesai: 6 tab (featured/items/roles/titles/topup/gacha), Premium Gems currency, gacha weighted roll, admin panel
+- **Next:** admin panel Items/Roles/Titles/Topup management (masih stub "coming soon")
+
 ### March 2026
 - Project dimulai
 - Setup dokumentasi (CLAUDE.md, docs/, PROJECT.md, PROGRESS.md)
 - Environment baru dibuat: folder audio/cache/game/GameData/interface + 2 lua folder
 - 70+ script lama dipindah ke `lua scripts (old architecture)/` sebagai referensi
-- Script aktif: carnival (3767 baris), hospital system (5 file), backpack, item info, dll.
-- Arsitektur nested loader direncanakan — migrasi Phase 1 belum dimulai
-- Target: tentukan grouping final → mulai Phase 1 migrasi ke nested loader
+- Arsitektur nested loader diimplementasi — semua fitur core selesai di-migrate
+- Carnival, Hospital, Surgery, Premium Store — semua selesai dalam March-April 2026

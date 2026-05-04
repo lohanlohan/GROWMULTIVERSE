@@ -23,9 +23,9 @@ main.lua → [feature]_loader.lua → [object].lua
 ```
 **Load order di main.lua:**
 ```
-logger → security → economy → player → machine → item_info →
-consumable → backpack → carnival → hospital → events →
-social → admin → standalones
+utils/config/db → logger → security → economy → player → machine → item_info →
+consumable → backpack → carnival → hospital → surgery → events →
+social → admin → marvelous_missions → automation_menu → premium_store
 ```
 
 ### ⚠️ GTPS Cloud Lua Sandbox — Confirmed 2026-03-27
@@ -114,6 +114,31 @@ social → admin → standalones
 |---------|--------|-------|
 | marvelous missions | `marvelous_missions_loader.lua` ✅ | `marvelous_missions.lua` ✅ |
 | automation menu | `automation_menu_loader.lua` ✅ | `anti_consumable.lua` ✅ `automation_menu.lua` ✅ |
+
+### Premium Store ✅ SELESAI 2026-04-05
+| File | Status | Keterangan |
+|------|--------|-----------|
+| `premium_store_loader.lua` | ✅ | Loop pattern, expose `_G.StoreData`, `_G.PremiumCurrency`, `_G.StoreUI` |
+| `premium_store_data.lua` | ✅ | Load/save featured (3 slots, auto-expire), catalog (items/roles/titles), topup packages, gacha banners, weighted roll, stock management |
+| `premium_currency.lua` | ✅ | Balance per-player (`DB.getPlayer/setPlayer`), `M.give/spend`, `/premgems` admin command dengan confirmation dialog |
+| `premium_store_ui.lua` | ✅ | Gold theme, 6 tab UI (featured/items/roles/titles/topup/gacha), buy confirm, gacha confirm/result, admin panel, featured slot edit (`add_item_picker`) |
+| `premium_store_callbacks.lua` | ✅ | Sidebar button (event id=50), `/premium` command, full buy flow, gacha pull+result flow, admin featured CRUD |
+
+**Admin panel — status 2026-04-05:**
+- ✅ Featured slots: edit/save/clear via `add_item_picker` + text inputs (name, price, stock, endDate)
+- 🔲 Items/Roles/Titles/Topup management panels — masih stub "coming soon"
+
+**Dialog name patterns:**
+- Main store: `premium_store_{tab}` — tab = featured/items/roles/titles/topup/gacha
+- Buy confirm: `premium_buy_{source}_{tab}` — source = featured_N/item_N/role_N/title_N
+- Gacha confirm: `premium_gacha_confirm_{bannerIdx}`
+- Gacha result: `premium_gacha_result_{bannerIdx}`
+- Admin: `premium_admin`, `premium_admin_featuredlist`, `premium_admin_featured_{slotIdx}`
+
+**Gacha:**
+- Weighted roll (`M.rollGacha`): `math.random() * totalWeight`, cumulative loop
+- Pool entry: `{ itemId, weight }` — unlimited weight range
+- On pull: `PC.spend` → `SD.rollGacha` → `player:changeItem(itemId, 1, 0)` → result dialog
 
 ---
 
@@ -310,6 +335,8 @@ add_custom_break|
 | `backpack.json` | `backpack.lua` | `DB.loadFeature/saveFeature` |
 | `surg_prize` | `surgprize.lua` | `DB.loadFeature/saveFeature` |
 | `surgeon_skill` | `surgery_callbacks.lua` | `DB.getPlayer/setPlayer` per-player |
+| `premium_store` | `premium_store_data.lua` | `DB.loadFeature/saveFeature` |
+| `premium_gems` | `premium_currency.lua` | `DB.getPlayer/setPlayer` per-player |
 
 ### Commands
 | Command | File | Role |
@@ -349,6 +376,9 @@ add_custom_break|
 | `/carnivalprize` `/carnivalreset` | `carnival_shared.lua` | 51 |
 | `/surgprize` | `surgprize.lua` | 51 |
 | `/sbtest` | `sbtest.lua` (standalone) | 51 |
+| `/premium` | `premium_store_callbacks.lua` | 0 |
+| `/premiumadmin` | `premium_store_callbacks.lua` | 51 |
+| `/premgems` | `premium_currency.lua` | 51 |
 
 ### Cross-Feature References
 | Reference | Dibuat oleh | Dipakai oleh |
@@ -370,3 +400,6 @@ add_custom_break|
 | `_G.isAutofarmBoostSystemActive` | `autofarm_speed.lua` | — |
 | `_G.getPlayerBoostMultiplier` | `autofarm_speed.lua` | — |
 | `_G.getPlayerBoostedDelay` | `autofarm_speed.lua` | — |
+| `_G.StoreData` | `premium_store_data.lua` | `premium_store_callbacks.lua` `premium_store_ui.lua` |
+| `_G.PremiumCurrency` | `premium_currency.lua` | `premium_store_ui.lua` `premium_store_callbacks.lua` |
+| `_G.StoreUI` | `premium_store_ui.lua` | `premium_store_callbacks.lua` |
