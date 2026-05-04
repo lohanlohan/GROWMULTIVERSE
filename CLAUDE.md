@@ -84,6 +84,16 @@ Semua file ada di folder `docs/`:
 | `11-dialog-syntax.md` | Dialog UI string syntax — semua command untuk membuat dialog |
 | `12-constants-enums.md` | Constants & Enumerations — world flags, ghost types, subscription types, tile flags, role flags, dll |
 
+## Dokumen Arsitektur & Fitur
+
+Gunakan dokumen berikut sebagai peta utama codebase Lua aktif:
+
+- `docs/structure.md` = aturan nested loader architecture, naming, dan load order
+- `docs/lua-architecture-index.md` = indeks folder, loader, dan module yang aktif
+- `docs/feature-hospital.md` = referensi fitur hospital/surgery yang paling kompleks saat ini
+
+Jika ada folder atau module aktif yang belum punya dokumen fitur sendiri, buat dokumentasi fitur baru di `docs/` sebelum mengubah logic besar. Prioritasnya adalah fitur yang paling besar atau paling kompleks dulu: hospital, carnival, consumable, premium_store, player, admin, machine, item_info, security, social, automation, events, backpack, dan marvelous_missions.
+
 ## Cara Kerja
 
 Ketika user bertanya tentang coding:
